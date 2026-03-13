@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea
+.cursor
+*.sw?
+
+# Local env
+.env
+.env.local
+.env.*.local
