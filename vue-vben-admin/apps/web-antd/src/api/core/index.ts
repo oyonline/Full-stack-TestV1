@@ -10,3 +10,4 @@ export * from './post';
 export * from './role';
 export * from './sys-api';
 export * from './user';
+export * from './server-monitor';

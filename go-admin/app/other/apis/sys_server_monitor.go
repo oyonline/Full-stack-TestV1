@@ -106,9 +106,13 @@ func getCPUInfo() map[string]interface{} {
 	cpuInfo, _ := cpu.Info()
 	percent, _ := cpu.Percent(0, false)
 	cpuNum, _ := cpu.Counts(false)
+	percentVal := 0.0
+	if len(percent) > 0 {
+		percentVal = percent[0]
+	}
 	return map[string]interface{}{
 		"cpuInfo": cpuInfo,
-		"percent": pkg.Round(percent[0], 2),
+		"percent": pkg.Round(percentVal, 2),
 		"cpuNum":  cpuNum,
 	}
 }
