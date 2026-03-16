@@ -46,12 +46,14 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   }
 
   /**
-   * 刷新token逻辑
+   * 刷新 token 逻辑（go-admin 返回 { code, token }，兼容 { data }）
    */
   async function doRefreshToken() {
     const accessStore = useAccessStore();
     const resp = await refreshTokenApi();
-    const newToken = resp.data;
+    const body = resp.data as { data?: string; token?: string };
+    const newToken =
+      (body && (body.token ?? body.data)) || (typeof body === 'string' ? body : '');
     accessStore.setAccessToken(newToken);
     return newToken;
   }

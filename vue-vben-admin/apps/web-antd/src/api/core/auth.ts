@@ -47,19 +47,19 @@ export async function loginApi(data: AuthApi.LoginParams): Promise<AuthApi.Login
 }
 
 /**
- * 刷新accessToken
+ * 刷新 accessToken（对接 go-admin GET /api/v1/refresh_token）
  */
 export async function refreshTokenApi() {
-  return baseRequestClient.post<AuthApi.RefreshTokenResult>('/auth/refresh', {
+  return baseRequestClient.get<AuthApi.RefreshTokenResult>('/v1/refresh_token', {
     withCredentials: true,
   });
 }
 
 /**
- * 退出登录
+ * 退出登录（对接 go-admin POST /api/v1/logout）
  */
 export async function logoutApi() {
-  return baseRequestClient.post('/auth/logout', {
+  return baseRequestClient.post('/v1/logout', undefined, {
     withCredentials: true,
   });
 }

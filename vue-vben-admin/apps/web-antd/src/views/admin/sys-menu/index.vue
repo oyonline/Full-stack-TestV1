@@ -14,11 +14,17 @@ import {
   Modal,
   Select,
   Table,
+  Tag,
   TreeSelect,
   message,
 } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 
+import { IconifyIcon } from '@vben/icons';
+import { IconPicker } from '@vben/common-ui';
+
+import { getSysApiList } from '#/api/core';
+import type { SysApiItem } from '#/api/core';
 import { requestClient } from '#/api/request';
 
 /* -------- component 最小校验：与 access.ts 的路径集合对齐 -------- */
@@ -100,15 +106,57 @@ function getComponentOptionValue(comp: string): string {
   return comp;
 }
 
-/** go-admin 菜单树节点（列表用，含 children） */
+/**
+ * 短 key 转 Iconify（与 access.ts 的 normalizeMenuIcon 一致，供编辑回填 IconPicker 使用）
+ */
+const ICON_SHORT_KEY_MAP: Record<string, string> = {
+  'api-server': 'ant-design:cloud-server-outlined',
+  'tree-table': 'ant-design:table-outlined',
+  user: 'ant-design:user-outlined',
+  peoples: 'ant-design:team-outlined',
+  swagger: 'ant-design:api-outlined',
+  guide: 'ant-design:read-outlined',
+  education: 'ant-design:read-outlined',
+  logininfor: 'ant-design:history-outlined',
+  skill: 'ant-design:tool-outlined',
+  bug: 'ant-design:bug-outlined',
+  build: 'ant-design:build-outlined',
+  code: 'ant-design:code-outlined',
+  log: 'ant-design:file-text-outlined',
+  pass: 'ant-design:key-outlined',
+  job: 'ant-design:clock-circle-outlined',
+  'system-tools': 'ant-design:tool-outlined',
+  'dev-tools': 'ant-design:experiment-outlined',
+  'time-range': 'ant-design:clock-circle-outlined',
+  tree: 'ant-design:cluster-outlined',
+  druid: 'ant-design:monitor-outlined',
+  'api-doc': 'ant-design:api-outlined',
+};
+function normalizeMenuIcon(icon?: string): string | undefined {
+  if (!icon) return undefined;
+  if (icon.includes(':')) return icon;
+  return ICON_SHORT_KEY_MAP[icon] ?? 'ant-design:question-outlined';
+}
+
+/** 列表/详情中接口项（与后端 SysApi 对齐） */
+interface SysApiInMenu {
+  id: number;
+  title?: string;
+  path?: string;
+  action?: string;
+}
+
+/** go-admin 菜单树节点（列表用，含 children；列表接口已 Preload SysApi） */
 interface SysMenuRow {
   menuId: number;
   menuName?: string;
   title?: string;
+  icon?: string;
   path?: string;
   menuType?: string;
   sort?: number;
   visible?: string;
+  sysApi?: SysApiInMenu[];
   children?: SysMenuRow[];
 }
 
@@ -171,6 +219,9 @@ const loading = ref(false);
 const treeData = ref<SysMenuRow[]>([]);
 const errorMsg = ref('');
 
+/** 关联接口多选：选项来自 GET /api/v1/sys-api，value=id，label=title + path + action */
+const apiOptions = ref<{ value: number; label: string }[]>([]);
+
 /** 搜索：标题（模糊） */
 const searchTitle = ref('');
 /** 搜索：显示状态（后端 visible 为 int：1 显示 0 隐藏） */
@@ -229,15 +280,17 @@ const editSubmitting = ref(false);
 const editLoading = ref(false);
 /** 从 GET /api/v1/menu/:id 取到的完整详情，提交时作为基底与表单合并 */
 const fullDetail = ref<SysMenuDetail | null>(null);
-/** 编辑表单数据：含 component、parentId、menuType 等可编辑字段，其余由 fullDetail 保持原值 */
+/** 编辑表单数据：含 component、parentId、menuType、apis 等可编辑字段，其余由 fullDetail 保持原值 */
 const editForm = reactive({
   menuName: '',
   title: '',
+  icon: '',
   path: '',
   component: '',
   parentId: 0 as number,
   menuType: 'C' as string,
   permission: '',
+  apis: [] as number[],
   sort: 0,
   visible: '1',
 });
@@ -272,11 +325,13 @@ async function onEdit(record: SysMenuRow) {
     fullDetail.value = detail;
     editForm.menuName = detail.menuName ?? '';
     editForm.title = detail.title ?? '';
+    editForm.icon = detail.icon ? (normalizeMenuIcon(detail.icon) ?? '') : '';
     editForm.path = detail.path ?? '';
     editForm.component = getComponentOptionValue(detail.component ?? '');
     editForm.parentId = detail.parentId ?? 0;
     editForm.menuType = detail.menuType ?? 'C';
     editForm.permission = detail.permission ?? '';
+    editForm.apis = Array.isArray(detail.apis) ? [...detail.apis] : [];
     editForm.sort = detail.sort ?? 0;
     editForm.visible = detail.visible ?? '1';
   } catch (e: any) {
@@ -308,6 +363,7 @@ function validateComponentByMenuType(
 /**
  * 提交编辑：将 fullDetail（完整原始数据）与表单修改字段合并后，
  * 整体送入 PUT /api/v1/menu/:id，确保未编辑字段不被覆盖。
+ * icon：若当前展示值与“原始 icon 的展示值”一致，视为未改图标，提交原始值避免污染短 key；否则提交表单值。
  */
 async function onEditOk() {
   if (!fullDetail.value) return;
@@ -316,17 +372,24 @@ async function onEditOk() {
     message.error(v.message);
     return;
   }
+  const iconUnchanged =
+    editForm.icon === (normalizeMenuIcon(fullDetail.value.icon) ?? '');
+  const iconToSubmit = iconUnchanged
+    ? (fullDetail.value.icon ?? '')
+    : (editForm.icon ?? '');
   editSubmitting.value = true;
   try {
     await requestClient.put(`/v1/menu/${fullDetail.value.menuId}`, {
       ...fullDetail.value,
       menuName: editForm.menuName,
       title: editForm.title,
+      icon: iconToSubmit,
       path: editForm.path,
       component: editForm.component,
       parentId: editForm.parentId ?? 0,
       menuType: editForm.menuType,
       permission: editForm.permission ?? '',
+      apis: editForm.apis ?? [],
       sort: editForm.sort,
       visible: editForm.visible,
     });
@@ -361,11 +424,13 @@ const addSubmitting = ref(false);
 const addForm = reactive({
   menuName: '',
   title: '',
+  icon: '',
   path: '',
   component: '',
   parentId: 0 as number,
   menuType: 'C' as string,
   permission: '',
+  apis: [] as number[],
   sort: 0,
   visible: '1',
 });
@@ -373,11 +438,13 @@ const addForm = reactive({
 function onAdd() {
   addForm.menuName = '';
   addForm.title = '';
+  addForm.icon = '';
   addForm.path = '';
   addForm.component = '';
   addForm.parentId = 0;
   addForm.menuType = 'C';
   addForm.permission = '';
+  addForm.apis = [];
   addForm.sort = 0;
   addForm.visible = '1';
   addVisible.value = true;
@@ -397,11 +464,13 @@ async function onAddOk() {
     await requestClient.post('/v1/menu', {
       menuName: addForm.menuName,
       title: addForm.title,
+      icon: addForm.icon ?? '',
       path: addForm.path,
       component: addForm.component,
       parentId: addForm.parentId ?? 0,
       menuType: addForm.menuType,
       permission: addForm.permission ?? '',
+      apis: addForm.apis ?? [],
       sort: addForm.sort,
       visible: addForm.visible,
       isFrame: '0',
@@ -440,16 +509,56 @@ function onDelete(record: SysMenuRow) {
   });
 }
 
+/** 将 SysApiItem 转为多选选项：label = title + path + action */
+function toApiOption(item: SysApiItem): { value: number; label: string } {
+  const parts = [item.title, item.path, item.action].filter(Boolean);
+  return { value: item.id, label: parts.length ? parts.join(' ') : String(item.id) };
+}
+
+/** 单条接口的展示文案（title / path / action 组合） */
+function apiItemLabel(a: SysApiInMenu): string {
+  const parts = [a.title, a.path, a.action].filter(Boolean);
+  return parts.length ? parts.join(' ') : String(a.id);
+}
+
+/**
+ * 列表「关联接口」列展示：优先用行数据 sysApi，否则用 apiOptions 按 apis id 映射
+ * 无关联时返回 '-'
+ */
+/** 列表「关联接口」列 Tag 展示：返回标签文案数组，无关联时返回空数组（入参兼容表格 bodyCell 的 record 类型） */
+function getApisDisplayLabels(record: unknown): string[] {
+  const row = record as SysMenuRow;
+  if (row?.sysApi?.length) {
+    return row.sysApi.map(apiItemLabel);
+  }
+  const ids = (record as { apis?: number[] })?.apis;
+  if (Array.isArray(ids) && ids.length && apiOptions.value.length) {
+    return ids
+      .map((id) => apiOptions.value.find((o) => o.value === id)?.label ?? String(id))
+      .filter(Boolean);
+  }
+  return [];
+}
+
 onMounted(() => {
   fetchMenuList();
+  getSysApiList()
+    .then((list) => {
+      apiOptions.value = list.map(toApiOption);
+    })
+    .catch(() => {
+      apiOptions.value = [];
+    });
 });
 
 const columns: TableColumnType[] = [
   { title: '菜单ID', dataIndex: 'menuId', key: 'menuId', width: 90 },
   { title: '菜单名称', dataIndex: 'menuName', key: 'menuName', width: 140 },
   { title: '显示标题', dataIndex: 'title', key: 'title', width: 120 },
-  { title: '路径', dataIndex: 'path', key: 'path', ellipsis: true },
+  { title: '图标', key: 'icon', width: 70, align: 'center' },
+  { title: '路径', dataIndex: 'path', key: 'path', width: 180, ellipsis: true },
   { title: '类型', dataIndex: 'menuType', key: 'menuType', width: 80 },
+  { title: '关联接口', key: 'apisDisplay', width: 200, ellipsis: true },
   { title: '排序', dataIndex: 'sort', key: 'sort', width: 70 },
   { title: '可见', dataIndex: 'visible', key: 'visible', width: 70 },
   { title: '操作', key: 'action', width: 140, fixed: 'right' },
@@ -493,9 +602,40 @@ const columns: TableColumnType[] = [
       bordered
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'action'">
-          <Button type="link" size="small" @click="onEdit(record)">编辑</Button>
-          <Button type="link" size="small" danger @click="onDelete(record)">
+        <template v-if="column.key === 'icon'">
+          <IconifyIcon
+            v-if="normalizeMenuIcon(record.icon)"
+            :icon="normalizeMenuIcon(record.icon)!"
+            class="text-primary text-lg"
+          />
+          <span v-else class="text-gray-400">-</span>
+        </template>
+        <template v-else-if="column.key === 'apisDisplay'">
+          <span v-if="getApisDisplayLabels(record).length" class="flex flex-wrap gap-1">
+            <Tag
+              v-for="label in getApisDisplayLabels(record)"
+              :key="label"
+              class="m-0"
+            >
+              {{ label }}
+            </Tag>
+          </span>
+          <span v-else class="text-gray-400">-</span>
+        </template>
+        <template v-else-if="column.key === 'action'">
+          <Button
+            type="link"
+            size="small"
+            @click="onEdit(record as SysMenuRow)"
+          >
+            编辑
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            danger
+            @click="onDelete(record as SysMenuRow)"
+          >
             删除
           </Button>
         </template>
@@ -527,6 +667,9 @@ const columns: TableColumnType[] = [
         </FormItem>
         <FormItem label="显示标题">
           <Input v-model:value="editForm.title" placeholder="title" />
+        </FormItem>
+        <FormItem label="图标(icon)">
+          <IconPicker v-model="editForm.icon" class="w-full" />
         </FormItem>
         <FormItem label="类型(menuType)">
           <Select
@@ -570,6 +713,16 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
+        <FormItem label="关联接口(apis)">
+          <Select
+            v-model:value="editForm.apis"
+            mode="multiple"
+            :options="apiOptions"
+            placeholder="选择关联的接口"
+            allow-clear
+            class="w-full"
+          />
+        </FormItem>
         <FormItem label="排序">
           <InputNumber v-model:value="editForm.sort" :min="0" class="w-full" />
         </FormItem>
@@ -595,6 +748,9 @@ const columns: TableColumnType[] = [
         </FormItem>
         <FormItem label="显示标题">
           <Input v-model:value="addForm.title" placeholder="title" />
+        </FormItem>
+        <FormItem label="图标(icon)">
+          <IconPicker v-model="addForm.icon" class="w-full" />
         </FormItem>
         <FormItem label="类型(menuType)">
           <Select
@@ -634,6 +790,16 @@ const columns: TableColumnType[] = [
           <Input
             v-model:value="addForm.permission"
             placeholder="如 system:user:list，按钮(F)类型常用"
+            allow-clear
+            class="w-full"
+          />
+        </FormItem>
+        <FormItem label="关联接口(apis)">
+          <Select
+            v-model:value="addForm.apis"
+            mode="multiple"
+            :options="apiOptions"
+            placeholder="选择关联的接口"
             allow-clear
             class="w-full"
           />

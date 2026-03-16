@@ -27,7 +27,7 @@ type SysMenuInsertReq struct {
 	Paths      string          `form:"paths" comment:"id路径"`      //id路径
 	MenuType   string          `form:"menuType" comment:"菜单类型"`   //菜单类型
 	SysApi     []models.SysApi `form:"sysApi"`
-	Apis       []int           `form:"apis"`
+	Apis       []int           `form:"apis" json:"apis"`
 	Action     string          `form:"action" comment:"请求方式"`      //请求方式
 	Permission string          `form:"permission" comment:"权限编码"`  //权限编码
 	ParentId   int             `form:"parentId" comment:"上级菜单"`    //上级菜单
@@ -81,7 +81,7 @@ type SysMenuUpdateReq struct {
 	Paths      string          `form:"paths" comment:"id路径"`      //id路径
 	MenuType   string          `form:"menuType" comment:"菜单类型"`   //菜单类型
 	SysApi     []models.SysApi `form:"sysApi"`
-	Apis       []int           `form:"apis"`
+	Apis       []int           `form:"apis" json:"apis"`
 	Action     string          `form:"action" comment:"请求方式"`      //请求方式
 	Permission string          `form:"permission" comment:"权限编码"`  //权限编码
 	ParentId   int             `form:"parentId" comment:"上级菜单"`    //上级菜单

@@ -35,6 +35,53 @@ function buildValidViewPathSet(pageMap: Record<string, unknown>): Set<string> {
 const NOT_FOUND_COMPONENT = '/_core/fallback/not-found';
 
 /**
+ * 短 key 到 Iconify 的映射表
+ * 覆盖 go-admin 历史数据库中高频使用的短 key，映射到语义接近的 ant-design 图标
+ */
+const ICON_SHORT_KEY_MAP: Record<string, string> = {
+  // === 已验证的 PoC 映射 ===
+  'api-server': 'ant-design:cloud-server-outlined', // 系统管理 -> 服务器/云图标
+  'tree-table': 'ant-design:table-outlined', // 菜单管理 -> 表格图标
+  user: 'ant-design:user-outlined', // 用户管理 -> 用户图标
+
+  // === 新增高频映射 ===
+  peoples: 'ant-design:team-outlined', // 角色管理 -> 团队/人群
+  swagger: 'ant-design:api-outlined', // API/接口文档 -> API
+  guide: 'ant-design:read-outlined', // 指南/文档 -> 阅读
+  education: 'ant-design:read-outlined', // 教育/培训 -> 阅读
+  logininfor: 'ant-design:history-outlined', // 登录日志 -> 历史记录
+  skill: 'ant-design:tool-outlined', // 技能/技术 -> 工具
+  bug: 'ant-design:bug-outlined', // Bug管理 -> 虫子
+  build: 'ant-design:build-outlined', // 构建/编译 -> 构建
+  code: 'ant-design:code-outlined', // 代码/生成 -> 代码
+  log: 'ant-design:file-text-outlined', // 日志 -> 文档/文本
+  pass: 'ant-design:key-outlined', // 密码/密钥 -> 钥匙
+  job: 'ant-design:clock-circle-outlined', // 定时任务 -> 时钟
+  'system-tools': 'ant-design:tool-outlined', // 系统工具 -> 工具
+  'dev-tools': 'ant-design:experiment-outlined', // 开发工具 -> 实验
+  'time-range': 'ant-design:clock-circle-outlined', // 时间范围 -> 时钟
+  tree: 'ant-design:cluster-outlined', // 树形/部门树 -> 层级/树
+
+  // === 服务监控 & 接口管理（后端实际返回的 key） ===
+  druid: 'ant-design:monitor-outlined', // 服务监控
+  'api-doc': 'ant-design:api-outlined', // 接口管理
+};
+
+/**
+ * 将历史短 key icon 转换为 Iconify 格式
+ * - 若值已含冒号，视为 Iconify 格式，原样返回
+ * - 若在映射表中存在，返回对应 Iconify 值
+ * - 其他未知短 key，原样返回（便于排查）
+ */
+function normalizeMenuIcon(icon?: string): string | undefined {
+  if (!icon) return undefined;
+  // 已含冒号，视为 Iconify 格式
+  if (icon.includes(':')) return icon;
+  // 映射表转换
+  return ICON_SHORT_KEY_MAP[icon] || icon;
+}
+
+/**
  * 将 go-admin 的 component 字符串映射为 Vben 可识别的 component（layoutMap 或 pageMap key 对应路径）
  * - Layout / BasicLayout / 目录无 component -> BasicLayout
  * - IFrameView -> IFrameView
@@ -103,7 +150,7 @@ function mapSysMenuToRoute(
     component: component || 'BasicLayout',
     meta: {
       title: node.title ?? name,
-      icon: node.icon,
+      icon: normalizeMenuIcon(node.icon), // PoC: 短 key 转 Iconify
       order: node.sort,
     },
     ...(children?.length ? { children } : {}),
