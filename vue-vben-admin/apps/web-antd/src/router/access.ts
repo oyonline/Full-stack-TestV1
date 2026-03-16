@@ -122,6 +122,99 @@ interface GoAdminSysMenu {
   children?: GoAdminSysMenu[];
 }
 
+const SCHEDULE_COMPONENT = '/admin/sys-job/index';
+const SCHEDULE_PATH = '/admin/sys-job';
+
+/** 仅当节点当前是 404 时才视为可修补，避免误改 Layout 等关键节点导致登录/首页异常 */
+function isBrokenScheduleNode(node: RouteRecordStringComponent): boolean {
+  if ((node.meta?.title as string) !== '定时任务') return false;
+  const comp = String(node.component ?? '');
+  return comp === NOT_FOUND_COMPONENT || comp.includes('not-found');
+}
+
+/** 在已映射的 list 树中递归查找「当前为 404 的定时任务」节点 */
+function findBrokenScheduleRoute(
+  nodes: RouteRecordStringComponent[],
+): RouteRecordStringComponent | null {
+  for (const node of nodes) {
+    if (isBrokenScheduleNode(node)) return node;
+    const found = findBrokenScheduleRoute(node.children ?? []);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** 是否已是 Schedule 页（避免重复补） */
+function routeIsSchedule(node: RouteRecordStringComponent): boolean {
+  return String(node.component).includes('sys-job');
+}
+
+/**
+ * 在已映射的 list 树中递归查找后端原菜单里的「Schedule」子节点
+ * （title=Schedule 或 path=/schedule/manage，映射后为 404 的那条）
+ */
+function findScheduleChildNode(
+  nodes: RouteRecordStringComponent[],
+): RouteRecordStringComponent | null {
+  for (const node of nodes) {
+    const title = (node.meta?.title as string) ?? '';
+    const path = String(node.path ?? '');
+    const name = String(node.name ?? '');
+    if (
+      title === 'Schedule' ||
+      path === '/schedule/manage' ||
+      name === 'schedule-manage'
+    ) {
+      return node;
+    }
+    const found = findScheduleChildNode(node.children ?? []);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * 在已映射的 list 上合并 Schedule：
+ * 1）若有「坏掉的顶层定时任务」节点则按原逻辑修补；
+ * 2）否则查找后端原菜单里的 Schedule 子节点（/schedule/manage），原地改写为 /admin/sys-job，避免再 push 第二个顶层。
+ * @returns 是否已合并（true 则外层不再 push 顶层定时任务）
+ */
+function patchScheduleInMappedList(
+  list: RouteRecordStringComponent[],
+): boolean {
+  const brokenNode = findBrokenScheduleRoute(list);
+  if (brokenNode) {
+    const hasChildren =
+      Array.isArray(brokenNode.children) && brokenNode.children.length > 0;
+    if (!hasChildren) {
+      brokenNode.component = SCHEDULE_COMPONENT;
+      brokenNode.path = SCHEDULE_PATH;
+      return true;
+    }
+    const hasSchedule = brokenNode.children!.some(routeIsSchedule);
+    if (hasSchedule) return true;
+    brokenNode.children!.push({
+      name: 'Schedule',
+      path: 'sys-job',
+      component: SCHEDULE_COMPONENT,
+      meta: {
+        title: 'Schedule',
+        icon: 'ant-design:clock-circle-outlined',
+        order: 0,
+      },
+    });
+    return true;
+  }
+
+  const scheduleChild = findScheduleChildNode(list);
+  if (scheduleChild) {
+    scheduleChild.path = SCHEDULE_PATH;
+    scheduleChild.component = SCHEDULE_COMPONENT;
+    return true;
+  }
+  return false;
+}
+
 function pathToName(path: string): string {
   if (!path) return 'Route';
   return path.replace(/^\//, '').replace(/\//g, '-') || 'Route';
@@ -176,9 +269,24 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
       const validViewPathSet = buildValidViewPathSet(pageMap);
       const raw = (await getAllMenusApi()) as unknown as GoAdminSysMenu[];
       if (!Array.isArray(raw)) return [];
-      return raw
+      const list = raw
         .filter((n) => n.menuType !== 'F')
         .map((n) => mapSysMenuToRoute(n, validViewPathSet));
+      const merged = patchScheduleInMappedList(list);
+      if (!merged) {
+        const sysJobMenu: GoAdminSysMenu = {
+          path: '/admin/sys-job',
+          menuName: 'SysJob',
+          title: '定时任务',
+          component: 'admin/sys-job/index',
+          icon: 'job',
+          menuType: 'C',
+          sort: 50,
+          children: [],
+        };
+        list.push(mapSysMenuToRoute(sysJobMenu, validViewPathSet));
+      }
+      return list;
     },
     // 可以指定没有权限跳转403页面
     forbiddenComponent,
