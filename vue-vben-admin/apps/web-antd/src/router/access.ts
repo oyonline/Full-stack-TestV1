@@ -119,6 +119,7 @@ interface GoAdminSysMenu {
   component?: string;
   sort?: number;
   menuType?: string;
+  visible?: string;
   children?: GoAdminSysMenu[];
 }
 
@@ -151,7 +152,7 @@ function routeIsSchedule(node: RouteRecordStringComponent): boolean {
 
 /**
  * 在已映射的 list 树中递归查找后端原菜单里的「Schedule」子节点
- * （title=Schedule 或 path=/schedule/manage，映射后为 404 的那条）
+ * （title=Schedule 用于确认后端已返回定时任务菜单）
  */
 function findScheduleChildNode(
   nodes: RouteRecordStringComponent[],
@@ -174,10 +175,10 @@ function findScheduleChildNode(
 }
 
 /**
- * 在已映射的 list 上合并 Schedule：
- * 1）若有「坏掉的顶层定时任务」节点则按原逻辑修补；
- * 2）否则查找后端原菜单里的 Schedule 子节点（/schedule/manage），原地改写为 /admin/sys-job，避免再 push 第二个顶层。
- * @returns 是否已合并（true 则外层不再 push 顶层定时任务）
+ * 在已映射的 list 上处理 Schedule：
+ * 1）若有「坏掉的顶层定时任务」节点则按原逻辑修补并强插子菜单；
+ * 2）若后端已返回 Schedule 子节点，仅标记已存在（不再改写，因后端已配置正确）。
+ * @returns 是否已存在（true 则外层不再 push 顶层定时任务）
  */
 function patchScheduleInMappedList(
   list: RouteRecordStringComponent[],
@@ -208,8 +209,6 @@ function patchScheduleInMappedList(
 
   const scheduleChild = findScheduleChildNode(list);
   if (scheduleChild) {
-    scheduleChild.path = SCHEDULE_PATH;
-    scheduleChild.component = SCHEDULE_COMPONENT;
     return true;
   }
   return false;
@@ -245,6 +244,7 @@ function mapSysMenuToRoute(
       title: node.title ?? name,
       icon: normalizeMenuIcon(node.icon), // PoC: 短 key 转 Iconify
       order: node.sort,
+      hideInMenu: node.visible === '0',
     },
     ...(children?.length ? { children } : {}),
   };
