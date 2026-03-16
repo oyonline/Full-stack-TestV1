@@ -2,6 +2,7 @@ export * from './auth';
 export * from './config';
 export * from './dept';
 export * from './dict';
+export * from './job';
 export * from './login-log';
 export * from './menu';
 export * from './opera-log';
