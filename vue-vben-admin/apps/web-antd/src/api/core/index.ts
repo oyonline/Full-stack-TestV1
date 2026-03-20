@@ -5,6 +5,7 @@ export * from './dict';
 export * from './job';
 export * from './login-log';
 export * from './menu';
+export * from './notice';
 export * from './opera-log';
 export * from './post';
 export * from './role';
