@@ -8,7 +8,7 @@ export default defineConfig(async () => {
         proxy: {
           '/api': {
             changeOrigin: true,
-            target: 'http://localhost:10086',
+            target: 'http://172.16.96.174:10086/',
             ws: true,
           },
         },
