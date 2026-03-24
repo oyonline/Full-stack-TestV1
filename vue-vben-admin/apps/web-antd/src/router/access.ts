@@ -236,6 +236,8 @@ function mapSysMenuToRoute(
         .map((c) => mapSysMenuToRoute(c, validViewPathSet))
     : undefined;
 
+  const hideInMenu = node.visible !== '0';
+
   return {
     name,
     path,
@@ -244,7 +246,7 @@ function mapSysMenuToRoute(
       title: node.title ?? name,
       icon: normalizeMenuIcon(node.icon), // PoC: 短 key 转 Iconify
       order: node.sort,
-      hideInMenu: node.visible === '0',
+      hideInMenu,
     },
     ...(children?.length ? { children } : {}),
   };
@@ -258,7 +260,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
     IFrameView,
   };
 
-  return await generateAccessible(preferences.app.accessMode, {
+  const result = await generateAccessible(preferences.app.accessMode, {
     ...options,
     fetchMenuListAsync: async () => {
       message.loading({
@@ -268,6 +270,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
       const pageMap = import.meta.glob('../views/**/*.vue');
       const validViewPathSet = buildValidViewPathSet(pageMap);
       const raw = (await getAllMenusApi()) as unknown as GoAdminSysMenu[];
+      console.log('[generateAccess raw after fetch]', raw, Array.isArray(raw), raw?.length);
       if (!Array.isArray(raw)) return [];
       const list = raw
         .filter((n) => n.menuType !== 'F')
@@ -286,6 +289,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
         };
         list.push(mapSysMenuToRoute(sysJobMenu, validViewPathSet));
       }
+      console.log('[generateAccess accessibleMenus before return]', list, Array.isArray(list), list?.length);
       return list;
     },
     // 可以指定没有权限跳转403页面
@@ -294,6 +298,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
     layoutMap,
     pageMap,
   });
+  return result;
 }
 
 export { generateAccess };
