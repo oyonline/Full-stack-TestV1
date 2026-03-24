@@ -28,7 +28,7 @@ const defaultPreferences: Preferences = {
     layout: 'sidebar-nav',
     locale: 'zh-CN',
     loginExpiredMode: 'page',
-    name: 'Vben Admin',
+    name: '企业中后台管理系统',
     preferencesButtonPosition: 'auto',
     watermark: false,
     watermarkContent: '',

@@ -71,7 +71,7 @@ function buildDeptTreeOptions(nodes: DeptLabel[]): { value: number; label: strin
   }));
 }
 
-const deptTreeOptions = computed(() => buildDeptTreeOptions(deptTreeRaw.value || []));
+const deptTreeOptions = computed(() => buildDeptTreeOptions(deptTreeRaw.value));
 
 /** 角色选项 */
 const roleOptions = ref<{ value: number; label: string }[]>([]);
@@ -236,6 +236,9 @@ function openAddModal() {
   resetAddForm();
   addVisible.value = true;
 }
+
+// 暴露给自动化测试使用
+(window as any).openAddModalForTest = openAddModal;
 
 function validateAdd(): { ok: boolean; message?: string } {
   if (!addForm.username?.trim()) return { ok: false, message: '请输入用户名' };
@@ -415,7 +418,7 @@ onMounted(() => {
       <h2 class="text-lg font-medium">用户管理</h2>
       <div class="flex gap-2">
         <Button @click="fetchUserList">刷新</Button>
-        <Button type="primary" @click="openAddModal">新增用户</Button>
+        <Button type="primary" data-testid="btn-add-user" @click="openAddModal">新增用户</Button>
       </div>
     </div>
 
@@ -496,24 +499,25 @@ onMounted(() => {
     >
       <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
         <FormItem label="用户名" required>
-          <Input v-model:value="addForm.username" placeholder="用户名" allow-clear />
+          <Input v-model:value="addForm.username" data-testid="input-username" placeholder="用户名" allow-clear />
         </FormItem>
         <FormItem label="密码" required>
           <Input
             v-model:value="addForm.password"
+            data-testid="input-password"
             type="password"
             placeholder="密码"
             allow-clear
           />
         </FormItem>
         <FormItem label="昵称" required>
-          <Input v-model:value="addForm.nickName" placeholder="昵称" allow-clear />
+          <Input v-model:value="addForm.nickName" data-testid="input-nickname" placeholder="昵称" allow-clear />
         </FormItem>
         <FormItem label="手机号" required>
-          <Input v-model:value="addForm.phone" placeholder="手机号" allow-clear />
+          <Input v-model:value="addForm.phone" data-testid="input-phone" placeholder="手机号" allow-clear />
         </FormItem>
         <FormItem label="邮箱" required>
-          <Input v-model:value="addForm.email" placeholder="邮箱" allow-clear />
+          <Input v-model:value="addForm.email" data-testid="input-email" placeholder="邮箱" allow-clear />
         </FormItem>
         <FormItem label="部门" required>
           <TreeSelect
