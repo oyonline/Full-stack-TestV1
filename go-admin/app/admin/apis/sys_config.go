@@ -226,7 +226,7 @@ func (e SysConfig) Get2SysApp(c *gin.Context) {
 // @Security Bearer
 func (e SysConfig) Get2Set(c *gin.Context) {
 	s := service.SysConfig{}
-	req := make([]dto.GetSetSysConfigReq, 0)
+	req := dto.SystemSettingsPayload{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		MakeService(&s.Service).
@@ -241,11 +241,7 @@ func (e SysConfig) Get2Set(c *gin.Context) {
 		e.Error(500, err, "查询失败")
 		return
 	}
-	m := make(map[string]interface{}, 0)
-	for _, v := range req {
-		m[v.ConfigKey] = v.ConfigValue
-	}
-	e.OK(m, "查询成功")
+	e.OK(req, "查询成功")
 }
 
 // Update2Set 设置配置
@@ -260,7 +256,7 @@ func (e SysConfig) Get2Set(c *gin.Context) {
 // @Security Bearer
 func (e SysConfig) Update2Set(c *gin.Context) {
 	s := service.SysConfig{}
-	req := make([]dto.GetSetSysConfigReq, 0)
+	req := dto.SystemSettingsPayload{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON).
@@ -268,6 +264,11 @@ func (e SysConfig) Update2Set(c *gin.Context) {
 		Errors
 	if err != nil {
 		e.Logger.Error(err)
+		e.Error(500, err, err.Error())
+		return
+	}
+
+	if err = s.ValidateSystemSettingsPayload(&req); err != nil {
 		e.Error(500, err, err.Error())
 		return
 	}

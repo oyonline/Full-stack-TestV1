@@ -1,6 +1,6 @@
 import { useAccessStore } from '@vben/stores';
 
-import { baseRequestClient } from '#/api/request';
+import { getHttpRaw } from '#/api/request';
 
 /** 系统信息（与 go-admin getOSInfo 对齐） */
 export interface ServerMonitorOsInfo {
@@ -69,11 +69,10 @@ export interface ServerMonitorInfo {
 export async function getServerMonitorApi(): Promise<ServerMonitorInfo> {
   const accessStore = useAccessStore();
   const token = accessStore.accessToken;
-  const res = await baseRequestClient.get<ServerMonitorInfo>('/v1/server-monitor', {
+  const res = await getHttpRaw<ServerMonitorInfo>('/v1/server-monitor', {
     headers: {
       Authorization: token ? `Bearer ${token}` : '',
     },
   });
-  const body = (res?.data ?? {}) as ServerMonitorInfo;
-  return body;
+  return (res.data ?? {}) as ServerMonitorInfo;
 }

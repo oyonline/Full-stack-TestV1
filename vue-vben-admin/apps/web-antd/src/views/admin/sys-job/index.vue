@@ -13,7 +13,7 @@ import {
   Tag,
   message,
 } from 'ant-design-vue';
-import type { TablePaginationConfig } from 'ant-design-vue';
+import type { TableColumnType, TablePaginationConfig } from 'ant-design-vue';
 
 import {
   createSysJob,
@@ -290,7 +290,7 @@ async function handleRemove(record: SysJobItem) {
   fetchList();
 }
 
-const columns = [
+const columns: TableColumnType<SysJobItem>[] = [
   {
     title: 'ID',
     dataIndex: 'jobId',
@@ -450,20 +450,32 @@ onMounted(() => {
 
           <template v-else-if="column.key === 'action'">
             <Space>
-              <Button type="link" size="small" @click="openEditModal(record)">
+              <Button
+                type="link"
+                size="small"
+                @click="openEditModal(record as SysJobItem)"
+              >
                 编辑
               </Button>
-              <Button type="link" size="small" @click="handleStart(record)">
+              <Button
+                type="link"
+                size="small"
+                @click="handleStart(record as SysJobItem)"
+              >
                 启动
               </Button>
-              <Button type="link" size="small" @click="handleRemove(record)">
+              <Button
+                type="link"
+                size="small"
+                @click="handleRemove(record as SysJobItem)"
+              >
                 停止
               </Button>
               <Button
                 danger
                 type="link"
                 size="small"
-                @click="handleDelete(record)"
+                @click="handleDelete(record as SysJobItem)"
               >
                 删除
               </Button>
@@ -494,10 +506,7 @@ onMounted(() => {
           <Input v-model:value="formState.jobGroup" allow-clear />
         </FormItem>
         <FormItem label="任务类型">
-          <Select
-            v-model:value="formState.jobType"
-            :options="jobTypeOptions"
-          />
+          <Select v-model:value="formState.jobType" :options="jobTypeOptions" />
         </FormItem>
         <FormItem label="Cron" required>
           <Input

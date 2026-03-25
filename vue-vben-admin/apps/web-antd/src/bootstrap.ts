@@ -2,6 +2,7 @@ import { createApp, watchEffect } from 'vue';
 
 import { registerAccessDirective } from '@vben/access';
 import { registerLoadingDirective } from '@vben/common-ui/es/loading';
+import { useAppConfig } from '@vben/hooks';
 import { preferences } from '@vben/preferences';
 import { initStores } from '@vben/stores';
 import '@vben/styles';
@@ -10,11 +11,37 @@ import '@vben/styles/antd';
 import { useTitle } from '@vueuse/core';
 
 import { $t, setupI18n } from '#/locales';
+import {
+  appConfigMapToSystemSettings,
+  applySystemSettingsToRuntime,
+} from '#/utils/system-settings';
 
 import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
 import { router } from './router';
+
+async function syncAppConfigFromBackend() {
+  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
+  const requestURL = `${apiURL.replace(/\/$/, '')}/v1/app-config`;
+
+  try {
+    const response = await fetch(requestURL, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) {
+      return;
+    }
+
+    const body = (await response.json()) as {
+      data?: Record<string, string>;
+    };
+    const appConfig = body?.data ?? {};
+    applySystemSettingsToRuntime(appConfigMapToSystemSettings(appConfig));
+  } catch {
+    // Ignore backend config fetch failures so the app can still boot with defaults.
+  }
+}
 
 async function bootstrap(namespace: string) {
   // 初始化组件适配器
@@ -45,6 +72,8 @@ async function bootstrap(namespace: string) {
 
   // 配置 pinia-tore
   await initStores(app, { namespace });
+
+  await syncAppConfigFromBackend();
 
   // 安装权限指令
   registerAccessDirective(app);

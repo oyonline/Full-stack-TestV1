@@ -459,11 +459,7 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="排序">
-          <InputNumber
-            v-model:value="addForm.sort"
-            :min="0"
-            class="w-full"
-          />
+          <InputNumber v-model:value="addForm.sort" :min="0" class="w-full" />
         </FormItem>
         <FormItem label="状态">
           <Select
@@ -473,11 +469,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="addForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>
@@ -519,11 +514,7 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="排序">
-          <InputNumber
-            v-model:value="editForm.sort"
-            :min="0"
-            class="w-full"
-          />
+          <InputNumber v-model:value="editForm.sort" :min="0" class="w-full" />
         </FormItem>
         <FormItem label="状态">
           <Select
@@ -533,11 +524,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="editForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>

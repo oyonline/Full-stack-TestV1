@@ -25,7 +25,7 @@ settings:
     # 日志存放路径
     path: temp/logs
     # 日志输出，file：文件，default：命令行，其他：命令行
-    stdout: '' #控制台日志，启用后，不输出到文件
+    stdout: "" #控制台日志，启用后，不输出到文件
     # 日志等级, trace, debug, info, warn, error, fatal
     level: trace
     # 数据库日志开关
@@ -49,7 +49,7 @@ settings:
     # 代码生成读取的数据库名称
     dbname: dbname
     # 代码生成是使用前端代码存放位置，需要指定到src文件夹，相对路径
-    frontpath: ../go-admin-ui/src
+    frontpath: ../vue-vben-admin/apps/web-antd/src
   queue:
     memory:
       poolSize: 100

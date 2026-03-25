@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/go-admin-team/go-admin-core/sdk/config"
+	ext "go-admin/config"
 )
 
 var (
@@ -27,7 +28,10 @@ func init() {
 }
 
 func run() {
-	config.Setup(file.NewSource(file.WithPath(configYml)))
+	config.Setup(
+		file.NewSource(file.WithPath(configYml)),
+		ext.ApplyLocalOverrides(configYml),
+	)
 
 	application, errs := json.MarshalIndent(config.ApplicationConfig, "", "   ") //转换成JSON返回的是byte[]
 	if errs != nil {

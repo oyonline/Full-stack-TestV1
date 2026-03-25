@@ -37,9 +37,15 @@ export interface SysDeptForm {
 
 /** 部门树形选择器节点（与后端 dto.DeptLabel 对齐） */
 export interface DeptLabel {
-  id: number;
+  id: number | string;
   label: string;
   children?: DeptLabel[];
+}
+
+export interface DeptTreeOption {
+  children?: DeptTreeOption[];
+  label: string;
+  value: number | string;
 }
 
 /**
@@ -90,7 +96,13 @@ export async function deleteDeptApi(ids: number[]): Promise<number[]> {
 /**
  * 获取部门树（用于选择器）
  * 对接 go-admin GET /api/v1/deptTree
+ *
+ * 注意：requestClient 对数组/对象返回处理不一致，此处做防御式兼容
+ * - 如果返回是数组，直接使用
+ * - 如果返回是对象 {code, data}，提取 data.data
+ * - 其他情况返回空数组
  */
 export async function getDeptTreeApi(): Promise<DeptLabel[]> {
-  return requestClient.get<DeptLabel[]>('/v1/deptTree');
+  const res = await requestClient.get<DeptLabel[]>('/v1/deptTree');
+  return Array.isArray(res) ? res : [];
 }

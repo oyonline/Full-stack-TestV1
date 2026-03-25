@@ -9,7 +9,11 @@ export const overridesPreferences = defineOverridesPreferences({
   // overrides
   app: {
     accessMode: 'backend',
-    defaultHomePath: '/admin',
+    defaultHomePath: '/home',
+    enablePreferences: false,
     name: import.meta.env.VITE_APP_TITLE,
+  },
+  shortcutKeys: {
+    globalPreferences: false,
   },
 });

@@ -31,8 +31,8 @@ const props = withDefaults(defineProps<Props>(), {
   pageDescription: '',
   pageTitle: '',
   sloganImage: '',
-  toolbar: true,
-  toolbarList: () => ['color', 'language', 'layout', 'theme'],
+  toolbar: false,
+  toolbarList: () => [],
   clickLogo: () => {},
 });
 

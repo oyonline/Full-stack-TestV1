@@ -33,6 +33,10 @@ function buildValidViewPathSet(pageMap: Record<string, unknown>): Set<string> {
 }
 
 const NOT_FOUND_COMPONENT = '/_core/fallback/not-found';
+const HOME_COMPONENT = '/home/index';
+const HOME_PATH = '/home';
+const CONFIG_MANAGE_PATH = '/admin/sys-config';
+const CONFIG_SETTINGS_PATH = '/admin/sys-config/set';
 
 /**
  * 短 key 到 Iconify 的映射表
@@ -94,7 +98,8 @@ function mapComponent(
 ): string {
   const comp = backendComp?.trim() ?? '';
   if (!comp && hasChildren) return 'BasicLayout';
-  if (/^Layout$/i.test(comp) || /^BasicLayout$/i.test(comp)) return 'BasicLayout';
+  if (/^Layout$/i.test(comp) || /^BasicLayout$/i.test(comp))
+    return 'BasicLayout';
   if (/^IFrameView$/i.test(comp)) return 'IFrameView';
 
   let candidate = normalizeViewPath(comp);
@@ -125,6 +130,66 @@ interface GoAdminSysMenu {
 
 const SCHEDULE_COMPONENT = '/admin/sys-job/index';
 const SCHEDULE_PATH = '/admin/sys-job';
+
+function hasRoutePath(
+  nodes: RouteRecordStringComponent[],
+  path: string,
+): boolean {
+  for (const node of nodes) {
+    if (node.path === path) {
+      return true;
+    }
+    if (hasRoutePath(node.children ?? [], path)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function ensureLandingRoute(
+  nodes: RouteRecordStringComponent[],
+  validViewPathSet: Set<string>,
+) {
+  if (hasRoutePath(nodes, HOME_PATH) || !validViewPathSet.has(HOME_COMPONENT)) {
+    return;
+  }
+
+  nodes.unshift({
+    component: HOME_COMPONENT,
+    meta: {
+      affixTab: true,
+      icon: 'ant-design:home-outlined',
+      order: -999,
+      title: '首页',
+    },
+    name: 'HomeLanding',
+    path: HOME_PATH,
+  });
+}
+
+function normalizeConfigEntryVisibility(nodes: RouteRecordStringComponent[]) {
+  const hasConfigSettings = hasRoutePath(nodes, CONFIG_SETTINGS_PATH);
+  if (!hasConfigSettings) {
+    return;
+  }
+
+  const visit = (items: RouteRecordStringComponent[]) => {
+    for (const item of items) {
+      if (item.path === CONFIG_MANAGE_PATH) {
+        item.meta = {
+          ...item.meta,
+          hideInMenu: true,
+          title: item.meta?.title ?? '参数管理',
+        };
+      }
+      if (item.children?.length) {
+        visit(item.children);
+      }
+    }
+  };
+
+  visit(nodes);
+}
 
 /** 仅当节点当前是 404 时才视为可修补，避免误改 Layout 等关键节点导致登录/首页异常 */
 function isBrokenScheduleNode(node: RouteRecordStringComponent): boolean {
@@ -231,8 +296,8 @@ function mapSysMenuToRoute(
   const rawComp = node.component?.trim() || (hasChildren ? 'BasicLayout' : '');
   const component = mapComponent(rawComp, hasChildren, validViewPathSet);
   const children = hasChildren
-    ? node.children!
-        .filter((c) => c.menuType !== 'F')
+    ? node
+        .children!.filter((c) => c.menuType !== 'F')
         .map((c) => mapSysMenuToRoute(c, validViewPathSet))
     : undefined;
 
@@ -270,7 +335,6 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
       const pageMap = import.meta.glob('../views/**/*.vue');
       const validViewPathSet = buildValidViewPathSet(pageMap);
       const raw = (await getAllMenusApi()) as unknown as GoAdminSysMenu[];
-      console.log('[generateAccess raw after fetch]', raw, Array.isArray(raw), raw?.length);
       if (!Array.isArray(raw)) return [];
       const list = raw
         .filter((n) => n.menuType !== 'F')
@@ -289,7 +353,8 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
         };
         list.push(mapSysMenuToRoute(sysJobMenu, validViewPathSet));
       }
-      console.log('[generateAccess accessibleMenus before return]', list, Array.isArray(list), list?.length);
+      ensureLandingRoute(list, validViewPathSet);
+      normalizeConfigEntryVisibility(list);
       return list;
     },
     // 可以指定没有权限跳转403页面

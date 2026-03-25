@@ -8,6 +8,7 @@ import { onMounted, reactive, ref } from 'vue';
 
 import {
   Button,
+  type SelectProps,
   Form,
   FormItem,
   Input,
@@ -106,7 +107,10 @@ async function fetchList() {
     tableData.value = res.list || [];
     pagination.value.total = res.count || 0;
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     errorMsg.value =
       err?.message || err?.response?.data?.msg || '加载字典数据列表失败';
     tableData.value = [];
@@ -155,6 +159,13 @@ function renderEmpty(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return '-';
   return String(value);
 }
+
+const filterDictTypeOption: SelectProps['filterOption'] = (input, option) => {
+  const keyword = input.toLowerCase();
+  return String(option?.value ?? '')
+    .toLowerCase()
+    .includes(keyword);
+};
 
 /** 表格列定义 */
 const columns: TableColumnType[] = [
@@ -248,7 +259,10 @@ async function onAddOk() {
     addVisible.value = false;
     fetchList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '新增失败');
   } finally {
     addSubmitting.value = false;
@@ -325,7 +339,10 @@ async function onEditOk() {
     editVisible.value = false;
     fetchList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '编辑失败');
   } finally {
     editSubmitting.value = false;
@@ -338,7 +355,8 @@ function onEditCancel() {
 
 /* -------- 删除 -------- */
 function onDelete(record: SysDictDataItem) {
-  const name = record.dictLabel || record.dictValue || `编码:${record.dictCode}`;
+  const name =
+    record.dictLabel || record.dictValue || `编码:${record.dictCode}`;
   Modal.confirm({
     title: '确认删除',
     content: `确定要删除字典数据「${name}」吗？删除后不可恢复。`,
@@ -407,10 +425,7 @@ onMounted(() => {
         allow-clear
         class="w-48"
         show-search
-        :filter-option="
-          (input: string, opt: { value: string }) =>
-            opt?.value?.toLowerCase().includes(input?.toLowerCase())
-        "
+        :filter-option="filterDictTypeOption"
       />
       <span class="text-sm text-gray-600">状态：</span>
       <Select
@@ -473,10 +488,7 @@ onMounted(() => {
             placeholder="请选择字典类型"
             class="w-full"
             show-search
-            :filter-option="
-              (input: string, opt: { value: string }) =>
-                opt?.value?.toLowerCase().includes(input?.toLowerCase())
-            "
+            :filter-option="filterDictTypeOption"
           />
         </FormItem>
         <FormItem label="字典标签" required>
@@ -508,11 +520,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="addForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>
@@ -545,10 +556,7 @@ onMounted(() => {
             placeholder="请选择字典类型"
             class="w-full"
             show-search
-            :filter-option="
-              (input: string, opt: { value: string }) =>
-                opt?.value?.toLowerCase().includes(input?.toLowerCase())
-            "
+            :filter-option="filterDictTypeOption"
           />
         </FormItem>
         <FormItem label="字典标签" required>
@@ -580,11 +588,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="editForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>

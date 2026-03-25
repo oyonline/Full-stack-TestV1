@@ -104,7 +104,6 @@ function setupAccessGuard(router: Router) {
     });
 
     // 保存菜单信息和路由信息
-    console.log('[setAccessMenus input guard]', accessibleMenus, Array.isArray(accessibleMenus), typeof accessibleMenus);
     accessStore.setAccessMenus(accessibleMenus);
     accessStore.setAccessRoutes(accessibleRoutes);
     accessStore.setIsAccessChecked(true);
