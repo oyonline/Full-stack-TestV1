@@ -26,6 +26,12 @@ import {
 } from '#/api/core';
 import type { SysConfigItem, SysConfigPageResult } from '#/api/core';
 
+const protectedConfigKeys = new Set([
+  'sys_app_name',
+  'sys_app_logo',
+  'sys_ui_preferences',
+]);
+
 /** 表格加载状态 */
 const loading = ref(false);
 /** 表格数据 */
@@ -84,7 +90,10 @@ async function fetchConfigList() {
     tableData.value = res.list || [];
     pagination.value.total = res.count || 0;
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     errorMsg.value =
       err?.message || err?.response?.data?.msg || '加载参数配置列表失败';
     tableData.value = [];
@@ -130,6 +139,10 @@ function renderIsFrontend(val: string): string {
 /** 空值渲染 */
 function renderEmpty(value: string | null | undefined): string {
   return value ?? '-';
+}
+
+function isProtectedConfig(record: SysConfigItem) {
+  return protectedConfigKeys.has(record.configKey);
 }
 
 /** 表格列定义 */
@@ -223,6 +236,9 @@ function validateAddForm(): { ok: boolean; message?: string } {
   if (!key) {
     return { ok: false, message: '请输入参数键名' };
   }
+  if (protectedConfigKeys.has(key)) {
+    return { ok: false, message: '关键系统配置请在参数设置中维护' };
+  }
   return { ok: true };
 }
 
@@ -247,7 +263,10 @@ async function onAddOk() {
     addVisible.value = false;
     fetchConfigList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '新增失败');
   } finally {
     addSubmitting.value = false;
@@ -312,6 +331,9 @@ function validateEditForm(): { ok: boolean; message?: string } {
   if (!key) {
     return { ok: false, message: '请输入参数键名' };
   }
+  if (protectedConfigKeys.has(key)) {
+    return { ok: false, message: '关键系统配置请在参数设置中维护' };
+  }
   return { ok: true };
 }
 
@@ -337,7 +359,10 @@ async function onEditOk() {
     editVisible.value = false;
     fetchConfigList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '编辑失败');
   } finally {
     editSubmitting.value = false;
@@ -353,6 +378,10 @@ function onEditCancel() {
 
 /** 删除参数配置 */
 function onDelete(record: SysConfigItem) {
+  if (isProtectedConfig(record)) {
+    message.warning('关键系统配置请在参数设置中维护');
+    return;
+  }
   const name = record.configName || record.configKey || `ID:${record.id}`;
   Modal.confirm({
     title: '确认删除',
@@ -391,7 +420,12 @@ onMounted(() => {
   <div class="p-4">
     <!-- 页面标题 -->
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">参数配置</h2>
+      <div>
+        <h2 class="text-lg font-medium">高级参数管理</h2>
+        <p class="mt-1 text-sm text-gray-500">
+          通用配置表维护入口。系统名称、Logo、主题和初始密码等关键配置请在“参数设置”中维护。
+        </p>
+      </div>
       <div class="flex gap-2">
         <Button @click="fetchConfigList">刷新</Button>
         <Button type="primary" @click="openAddModal">新增参数</Button>
@@ -429,6 +463,11 @@ onMounted(() => {
 
     <!-- 错误提示 -->
     <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <div
+      class="mb-4 rounded border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700"
+    >
+      标记为关键系统配置的记录仅供查看，不支持在此页面编辑或删除。
+    </div>
 
     <!-- 表格区 -->
     <Table
@@ -442,10 +481,22 @@ onMounted(() => {
       @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
+        <template v-if="column.dataIndex === 'configKey'">
+          <div class="flex items-center gap-2">
+            <span>{{ (record as SysConfigItem).configKey }}</span>
+            <span
+              v-if="isProtectedConfig(record as SysConfigItem)"
+              class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700"
+            >
+              主入口维护
+            </span>
+          </div>
+        </template>
         <template v-if="column.key === 'action'">
           <Button
             type="link"
             size="small"
+            :disabled="isProtectedConfig(record as SysConfigItem)"
             @click="openEditModal(record as SysConfigItem)"
           >
             编辑
@@ -454,6 +505,7 @@ onMounted(() => {
             type="link"
             size="small"
             danger
+            :disabled="isProtectedConfig(record as SysConfigItem)"
             @click="onDelete(record as SysConfigItem)"
           >
             删除
@@ -509,11 +561,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="addForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>
@@ -576,11 +627,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="editForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>

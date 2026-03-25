@@ -1,4 +1,4 @@
-import { baseRequestClient, requestClient } from '#/api/request';
+import { getApiRaw, getHttpRaw, postApiRaw, postHttpRaw } from '#/api/request';
 
 export namespace AuthApi {
   /** 登录接口参数 */
@@ -23,8 +23,8 @@ export namespace AuthApi {
   }
 
   export interface RefreshTokenResult {
-    data: string;
-    status: number;
+    data?: string;
+    token?: string;
   }
 
   export interface CaptchaResult {
@@ -40,40 +40,46 @@ export namespace AuthApi {
  * 改用 baseRequestClient，返回原始响应 {code, data, id, msg}
  */
 export async function getCaptchaApi(): Promise<AuthApi.CaptchaResult> {
-  const res = await baseRequestClient.get<AuthApi.CaptchaResult>('/v1/captcha');
-  return res.data;
+  const res = await getHttpRaw<AuthApi.CaptchaResult>('/v1/captcha');
+  const body = res.data;
+  if (body.code !== 200 || !body.data || !body.id) {
+    throw new Error(body.msg || '获取验证码失败');
+  }
+  return body;
 }
 
 /**
  * 登录
  * 改用 baseRequestClient，返回原始响应，手动判断 code 和 token
  */
-export async function loginApi(data: AuthApi.LoginParams): Promise<AuthApi.LoginResult> {
-  // 拿到完整原始响应
-  const res = await baseRequestClient.post<AuthApi.GoAdminLoginResponse>('/v1/login', data);
+export async function loginApi(
+  data: AuthApi.LoginParams,
+): Promise<AuthApi.LoginResult> {
+  const res = await postHttpRaw<AuthApi.GoAdminLoginResponse>(
+    '/v1/login',
+    data,
+  );
   const body = res.data;
-
-  // 手动判断 code 和 token
   if (body.code !== 200 || !body.token) {
     throw new Error(body.msg || '登录失败');
   }
-
-  // 按项目要求的格式返回
   return { accessToken: body.token };
 }
 
 /**
  * 刷新 accessToken
  */
-export async function refreshTokenApi() {
-  return baseRequestClient.get<AuthApi.RefreshTokenResult>('/v1/refresh_token');
+export async function refreshTokenApi(): Promise<
+  import('#/api/request').ApiRawResponse<AuthApi.RefreshTokenResult>
+> {
+  return getApiRaw<AuthApi.RefreshTokenResult>('/v1/refresh_token');
 }
 
 /**
  * 退出登录
  */
 export async function logoutApi() {
-  return baseRequestClient.post('/v1/logout');
+  return postApiRaw<null>('/v1/logout');
 }
 
 /**

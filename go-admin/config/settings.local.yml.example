@@ -1,0 +1,14 @@
+settings:
+  application:
+    mode: dev
+    host: 0.0.0.0
+    name: productManager
+    port: 10082
+  jwt:
+    secret: replace-with-a-local-secret
+    timeout: 3600
+  database:
+    driver: mysql
+    source: user:password@tcp(127.0.0.1:3306)/full_stack_test_v1?charset=utf8&parseTime=True&loc=Local&timeout=1000ms
+  gen:
+    frontpath: ../vue-vben-admin/apps/web-antd/src

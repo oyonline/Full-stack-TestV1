@@ -129,7 +129,8 @@ INSERT INTO sys_config VALUES
 (2, '初始密码', 'sys_user_initPassword', '123456', 'Y', '0', '用户管理-账号初始密码:123456', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL),
 (3, '侧栏主题', 'sys_index_sideTheme', 'theme-dark', 'Y', '0', '主框架页-侧边栏主题:深色主题theme-dark，浅色主题theme-light', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL),
 (4, '系统名称', 'sys_app_name', 'go-admin管理系统', 'Y', '1', '', 1, 0, '2021-03-17 08:52:06.067', '2021-05-28 10:08:25.248', NULL),
-(5, '系统logo', 'sys_app_logo', 'https://gitee.com/mydearzwj/image/raw/master/img/go-admin.png', 'Y', '1', '', 1, 0, '2021-03-17 08:53:19.462', '2021-03-17 08:53:19.462', NULL);
+(5, '系统logo', 'sys_app_logo', 'https://gitee.com/mydearzwj/image/raw/master/img/go-admin.png', 'Y', '1', '', 1, 0, '2021-03-17 08:53:19.462', '2021-03-17 08:53:19.462', NULL),
+(6, '界面偏好配置', 'sys_ui_preferences', '{}', 'Y', '1', '系统级界面设置(JSON diff)', 1, 0, '2026-03-25 00:00:00.000', '2026-03-25 00:00:00.000', NULL);
 
 SET IDENTITY_INSERT sys_dept ON;
 INSERT INTO sys_dept (dept_id, parent_id, dept_path, dept_name, sort, leader, phone, email, status, create_by, update_by, created_at, updated_at, deleted_at)VALUES

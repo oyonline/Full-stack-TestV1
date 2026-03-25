@@ -18,6 +18,7 @@ import (
 	_ "go-admin/cmd/migrate/migration/version-local"
 	"go-admin/common/database"
 	"go-admin/common/models"
+	ext "go-admin/config"
 )
 
 var (
@@ -50,6 +51,7 @@ func run() {
 		//1. 读取配置
 		config.Setup(
 			file.NewSource(file.WithPath(configYml)),
+			ext.ApplyLocalOverrides(configYml),
 			initDB,
 		)
 	} else {

@@ -24,10 +24,7 @@ import {
   getDictTypePage,
   updateDictType,
 } from '#/api/core';
-import type {
-  SysDictTypeItem,
-  SysDictTypePageResult,
-} from '#/api/core';
+import type { SysDictTypeItem, SysDictTypePageResult } from '#/api/core';
 
 /** 表格加载状态 */
 const loading = ref(false);
@@ -87,7 +84,10 @@ async function fetchList() {
     tableData.value = res.list || [];
     pagination.value.total = res.count || 0;
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     errorMsg.value =
       err?.message || err?.response?.data?.msg || '加载字典类型列表失败';
     tableData.value = [];
@@ -217,7 +217,10 @@ async function onAddOk() {
     addVisible.value = false;
     fetchList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '新增失败');
   } finally {
     addSubmitting.value = false;
@@ -286,7 +289,10 @@ async function onEditOk() {
     editVisible.value = false;
     fetchList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '编辑失败');
   } finally {
     editSubmitting.value = false;
@@ -435,11 +441,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="addForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>
@@ -487,11 +492,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="editForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>

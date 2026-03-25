@@ -11,7 +11,6 @@ import { VbenFullScreen, VbenIconButton } from '@vben-core/shadcn-ui';
 import {
   GlobalSearch,
   LanguageToggle,
-  PreferencesButton,
   ThemeToggle,
   TimezoneButton,
 } from '../../widgets';
@@ -31,12 +30,10 @@ withDefaults(defineProps<Props>(), {
   theme: 'light',
 });
 
-const emit = defineEmits<{ clearPreferencesAndLogout: [] }>();
-
 const REFERENCE_VALUE = 50;
 
 const accessStore = useAccessStore();
-const { globalSearchShortcutKey, preferencesButtonPosition } = usePreferences();
+const { globalSearchShortcutKey } = usePreferences();
 const slots = useSlots();
 const { refresh } = useRefresh();
 
@@ -48,40 +45,33 @@ const rightSlots = computed(() => {
       name: 'global-search',
     });
   }
-
-  if (preferencesButtonPosition.value.header) {
-    list.push({
-      index: REFERENCE_VALUE + 10,
-      name: 'preferences',
-    });
-  }
   if (preferences.widget.themeToggle) {
     list.push({
-      index: REFERENCE_VALUE + 20,
+      index: REFERENCE_VALUE + 10,
       name: 'theme-toggle',
     });
   }
   if (preferences.widget.languageToggle) {
     list.push({
-      index: REFERENCE_VALUE + 30,
+      index: REFERENCE_VALUE + 20,
       name: 'language-toggle',
     });
   }
   if (preferences.widget.timezone) {
     list.push({
-      index: REFERENCE_VALUE + 40,
+      index: REFERENCE_VALUE + 30,
       name: 'timezone',
     });
   }
   if (preferences.widget.fullscreen) {
     list.push({
-      index: REFERENCE_VALUE + 50,
+      index: REFERENCE_VALUE + 40,
       name: 'fullscreen',
     });
   }
   if (preferences.widget.notification) {
     list.push({
-      index: REFERENCE_VALUE + 60,
+      index: REFERENCE_VALUE + 50,
       name: 'notification',
     });
   }
@@ -113,10 +103,6 @@ const leftSlots = computed(() => {
   });
   return list.toSorted((a, b) => a.index - b.index);
 });
-
-function clearPreferencesAndLogout() {
-  emit('clearPreferencesAndLogout');
-}
 </script>
 
 <template>
@@ -155,13 +141,6 @@ function clearPreferencesAndLogout() {
             :enable-shortcut-key="globalSearchShortcutKey"
             :menus="accessStore.accessMenus"
             class="mr-1 sm:mr-4"
-          />
-        </template>
-
-        <template v-else-if="slot.name === 'preferences'">
-          <PreferencesButton
-            class="mr-1"
-            @clear-preferences-and-logout="clearPreferencesAndLogout"
           />
         </template>
         <template v-else-if="slot.name === 'theme-toggle'">

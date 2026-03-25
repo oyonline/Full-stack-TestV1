@@ -20,7 +20,7 @@ import { cloneDeep, mapTree } from '@vben/utils';
 import { VbenAdminLayout } from '@vben-core/layout-ui';
 import { VbenBackTop, VbenLogo } from '@vben-core/shadcn-ui';
 
-import { Breadcrumb, CheckUpdates, Preferences } from '../widgets';
+import { Breadcrumb, CheckUpdates } from '../widgets';
 import { LayoutContent, LayoutContentSpinner } from './content';
 import { Copyright } from './copyright';
 import { LayoutFooter } from './footer';
@@ -47,7 +47,6 @@ const {
   isHeaderMixedNav,
   isHeaderSidebarNav,
   layout,
-  preferencesButtonPosition,
   sidebarCollapsed,
   theme,
 } = usePreferences();
@@ -419,12 +418,6 @@ const headerSlots = computed(() => {
         <slot v-if="accessStore.isLockScreen" name="lock-screen"></slot>
       </Transition>
 
-      <template v-if="preferencesButtonPosition.fixed">
-        <Preferences
-          class="fixed top-1/2 right-0 z-100 -translate-y-1/2 transform"
-          @clear-preferences-and-logout="clearPreferencesAndLogout"
-        />
-      </template>
       <VbenBackTop />
     </template>
   </VbenAdminLayout>

@@ -110,3 +110,138 @@ type SysConfigDeleteReq struct {
 func (s *SysConfigDeleteReq) GetId() interface{} {
 	return s.Ids
 }
+
+type SystemBrandingSettings struct {
+	AppLogo string `json:"appLogo"`
+	AppName string `json:"appName"`
+}
+
+type SystemUiAppSettings struct {
+	ColorGrayMode      bool   `json:"colorGrayMode"`
+	ColorWeakMode      bool   `json:"colorWeakMode"`
+	ContentCompact     string `json:"contentCompact"`
+	DynamicTitle       bool   `json:"dynamicTitle"`
+	EnableCheckUpdates bool   `json:"enableCheckUpdates"`
+	Layout             string `json:"layout"`
+	Locale             string `json:"locale"`
+	Watermark          bool   `json:"watermark"`
+	WatermarkContent   string `json:"watermarkContent"`
+}
+
+type SystemUiBreadcrumbSettings struct {
+	Enable      bool   `json:"enable"`
+	HideOnlyOne bool   `json:"hideOnlyOne"`
+	ShowHome    bool   `json:"showHome"`
+	ShowIcon    bool   `json:"showIcon"`
+	StyleType   string `json:"styleType"`
+}
+
+type SystemUiCopyrightSettings struct {
+	CompanyName     string `json:"companyName"`
+	CompanySiteLink string `json:"companySiteLink"`
+	Date            string `json:"date"`
+	Enable          bool   `json:"enable"`
+	Icp             string `json:"icp"`
+	IcpLink         string `json:"icpLink"`
+}
+
+type SystemUiFooterSettings struct {
+	Enable bool `json:"enable"`
+	Fixed  bool `json:"fixed"`
+}
+
+type SystemUiHeaderSettings struct {
+	Enable    bool   `json:"enable"`
+	Hidden    bool   `json:"hidden"`
+	MenuAlign string `json:"menuAlign"`
+	Mode      string `json:"mode"`
+}
+
+type SystemUiNavigationSettings struct {
+	Accordion bool   `json:"accordion"`
+	Split     bool   `json:"split"`
+	StyleType string `json:"styleType"`
+}
+
+type SystemUiShortcutKeySettings struct {
+	Enable           bool `json:"enable"`
+	GlobalLockScreen bool `json:"globalLockScreen"`
+	GlobalLogout     bool `json:"globalLogout"`
+	GlobalSearch     bool `json:"globalSearch"`
+}
+
+type SystemUiSidebarSettings struct {
+	AutoActivateChild  bool `json:"autoActivateChild"`
+	Collapsed          bool `json:"collapsed"`
+	CollapsedButton    bool `json:"collapsedButton"`
+	CollapsedShowTitle bool `json:"collapsedShowTitle"`
+	Draggable          bool `json:"draggable"`
+	Enable             bool `json:"enable"`
+	ExpandOnHover      bool `json:"expandOnHover"`
+	FixedButton        bool `json:"fixedButton"`
+	Width              int  `json:"width"`
+}
+
+type SystemUiTabbarSettings struct {
+	Draggable          bool   `json:"draggable"`
+	Enable             bool   `json:"enable"`
+	MaxCount           int    `json:"maxCount"`
+	MiddleClickToClose bool   `json:"middleClickToClose"`
+	Persist            bool   `json:"persist"`
+	ShowIcon           bool   `json:"showIcon"`
+	ShowMaximize       bool   `json:"showMaximize"`
+	ShowMore           bool   `json:"showMore"`
+	StyleType          string `json:"styleType"`
+	VisitHistory       bool   `json:"visitHistory"`
+	Wheelable          bool   `json:"wheelable"`
+}
+
+type SystemUiThemeSettings struct {
+	BuiltinType        string `json:"builtinType"`
+	ColorPrimary       string `json:"colorPrimary"`
+	FontSize           int    `json:"fontSize"`
+	Mode               string `json:"mode"`
+	Radius             string `json:"radius"`
+	SemiDarkHeader     bool   `json:"semiDarkHeader"`
+	SemiDarkSidebar    bool   `json:"semiDarkSidebar"`
+	SemiDarkSidebarSub bool   `json:"semiDarkSidebarSub"`
+}
+
+type SystemUiTransitionSettings struct {
+	Enable   bool   `json:"enable"`
+	Loading  bool   `json:"loading"`
+	Name     string `json:"name"`
+	Progress bool   `json:"progress"`
+}
+
+type SystemUiWidgetSettings struct {
+	Fullscreen     bool `json:"fullscreen"`
+	GlobalSearch   bool `json:"globalSearch"`
+	LanguageToggle bool `json:"languageToggle"`
+	LockScreen     bool `json:"lockScreen"`
+	Notification   bool `json:"notification"`
+	Refresh        bool `json:"refresh"`
+	SidebarToggle  bool `json:"sidebarToggle"`
+	ThemeToggle    bool `json:"themeToggle"`
+	Timezone       bool `json:"timezone"`
+}
+
+type SystemUiPreferences struct {
+	App          SystemUiAppSettings         `json:"app"`
+	Breadcrumb   SystemUiBreadcrumbSettings  `json:"breadcrumb"`
+	Copyright    SystemUiCopyrightSettings   `json:"copyright"`
+	Footer       SystemUiFooterSettings      `json:"footer"`
+	Header       SystemUiHeaderSettings      `json:"header"`
+	Navigation   SystemUiNavigationSettings  `json:"navigation"`
+	ShortcutKeys SystemUiShortcutKeySettings `json:"shortcutKeys"`
+	Sidebar      SystemUiSidebarSettings     `json:"sidebar"`
+	Tabbar       SystemUiTabbarSettings      `json:"tabbar"`
+	Theme        SystemUiThemeSettings       `json:"theme"`
+	Transition   SystemUiTransitionSettings  `json:"transition"`
+	Widget       SystemUiWidgetSettings      `json:"widget"`
+}
+
+type SystemSettingsPayload struct {
+	Branding      SystemBrandingSettings `json:"branding"`
+	UIPreferences SystemUiPreferences    `json:"uiPreferences"`
+}

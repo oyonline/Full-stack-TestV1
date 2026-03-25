@@ -17,7 +17,7 @@ var CasbinExclude = []UrlInfo{
 	{Url: "/api/v1/gen/tabletree", Method: "GET"},
 	{Url: "/api/v1/gen/preview/:tableId", Method: "GET"},
 	{Url: "/api/v1/gen/apitofile/:tableId", Method: "GET"},
-	{Url: "/api/v1/getCaptcha", Method: "GET"},
+	{Url: "/api/v1/captcha", Method: "GET"},
 	{Url: "/api/v1/getinfo", Method: "GET"},
 	{Url: "/api/v1/menuTreeselect", Method: "GET"},
 	{Url: "/api/v1/menurole", Method: "GET"},
@@ -38,6 +38,6 @@ var CasbinExclude = []UrlInfo{
 	{Url: "/", Method: "GET"},
 	{Url: "/api/v1/server-monitor", Method: "GET"},
 	{Url: "/api/v1/public/uploadFile", Method: "POST"},
-        {Url: "/api/v1/user/pwd/set", Method: "PUT"},
+	{Url: "/api/v1/user/pwd/set", Method: "PUT"},
 	{Url: "/api/v1/sys-user", Method: "PUT"},
 }

@@ -10,7 +10,13 @@ import { resetAllStores, useAccessStore, useUserStore } from '@vben/stores';
 import { notification } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 
-import { getAccessCodesApi, getAllMenusApi, getUserInfoApi, loginApi, logoutApi } from '#/api';
+import {
+  getAccessCodesApi,
+  getAllMenusApi,
+  getUserInfoApi,
+  loginApi,
+  logoutApi,
+} from '#/api';
 import { $t } from '#/locales';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -45,13 +51,11 @@ export const useAuthStore = defineStore('auth', () => {
           getAccessCodesApi(),
           getAllMenusApi(),
         ]);
-        console.log('[authLogin menus]', menus, Array.isArray(menus), typeof menus);
 
         userInfo = fetchUserInfoResult;
 
         userStore.setUserInfo(userInfo);
         accessStore.setAccessCodes(accessCodes);
-        console.log('[setAccessMenus input authLogin]', menus, Array.isArray(menus), typeof menus);
         accessStore.setAccessMenus(menus || []);
 
         if (accessStore.loginExpired) {

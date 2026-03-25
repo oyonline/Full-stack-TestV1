@@ -44,6 +44,8 @@ import type { DeptLabel } from '#/api/core/dept';
 const loading = ref(false);
 const tableData = ref<SysRoleItem[]>([]);
 const errorMsg = ref('');
+type TreeNode = NonNullable<TreeProps['treeData']>[number];
+type TreeKey = string | number;
 
 /** 分页 */
 const pagination = ref({
@@ -74,15 +76,20 @@ async function fetchRoleList() {
       pageIndex: pagination.value.current,
       pageSize: pagination.value.pageSize,
     };
-    if (searchRoleName.value.trim()) params.roleName = searchRoleName.value.trim();
+    if (searchRoleName.value.trim())
+      params.roleName = searchRoleName.value.trim();
     if (searchRoleKey.value.trim()) params.roleKey = searchRoleKey.value.trim();
     if (searchStatus.value !== '') params.status = searchStatus.value;
     const res: SysRolePageResult = await getRolePage(params);
     tableData.value = res.list || [];
     pagination.value.total = res.count || 0;
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
-    errorMsg.value = err?.message || err?.response?.data?.msg || '加载角色列表失败';
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
+    errorMsg.value =
+      err?.message || err?.response?.data?.msg || '加载角色列表失败';
     tableData.value = [];
     pagination.value.total = 0;
   } finally {
@@ -153,7 +160,7 @@ const columns: TableColumnType[] = [
 ];
 
 /** 菜单树 -> Ant Design Tree 数据 */
-function menuLabelToTreeData(nodes: MenuLabel[]): { key: number; title: string; children?: ReturnType<typeof menuLabelToTreeData> }[] {
+function menuLabelToTreeData(nodes: MenuLabel[]): TreeNode[] {
   return (nodes || []).map((n) => ({
     key: n.id,
     title: n.label || '',
@@ -162,12 +169,16 @@ function menuLabelToTreeData(nodes: MenuLabel[]): { key: number; title: string; 
 }
 
 /** 部门树 -> Ant Design Tree 数据 */
-function deptLabelToTreeData(nodes: DeptLabel[]): { key: number; title: string; children?: ReturnType<typeof deptLabelToTreeData> }[] {
+function deptLabelToTreeData(nodes: DeptLabel[]): TreeNode[] {
   return (nodes || []).map((n) => ({
     key: n.id,
     title: n.label || '',
     children: n.children?.length ? deptLabelToTreeData(n.children) : undefined,
   }));
+}
+
+function normalizeTreeKeys(keys: TreeKey[]): number[] {
+  return keys.map((key) => Number(key)).filter((key) => Number.isFinite(key));
 }
 
 /* -------- 新增 -------- */
@@ -181,12 +192,12 @@ const addForm = reactive({
   remark: '',
   dataScope: '',
 });
-const addMenuTreeData = ref<{ key: number; title: string; children?: unknown[] }[]>([]);
-const addMenuCheckedKeys = ref<number[]>([]);
-const addMenuHalfCheckedKeys = ref<number[]>([]);
-const addDeptTreeData = ref<{ key: number; title: string; children?: unknown[] }[]>([]);
-const addDeptCheckedKeys = ref<number[]>([]);
-const addDeptHalfCheckedKeys = ref<number[]>([]);
+const addMenuTreeData = ref<TreeNode[]>([]);
+const addMenuCheckedKeys = ref<TreeKey[]>([]);
+const addMenuHalfCheckedKeys = ref<TreeKey[]>([]);
+const addDeptTreeData = ref<TreeNode[]>([]);
+const addDeptCheckedKeys = ref<TreeKey[]>([]);
+const addDeptHalfCheckedKeys = ref<TreeKey[]>([]);
 
 function resetAddForm() {
   addForm.roleName = '';
@@ -226,15 +237,15 @@ function validateAddForm(): { ok: boolean; message?: string } {
 }
 
 const onAddMenuCheck: TreeProps['onCheck'] = (checkedKeys, info) => {
-  const c = checkedKeys as number[];
+  const c = checkedKeys as TreeKey[];
   addMenuCheckedKeys.value = c;
-  addMenuHalfCheckedKeys.value = (info?.halfCheckedKeys as number[]) || [];
+  addMenuHalfCheckedKeys.value = (info?.halfCheckedKeys as TreeKey[]) || [];
 };
 
 const onAddDeptCheck: TreeProps['onCheck'] = (checkedKeys, info) => {
-  const c = checkedKeys as number[];
+  const c = checkedKeys as TreeKey[];
   addDeptCheckedKeys.value = c;
-  addDeptHalfCheckedKeys.value = (info?.halfCheckedKeys as number[]) || [];
+  addDeptHalfCheckedKeys.value = (info?.halfCheckedKeys as TreeKey[]) || [];
 };
 
 async function onAddOk() {
@@ -245,8 +256,18 @@ async function onAddOk() {
   }
   addSubmitting.value = true;
   try {
-    const menuIds = [...new Set([...addMenuCheckedKeys.value, ...addMenuHalfCheckedKeys.value])];
-    const deptIds = [...new Set([...addDeptCheckedKeys.value, ...addDeptHalfCheckedKeys.value])];
+    const menuIds = normalizeTreeKeys([
+      ...new Set([
+        ...addMenuCheckedKeys.value,
+        ...addMenuHalfCheckedKeys.value,
+      ]),
+    ]);
+    const deptIds = normalizeTreeKeys([
+      ...new Set([
+        ...addDeptCheckedKeys.value,
+        ...addDeptHalfCheckedKeys.value,
+      ]),
+    ]);
     const data: CreateRoleData = {
       roleName: addForm.roleName.trim(),
       roleKey: addForm.roleKey.trim(),
@@ -262,7 +283,10 @@ async function onAddOk() {
     addVisible.value = false;
     fetchRoleList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '新增失败');
   } finally {
     addSubmitting.value = false;
@@ -286,23 +310,23 @@ const editForm = reactive({
   remark: '',
   dataScope: '',
 });
-const editMenuTreeData = ref<{ key: number; title: string; children?: unknown[] }[]>([]);
-const editMenuCheckedKeys = ref<number[]>([]);
-const editMenuHalfCheckedKeys = ref<number[]>([]);
-const editDeptTreeData = ref<{ key: number; title: string; children?: unknown[] }[]>([]);
-const editDeptCheckedKeys = ref<number[]>([]);
-const editDeptHalfCheckedKeys = ref<number[]>([]);
+const editMenuTreeData = ref<TreeNode[]>([]);
+const editMenuCheckedKeys = ref<TreeKey[]>([]);
+const editMenuHalfCheckedKeys = ref<TreeKey[]>([]);
+const editDeptTreeData = ref<TreeNode[]>([]);
+const editDeptCheckedKeys = ref<TreeKey[]>([]);
+const editDeptHalfCheckedKeys = ref<TreeKey[]>([]);
 
 const onEditMenuCheck: TreeProps['onCheck'] = (checkedKeys, info) => {
-  const c = checkedKeys as number[];
+  const c = checkedKeys as TreeKey[];
   editMenuCheckedKeys.value = c;
-  editMenuHalfCheckedKeys.value = (info?.halfCheckedKeys as number[]) || [];
+  editMenuHalfCheckedKeys.value = (info?.halfCheckedKeys as TreeKey[]) || [];
 };
 
 const onEditDeptCheck: TreeProps['onCheck'] = (checkedKeys, info) => {
-  const c = checkedKeys as number[];
+  const c = checkedKeys as TreeKey[];
   editDeptCheckedKeys.value = c;
-  editDeptHalfCheckedKeys.value = (info?.halfCheckedKeys as number[]) || [];
+  editDeptHalfCheckedKeys.value = (info?.halfCheckedKeys as TreeKey[]) || [];
 };
 
 async function openEditModal(record: SysRoleItem) {
@@ -353,8 +377,18 @@ async function onEditOk() {
   }
   editSubmitting.value = true;
   try {
-    const menuIds = [...new Set([...editMenuCheckedKeys.value, ...editMenuHalfCheckedKeys.value])];
-    const deptIds = [...new Set([...editDeptCheckedKeys.value, ...editDeptHalfCheckedKeys.value])];
+    const menuIds = normalizeTreeKeys([
+      ...new Set([
+        ...editMenuCheckedKeys.value,
+        ...editMenuHalfCheckedKeys.value,
+      ]),
+    ]);
+    const deptIds = normalizeTreeKeys([
+      ...new Set([
+        ...editDeptCheckedKeys.value,
+        ...editDeptHalfCheckedKeys.value,
+      ]),
+    ]);
     const data: UpdateRoleData = {
       roleName: editForm.roleName.trim(),
       roleKey: editForm.roleKey.trim(),
@@ -370,7 +404,10 @@ async function onEditOk() {
     editVisible.value = false;
     fetchRoleList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '编辑失败');
   } finally {
     editSubmitting.value = false;
@@ -396,7 +433,10 @@ function onDelete(record: SysRoleItem) {
         message.success('删除成功');
         fetchRoleList();
       } catch (e: unknown) {
-        const err = e as { message?: string; response?: { data?: { msg?: string } } };
+        const err = e as {
+          message?: string;
+          response?: { data?: { msg?: string } };
+        };
         message.error(err?.message || err?.response?.data?.msg || '删除失败');
       }
     },
@@ -412,7 +452,10 @@ async function onToggleStatus(record: SysRoleItem) {
     message.success(`${label}成功`);
     fetchRoleList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || `${label}失败`);
   }
 }
@@ -479,7 +522,11 @@ onMounted(() => {
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button type="link" size="small" @click="openEditModal(record as SysRoleItem)">
+          <Button
+            type="link"
+            size="small"
+            @click="openEditModal(record as SysRoleItem)"
+          >
             编辑
           </Button>
           <Button
@@ -528,7 +575,11 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="排序">
-          <InputNumber v-model:value="addForm.roleSort" :min="0" class="w-full" />
+          <InputNumber
+            v-model:value="addForm.roleSort"
+            :min="0"
+            class="w-full"
+          />
         </FormItem>
         <FormItem label="状态">
           <Select
@@ -545,11 +596,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="addForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>
@@ -616,7 +666,11 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="排序">
-          <InputNumber v-model:value="editForm.roleSort" :min="0" class="w-full" />
+          <InputNumber
+            v-model:value="editForm.roleSort"
+            :min="0"
+            class="w-full"
+          />
         </FormItem>
         <FormItem label="状态">
           <Select
@@ -633,11 +687,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="editForm.remark"
             placeholder="请输入备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>

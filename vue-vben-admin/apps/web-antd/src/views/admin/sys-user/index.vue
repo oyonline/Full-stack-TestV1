@@ -30,6 +30,7 @@ import {
 } from '#/api/core';
 import type {
   DeptLabel,
+  DeptTreeOption,
   SysUserItem,
   SysUserPageResult,
 } from '#/api/core';
@@ -63,12 +64,16 @@ const statusOptions = [
 /** 部门树（用于下拉） */
 const deptTreeRaw = ref<DeptLabel[]>([]);
 
-function buildDeptTreeOptions(nodes: DeptLabel[]): { value: number; label: string; children?: { value: number; label: string; children?: unknown[] }[] }[] {
-  return (nodes || []).map((n) => ({
-    value: n.id,
-    label: n.label,
-    children: n.children?.length ? buildDeptTreeOptions(n.children as DeptLabel[]) : undefined,
-  }));
+function buildDeptTreeOptions(nodes: DeptLabel[]): DeptTreeOption[] {
+  return (nodes || []).map(
+    (n): DeptTreeOption => ({
+      value: n.id,
+      label: n.label,
+      children: n.children?.length
+        ? buildDeptTreeOptions(n.children)
+        : undefined,
+    }),
+  );
 }
 
 const deptTreeOptions = computed(() => buildDeptTreeOptions(deptTreeRaw.value));
@@ -119,16 +124,22 @@ async function fetchUserList() {
       pageIndex: pagination.value.current,
       pageSize: pagination.value.pageSize,
     };
-    if (searchUsername.value.trim()) params.username = searchUsername.value.trim();
-    if (searchNickName.value.trim()) params.nickName = searchNickName.value.trim();
+    if (searchUsername.value.trim())
+      params.username = searchUsername.value.trim();
+    if (searchNickName.value.trim())
+      params.nickName = searchNickName.value.trim();
     if (searchPhone.value.trim()) params.phone = searchPhone.value.trim();
     if (searchStatus.value !== '') params.status = searchStatus.value;
     const res: SysUserPageResult = await getSysUserPage(params);
     tableData.value = res.list || [];
     pagination.value.total = res.count || 0;
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
-    errorMsg.value = err?.message || err?.response?.data?.msg || '加载用户列表失败';
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
+    errorMsg.value =
+      err?.message || err?.response?.data?.msg || '加载用户列表失败';
     tableData.value = [];
     pagination.value.total = 0;
   } finally {
@@ -276,7 +287,10 @@ async function onAddOk() {
     addVisible.value = false;
     fetchUserList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '新增失败');
   } finally {
     addSubmitting.value = false;
@@ -366,7 +380,10 @@ async function onEditOk() {
     editVisible.value = false;
     fetchUserList();
   } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
     message.error(err?.message || err?.response?.data?.msg || '编辑失败');
   } finally {
     editSubmitting.value = false;
@@ -392,7 +409,10 @@ function onDelete(record: SysUserItem) {
         message.success('删除成功');
         fetchUserList();
       } catch (e: unknown) {
-        const err = e as { message?: string; response?: { data?: { msg?: string } } };
+        const err = e as {
+          message?: string;
+          response?: { data?: { msg?: string } };
+        };
         message.error(err?.message || err?.response?.data?.msg || '删除失败');
       }
     },
@@ -418,7 +438,9 @@ onMounted(() => {
       <h2 class="text-lg font-medium">用户管理</h2>
       <div class="flex gap-2">
         <Button @click="fetchUserList">刷新</Button>
-        <Button type="primary" data-testid="btn-add-user" @click="openAddModal">新增用户</Button>
+        <Button type="primary" data-testid="btn-add-user" @click="openAddModal"
+          >新增用户</Button
+        >
       </div>
     </div>
 
@@ -472,7 +494,11 @@ onMounted(() => {
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button type="link" size="small" @click="openEditModal(record as SysUserItem)">
+          <Button
+            type="link"
+            size="small"
+            @click="openEditModal(record as SysUserItem)"
+          >
             编辑
           </Button>
           <Button
@@ -499,7 +525,12 @@ onMounted(() => {
     >
       <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
         <FormItem label="用户名" required>
-          <Input v-model:value="addForm.username" data-testid="input-username" placeholder="用户名" allow-clear />
+          <Input
+            v-model:value="addForm.username"
+            data-testid="input-username"
+            placeholder="用户名"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="密码" required>
           <Input
@@ -511,13 +542,28 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="昵称" required>
-          <Input v-model:value="addForm.nickName" data-testid="input-nickname" placeholder="昵称" allow-clear />
+          <Input
+            v-model:value="addForm.nickName"
+            data-testid="input-nickname"
+            placeholder="昵称"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="手机号" required>
-          <Input v-model:value="addForm.phone" data-testid="input-phone" placeholder="手机号" allow-clear />
+          <Input
+            v-model:value="addForm.phone"
+            data-testid="input-phone"
+            placeholder="手机号"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="邮箱" required>
-          <Input v-model:value="addForm.email" data-testid="input-email" placeholder="邮箱" allow-clear />
+          <Input
+            v-model:value="addForm.email"
+            data-testid="input-email"
+            placeholder="邮箱"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="部门" required>
           <TreeSelect
@@ -555,11 +601,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="addForm.remark"
             placeholder="备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>
@@ -587,16 +632,32 @@ onMounted(() => {
         class="mt-4"
       >
         <FormItem label="用户名" required>
-          <Input v-model:value="editForm.username" placeholder="用户名" allow-clear />
+          <Input
+            v-model:value="editForm.username"
+            placeholder="用户名"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="昵称" required>
-          <Input v-model:value="editForm.nickName" placeholder="昵称" allow-clear />
+          <Input
+            v-model:value="editForm.nickName"
+            placeholder="昵称"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="手机号" required>
-          <Input v-model:value="editForm.phone" placeholder="手机号" allow-clear />
+          <Input
+            v-model:value="editForm.phone"
+            placeholder="手机号"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="邮箱" required>
-          <Input v-model:value="editForm.email" placeholder="邮箱" allow-clear />
+          <Input
+            v-model:value="editForm.email"
+            placeholder="邮箱"
+            allow-clear
+          />
         </FormItem>
         <FormItem label="部门" required>
           <TreeSelect
@@ -634,11 +695,10 @@ onMounted(() => {
           />
         </FormItem>
         <FormItem label="备注">
-          <Input
+          <Input.TextArea
             v-model:value="editForm.remark"
             placeholder="备注"
             allow-clear
-            type="textarea"
             :rows="2"
           />
         </FormItem>

@@ -13,7 +13,7 @@ settings:
     source: ./go-admin-db.db
   gen:
     dbname: testhhh
-    frontpath: ../go-admin-ui/src
+    frontpath: ../vue-vben-admin/apps/web-antd/src
   jwt:
     secret: go-admin
     timeout: 3600
@@ -21,7 +21,7 @@ settings:
     # 日志存放路径
     path: temp/logs
     # 日志输出，file：文件，default：命令行，其他：命令行
-    stdout: '' #控制台日志，启用后，不输出到文件
+    stdout: "" #控制台日志，启用后，不输出到文件
     # 日志等级, trace, debug, info, warn, error, fatal
     level: trace
     # 数据库日志开关
