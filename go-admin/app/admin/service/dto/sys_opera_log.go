@@ -16,8 +16,11 @@ const (
 type SysOperaLogGetPageReq struct {
 	dto.Pagination `search:"-"`
 	Title          string `form:"title" search:"type:contains;column:title;table:sys_opera_log" comment:"操作模块"`
+	BusinessType   string `form:"businessType" search:"type:exact;column:business_type;table:sys_opera_log" comment:"操作类型"`
+	BusinessTypes  string `form:"businessTypes" search:"type:exact;column:business_types;table:sys_opera_log" comment:"审计分类"`
 	Method         string `form:"method" search:"type:contains;column:method;table:sys_opera_log" comment:"函数"`
 	RequestMethod  string `form:"requestMethod" search:"type:contains;column:request_method;table:sys_opera_log" comment:"请求方式: GET POST PUT DELETE"`
+	OperatorType   string `form:"operatorType" search:"type:exact;column:operator_type;table:sys_opera_log" comment:"操作主体"`
 	OperUrl        string `form:"operUrl" search:"type:contains;column:oper_url;table:sys_opera_log" comment:"访问地址"`
 	OperIp         string `form:"operIp" search:"type:exact;column:oper_ip;table:sys_opera_log" comment:"客户端ip"`
 	Status         int    `form:"status" search:"type:exact;column:status;table:sys_opera_log" comment:"状态 1:正常 2:关闭"`

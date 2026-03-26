@@ -4,15 +4,12 @@
  * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 刷新
  * dictType 筛选用字典类型下拉，来自 getDictTypeOptionSelect
  */
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 
 import {
   Button,
   type SelectProps,
-  Form,
-  FormItem,
   Input,
-  InputNumber,
   Modal,
   Select,
   Table,
@@ -28,36 +25,26 @@ import {
   getDictTypeOptionSelect,
   updateDictData,
 } from '#/api/core';
-import type {
-  DictTypeOption,
-  SysDictDataItem,
-  SysDictDataPageResult,
-} from '#/api/core';
+import type { DictTypeOption, SysDictDataItem } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
-/** 表格加载状态 */
-const loading = ref(false);
-/** 表格数据 */
-const tableData = ref<SysDictDataItem[]>([]);
-/** 错误提示 */
-const errorMsg = ref('');
-
-/** 分页状态 */
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
-});
-
-/** 搜索 */
-const searchDictLabel = ref('');
-const searchDictValue = ref('');
-const searchDictType = ref('');
-const searchStatus = ref<string>('');
+const renderEmpty = renderAdminEmpty;
 
 /** 字典类型下拉（供搜索与表单） */
 const dictTypeOptions = ref<DictTypeOption[]>([]);
+const dictTypeSelectOptions = computed(() =>
+  dictTypeOptions.value.map((item) => ({
+    label: `${item.dictName} (${item.dictType})`,
+    value: item.dictType,
+  })),
+);
 
 /** 状态下拉 */
 const statusOptions = [
@@ -65,6 +52,47 @@ const statusOptions = [
   { value: '1', label: '停用' },
   { value: '2', label: '启用' },
 ];
+
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysDictDataItem,
+  {
+    dictLabel: string;
+    dictType: string;
+    dictValue: string;
+    status: string;
+  },
+  {
+    dictLabel?: string;
+    dictType?: string;
+    dictValue?: string;
+    status?: string;
+  }
+>({
+  createParams: (currentQuery) => ({
+    dictLabel: currentQuery.dictLabel.trim() || undefined,
+    dictValue: currentQuery.dictValue.trim() || undefined,
+    dictType: currentQuery.dictType.trim() || undefined,
+    status: currentQuery.status || undefined,
+  }),
+  createQuery: () => ({
+    dictLabel: '',
+    dictValue: '',
+    dictType: '',
+    status: '',
+  }),
+  fallbackErrorMessage: '加载字典数据列表失败',
+  fetcher: async (params) => getDictDataPage(params),
+});
 
 /** 加载字典类型选项 */
 async function loadDictTypeOptions() {
@@ -75,89 +103,11 @@ async function loadDictTypeOptions() {
   }
 }
 
-/** 获取字典数据列表 */
-async function fetchList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: {
-      pageIndex: number;
-      pageSize: number;
-      dictLabel?: string;
-      dictValue?: string;
-      dictType?: string;
-      status?: string;
-    } = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchDictLabel.value.trim()) {
-      params.dictLabel = searchDictLabel.value.trim();
-    }
-    if (searchDictValue.value.trim()) {
-      params.dictValue = searchDictValue.value.trim();
-    }
-    if (searchDictType.value.trim()) {
-      params.dictType = searchDictType.value.trim();
-    }
-    if (searchStatus.value !== '') {
-      params.status = searchStatus.value;
-    }
-    const res: SysDictDataPageResult = await getDictDataPage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    errorMsg.value =
-      err?.message || err?.response?.data?.msg || '加载字典数据列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 查询 */
-function onSearch() {
-  pagination.value.current = 1;
-  fetchList();
-}
-
-/** 重置 */
-function onReset() {
-  searchDictLabel.value = '';
-  searchDictValue.value = '';
-  searchDictType.value = '';
-  searchStatus.value = '';
-  pagination.value.current = 1;
-  fetchList();
-}
-
-/** 分页变化 */
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchList();
-}
-
 /** 状态渲染 */
 function renderStatus(status: number): string {
   if (status === 1) return '停用';
   if (status === 2) return '启用';
   return String(status);
-}
-
-/** 空值渲染 */
-function renderEmpty(value: string | number | null | undefined): string {
-  if (value === null || value === undefined) return '-';
-  return String(value);
 }
 
 const filterDictTypeOption: SelectProps['filterOption'] = (input, option) => {
@@ -193,7 +143,7 @@ const columns: TableColumnType[] = [
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 160,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
   },
   {
     title: '操作',
@@ -384,61 +334,127 @@ const statusEditOptions = [
   { value: 2, label: '启用' },
 ];
 
+const dictDataFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'select',
+    field: 'dictType',
+    label: '字典类型',
+    options: dictTypeSelectOptions.value,
+    placeholder: '请选择字典类型',
+    required: true,
+    showSearch: true,
+    filterOption: filterDictTypeOption,
+    span: 2,
+  },
+  {
+    component: 'input',
+    field: 'dictLabel',
+    label: '字典标签',
+    placeholder: '请输入字典标签',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'dictValue',
+    label: '字典键值',
+    placeholder: '请输入字典键值',
+    required: true,
+  },
+  {
+    component: 'input-number',
+    field: 'dictSort',
+    label: '排序',
+    min: 0,
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '请输入备注',
+    span: 2,
+  },
+]);
+
 onMounted(() => {
   loadDictTypeOptions();
-  fetchList();
+  void fetchList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">字典数据</h2>
-      <div class="flex gap-2">
-        <Button @click="fetchList">刷新</Button>
-        <Button type="primary" @click="openAddModal">新增</Button>
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>字典数据</template>
+    <template #description>
+      维护字典标签、键值与状态，筛选区与表格区采用统一后台布局，降低列表页的横向拥挤感。
+    </template>
+    <template #header-extra>
+      <Button @click="fetchList">刷新</Button>
+      <AdminActionButton
+        type="primary"
+        codes="admin:sysDictData:add"
+        @click="openAddModal"
+      >
+        新增
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="字典标签">
+          <Input
+            v-model:value="query.dictLabel"
+            placeholder="请输入字典标签"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="字典键值">
+          <Input
+            v-model:value="query.dictValue"
+            placeholder="请输入字典键值"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="字典类型">
+          <Select
+            v-model:value="query.dictType"
+            :options="dictTypeSelectOptions"
+            placeholder="请选择字典类型"
+            allow-clear
+            show-search
+            :filter-option="filterDictTypeOption"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </AdminFilterField>
       </div>
-    </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">字典数据列表</div>
+        <p class="mt-1 text-sm text-slate-500">
+          支持按标签、键值和字典类型快速定位数据项，列表与弹窗布局保持统一。
+        </p>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">字典标签：</span>
-      <Input
-        v-model:value="searchDictLabel"
-        placeholder="请输入字典标签"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">字典键值：</span>
-      <Input
-        v-model:value="searchDictValue"
-        placeholder="请输入字典键值"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">字典类型：</span>
-      <Select
-        v-model:value="searchDictType"
-        :options="dictTypeOptions"
-        placeholder="请选择字典类型"
-        allow-clear
-        class="w-48"
-        show-search
-        :filter-option="filterDictTypeOption"
-      />
-      <span class="text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        class="w-28"
-        placeholder="请选择"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -446,27 +462,29 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysDictDataItem) => record.dictCode"
-      size="small"
-      bordered
+      :scroll="{ x: 1040 }"
+      size="middle"
       @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysDictData:edit"
             @click="openEditModal(record as SysDictDataItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysDictData:remove"
             @click="onDelete(record as SysDictDataItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
@@ -475,59 +493,13 @@ onMounted(() => {
       v-model:open="addVisible"
       title="新增字典数据"
       :confirm-loading="addSubmitting"
+      :width="720"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="字典类型" required>
-          <Select
-            v-model:value="addForm.dictType"
-            :options="dictTypeOptions"
-            placeholder="请选择字典类型"
-            class="w-full"
-            show-search
-            :filter-option="filterDictTypeOption"
-          />
-        </FormItem>
-        <FormItem label="字典标签" required>
-          <Input
-            v-model:value="addForm.dictLabel"
-            placeholder="请输入字典标签"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="字典键值" required>
-          <Input
-            v-model:value="addForm.dictValue"
-            placeholder="请输入字典键值"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="排序">
-          <InputNumber
-            v-model:value="addForm.dictSort"
-            :min="0"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="addForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="addForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+      <AdminModalFormFields :model="addForm" :fields="dictDataFormFields" />
     </Modal>
 
     <Modal
@@ -535,6 +507,7 @@ onMounted(() => {
       title="编辑字典数据"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
+      :width="720"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
@@ -543,59 +516,11 @@ onMounted(() => {
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载详情中…
       </div>
-      <Form
+      <AdminModalFormFields
         v-else
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-        class="mt-4"
-      >
-        <FormItem label="字典类型" required>
-          <Select
-            v-model:value="editForm.dictType"
-            :options="dictTypeOptions"
-            placeholder="请选择字典类型"
-            class="w-full"
-            show-search
-            :filter-option="filterDictTypeOption"
-          />
-        </FormItem>
-        <FormItem label="字典标签" required>
-          <Input
-            v-model:value="editForm.dictLabel"
-            placeholder="请输入字典标签"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="字典键值" required>
-          <Input
-            v-model:value="editForm.dictValue"
-            placeholder="请输入字典键值"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="排序">
-          <InputNumber
-            v-model:value="editForm.dictSort"
-            :min="0"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="editForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="editForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+        :model="editForm"
+        :fields="dictDataFormFields"
+      />
     </Modal>
-  </div>
+  </AdminPageShell>
 </template>

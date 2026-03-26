@@ -18,8 +18,10 @@
   "scripts": {
     "build": "pnpm vite build --mode production",
     "build:analyze": "pnpm vite build --mode analyze",
+    "build:local": "cd ../.. && pnpm turbo run build --filter=@vben/web-antd^... && cd apps/web-antd && VITE_GLOB_API_URL=/api pnpm vite build --mode production",
     "dev": "pnpm vite --mode development",
     "preview": "vite preview",
+    "test:e2e": "playwright test",
     "typecheck": "vue-tsc --noEmit --skipLibCheck"
   },
   "imports": {

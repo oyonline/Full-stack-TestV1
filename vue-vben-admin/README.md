@@ -14,6 +14,27 @@
 
 **中文** 
 
+## Full-stack-TestV1 本地开发说明
+
+当前工作区把 Vue Vben Admin 作为前端基座，建议直接参考工作区根 README 与脚手架说明：
+
+- 根说明：[README.md](/Users/linshen/Desktop/Full-stack-TestV1/README.md)
+- 脚手架说明：[docs/scaffold-guide.md](/Users/linshen/Desktop/Full-stack-TestV1/docs/scaffold-guide.md)
+
+提交前最少执行：
+
+```bash
+cd /Users/linshen/Desktop/Full-stack-TestV1
+./scripts/check-local.sh
+```
+
+如需跑前端冒烟：
+
+```bash
+cd /Users/linshen/Desktop/Full-stack-TestV1/vue-vben-admin/apps/web-antd
+pnpm test:e2e
+```
+
 ## 简介
 
 Vue Vben Admin 是 Vue Vben Admin 的升级版本。作为一个免费开源的中后台模板，它采用了最新的 Vue 3、Vite、TypeScript 等主流技术开发，开箱即用，可用于中后台前端开发，也适合学习参考。

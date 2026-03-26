@@ -19,8 +19,11 @@ type SysOperaLog struct {
 // @Description 获取JSON
 // @Tags 操作日志
 // @Param title query string false "title"
+// @Param businessType query string false "businessType"
+// @Param businessTypes query string false "businessTypes"
 // @Param method query string false "method"
 // @Param requestMethod  query string false "requestMethod"
+// @Param operatorType query string false "operatorType"
 // @Param operUrl query string false "operUrl"
 // @Param operIp query string false "operIp"
 // @Param status query string false "status"
@@ -65,7 +68,7 @@ func (e SysOperaLog) GetPage(c *gin.Context) {
 // @Security Bearer
 func (e SysOperaLog) Get(c *gin.Context) {
 	s := new(service.SysOperaLog)
-	req :=dto.SysOperaLogGetReq{}
+	req := dto.SysOperaLogGetReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, nil).
@@ -96,7 +99,7 @@ func (e SysOperaLog) Get(c *gin.Context) {
 // @Security Bearer
 func (e SysOperaLog) Delete(c *gin.Context) {
 	s := new(service.SysOperaLog)
-	req :=dto.SysOperaLogDeleteReq{}
+	req := dto.SysOperaLogDeleteReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON).
@@ -111,7 +114,7 @@ func (e SysOperaLog) Delete(c *gin.Context) {
 	err = s.Remove(&req)
 	if err != nil {
 		e.Logger.Error(err)
-		e.Error(500,err, fmt.Sprintf("删除失败！错误详情：%s", err.Error()))
+		e.Error(500, err, fmt.Sprintf("删除失败！错误详情：%s", err.Error()))
 		return
 	}
 	e.OK(req.GetId(), "删除成功")

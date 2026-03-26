@@ -5,110 +5,133 @@
  */
 import { onMounted, ref } from 'vue';
 
-import { Button, Descriptions, Drawer, Input, Modal, Table, message } from 'ant-design-vue';
+import {
+  Button,
+  Descriptions,
+  Input,
+  Modal,
+  Table,
+  message,
+} from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 
-import {
-  deleteLoginLog,
-  getLoginLogDetail,
-  getLoginLogPage,
-} from '#/api/core';
-import type {
+import { deleteLoginLog, getLoginLogDetail, getLoginLogPage } from '#/api/core';
+import type { SysLoginLogItem, SysLoginLogPageResult } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
+
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
   SysLoginLogItem,
-  SysLoginLogPageResult,
-} from '#/api/core';
-
-const loading = ref(false);
-const tableData = ref<SysLoginLogItem[]>([]);
-const errorMsg = ref('');
-
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
+  {
+    beginTime: string;
+    endTime: string;
+    ipaddr: string;
+    status: string;
+    username: string;
+  },
+  {
+    beginTime?: string;
+    endTime?: string;
+    ipaddr?: string;
+    status?: string;
+    username?: string;
+  }
+>({
+  createParams: (currentQuery) => ({
+    username: currentQuery.username.trim() || undefined,
+    status: currentQuery.status.trim() || undefined,
+    ipaddr: currentQuery.ipaddr.trim() || undefined,
+    beginTime: currentQuery.beginTime.trim() || undefined,
+    endTime: currentQuery.endTime.trim() || undefined,
+  }),
+  createQuery: () => ({
+    username: '',
+    status: '',
+    ipaddr: '',
+    beginTime: '',
+    endTime: '',
+  }),
+  fallbackErrorMessage: '加载列表失败',
+  fetcher: async (params) => {
+    const res: SysLoginLogPageResult = await getLoginLogPage(params);
+    return res;
+  },
 });
 
-const searchUsername = ref('');
-const searchStatus = ref('');
-const searchIpaddr = ref('');
-const searchBeginTime = ref('');
-const searchEndTime = ref('');
-
-async function fetchList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: {
-      pageIndex: number;
-      pageSize: number;
-      username?: string;
-      status?: string;
-      ipaddr?: string;
-      beginTime?: string;
-      endTime?: string;
-    } = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchUsername.value.trim()) params.username = searchUsername.value.trim();
-    if (searchStatus.value.trim()) params.status = searchStatus.value.trim();
-    if (searchIpaddr.value.trim()) params.ipaddr = searchIpaddr.value.trim();
-    if (searchBeginTime.value.trim()) params.beginTime = searchBeginTime.value.trim();
-    if (searchEndTime.value.trim()) params.endTime = searchEndTime.value.trim();
-    const res: SysLoginLogPageResult = await getLoginLogPage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
-    errorMsg.value = err?.message || err?.response?.data?.msg || '加载列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onSearch() {
-  pagination.value.current = 1;
-  fetchList();
-}
-
-function onReset() {
-  searchUsername.value = '';
-  searchStatus.value = '';
-  searchIpaddr.value = '';
-  searchBeginTime.value = '';
-  searchEndTime.value = '';
-  pagination.value.current = 1;
-  fetchList();
-}
-
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchList();
-}
-
-function renderEmpty(value: string | null | undefined): string {
-  return value !== undefined && value !== null ? String(value) : '-';
-}
+const renderEmpty = renderAdminEmpty;
 
 const columns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
   { title: '用户名', dataIndex: 'username', key: 'username', width: 100 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 80, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: 'IP', dataIndex: 'ipaddr', key: 'ipaddr', width: 120, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '归属地', dataIndex: 'loginLocation', key: 'loginLocation', width: 120, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '浏览器', dataIndex: 'browser', key: 'browser', width: 100, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '系统', dataIndex: 'os', key: 'os', width: 100, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '登录时间', dataIndex: 'loginTime', key: 'loginTime', width: 165, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '信息', dataIndex: 'msg', key: 'msg', width: 100, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    width: 80,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: 'IP',
+    dataIndex: 'ipaddr',
+    key: 'ipaddr',
+    width: 120,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '归属地',
+    dataIndex: 'loginLocation',
+    key: 'loginLocation',
+    width: 120,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '浏览器',
+    dataIndex: 'browser',
+    key: 'browser',
+    width: 100,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '系统',
+    dataIndex: 'os',
+    key: 'os',
+    width: 100,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '登录时间',
+    dataIndex: 'loginTime',
+    key: 'loginTime',
+    width: 165,
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
+  },
+  {
+    title: '信息',
+    dataIndex: 'msg',
+    key: 'msg',
+    width: 100,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
   { title: '操作', key: 'action', width: 120, fixed: 'right' },
 ];
 
@@ -146,7 +169,10 @@ function onDelete(record: SysLoginLogItem) {
         message.success('删除成功');
         fetchList();
       } catch (e: unknown) {
-        const err = e as { message?: string; response?: { data?: { msg?: string } } };
+        const err = e as {
+          message?: string;
+          response?: { data?: { msg?: string } };
+        };
         message.error(err?.message || err?.response?.data?.msg || '删除失败');
       }
     },
@@ -154,60 +180,73 @@ function onDelete(record: SysLoginLogItem) {
 }
 
 onMounted(() => {
-  fetchList();
+  void fetchList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">登录日志</h2>
-    </div>
+  <AdminPageShell>
+    <template #eyebrow>System Audit</template>
+    <template #title>登录日志</template>
+    <template #description>
+      查看登录状态、IP 和客户端信息，详情抽屉采用统一的审计信息展示密度。
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="用户名">
+          <Input
+            v-model:value="query.username"
+            placeholder="请输入用户名"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Input
+            v-model:value="query.status"
+            placeholder="请输入状态"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="IP">
+          <Input
+            v-model:value="query.ipaddr"
+            placeholder="请输入 IP"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="开始时间">
+          <Input
+            v-model:value="query.beginTime"
+            placeholder="如 2024-01-01"
+            allow-clear
+          />
+        </AdminFilterField>
+        <AdminFilterField label="结束时间">
+          <Input
+            v-model:value="query.endTime"
+            placeholder="如 2024-12-31"
+            allow-clear
+          />
+        </AdminFilterField>
+      </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">登录日志列表</div>
+        <p class="mt-1 text-sm text-slate-500">
+          重点查看登录状态、设备信息与时间区间，可快速进入详情抽屉定位问题。
+        </p>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">用户名：</span>
-      <Input
-        v-model:value="searchUsername"
-        placeholder="请输入"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">状态：</span>
-      <Input
-        v-model:value="searchStatus"
-        placeholder="请输入"
-        allow-clear
-        class="w-32"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">IP：</span>
-      <Input
-        v-model:value="searchIpaddr"
-        placeholder="请输入"
-        allow-clear
-        class="w-36"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">开始时间：</span>
-      <Input
-        v-model:value="searchBeginTime"
-        placeholder="如 2024-01-01"
-        allow-clear
-        class="w-36"
-      />
-      <span class="ml-2 text-sm text-gray-600">结束时间：</span>
-      <Input
-        v-model:value="searchEndTime"
-        placeholder="如 2024-12-31"
-        allow-clear
-        class="w-36"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -215,48 +254,104 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysLoginLogItem) => record.id"
-      size="small"
-      bordered
-      @change="onTableChange"
+      :scroll="{ x: 1160 }"
+      size="middle"
+      @change="(pag) => onTableChange(pag)"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button type="link" size="small" @click="openDetail(record as SysLoginLogItem)">
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysLoginLog:query"
+            @click="openDetail(record as SysLoginLogItem)"
+          >
             详情
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysLoginLog:remove"
             @click="onDelete(record as SysLoginLogItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
 
-    <Drawer
+    <AdminDetailDrawer
       v-model:open="detailVisible"
       title="登录日志详情"
-      width="480"
-      :footer-style="{ textAlign: 'right' }"
+      width="560"
+      :loading="detailLoading"
     >
-      <div v-if="detailLoading" class="py-8 text-center text-gray-400">加载中…</div>
-      <Descriptions v-else-if="detailRecord" :column="1" bordered size="small">
-        <Descriptions.Item label="ID">{{ detailRecord.id }}</Descriptions.Item>
-        <Descriptions.Item label="用户名">{{ detailRecord.username }}</Descriptions.Item>
-        <Descriptions.Item label="状态">{{ detailRecord.status }}</Descriptions.Item>
-        <Descriptions.Item label="IP">{{ detailRecord.ipaddr }}</Descriptions.Item>
-        <Descriptions.Item label="归属地">{{ detailRecord.loginLocation }}</Descriptions.Item>
-        <Descriptions.Item label="浏览器">{{ detailRecord.browser }}</Descriptions.Item>
-        <Descriptions.Item label="系统">{{ detailRecord.os }}</Descriptions.Item>
-        <Descriptions.Item label="固件">{{ detailRecord.platform }}</Descriptions.Item>
-        <Descriptions.Item label="登录时间">{{ detailRecord.loginTime }}</Descriptions.Item>
-        <Descriptions.Item label="信息">{{ detailRecord.msg }}</Descriptions.Item>
-        <Descriptions.Item label="备注">{{ detailRecord.remark }}</Descriptions.Item>
-        <Descriptions.Item label="创建时间">{{ detailRecord.createdAt }}</Descriptions.Item>
-      </Descriptions>
-    </Drawer>
-  </div>
+      <template v-if="detailRecord">
+        <AdminDetailSection title="登录概览" description="账号、状态和终端环境信息。">
+          <Descriptions
+            :column="1"
+            bordered
+            size="middle"
+            :label-style="{ width: '120px' }"
+          >
+            <Descriptions.Item label="ID">{{ detailRecord.id }}</Descriptions.Item>
+            <Descriptions.Item label="用户名">{{
+              renderEmpty(detailRecord.username)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="状态">{{
+              renderEmpty(detailRecord.status)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="信息">{{
+              renderEmpty(detailRecord.msg)
+            }}</Descriptions.Item>
+          </Descriptions>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="终端信息" description="用于快速定位访问来源与设备环境。">
+          <Descriptions
+            :column="1"
+            bordered
+            size="middle"
+            :label-style="{ width: '120px' }"
+          >
+            <Descriptions.Item label="IP">{{
+              renderEmpty(detailRecord.ipaddr)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="归属地">{{
+              renderEmpty(detailRecord.loginLocation)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="浏览器">{{
+              renderEmpty(detailRecord.browser)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="系统">{{
+              renderEmpty(detailRecord.os)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="固件">{{
+              renderEmpty(detailRecord.platform)
+            }}</Descriptions.Item>
+          </Descriptions>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="时间与备注" description="保留登录发生时间和审计附加说明。">
+          <Descriptions
+            :column="1"
+            bordered
+            size="middle"
+            :label-style="{ width: '120px' }"
+          >
+            <Descriptions.Item label="登录时间">{{
+              formatAdminDateTime(detailRecord.loginTime)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="创建时间">{{
+              formatAdminDateTime(detailRecord.createdAt)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="备注">{{
+              renderEmpty(detailRecord.remark)
+            }}</Descriptions.Item>
+          </Descriptions>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

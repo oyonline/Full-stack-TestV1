@@ -142,6 +142,25 @@ const logoPreviewUrl = computed(() => {
   return /^https?:\/\//.test(value) ? value : '';
 });
 
+const logoPlaceholderColor = computed(
+  () => settings.branding.appLogoPlaceholderColor.trim() || '#1d4ed8',
+);
+
+const logoPlaceholderText = computed(() => {
+  const name = settings.branding.appName.trim().replace(/\s+/g, '');
+  if (!name) {
+    return 'S';
+  }
+
+  const asciiGroups = name.match(/[A-Za-z0-9]+/g);
+  const firstAsciiGroup = asciiGroups?.[0];
+  if (firstAsciiGroup?.[0]) {
+    return firstAsciiGroup[0].toUpperCase();
+  }
+
+  return name[0]?.toUpperCase() || 'S';
+});
+
 const hasUnsavedChanges = computed(
   () => JSON.stringify(settings) !== JSON.stringify(initialSnapshot.value),
 );
@@ -216,6 +235,12 @@ function validateSettings() {
     return false;
   }
 
+  const placeholderColor = settings.branding.appLogoPlaceholderColor.trim();
+  if (!/^#[0-9a-fA-F]{6}$/.test(placeholderColor)) {
+    message.error('Logo 占位底色请使用 6 位十六进制颜色，例如 #1d4ed8');
+    return false;
+  }
+
   return true;
 }
 
@@ -229,6 +254,12 @@ async function handleSave() {
     const payload = clonePlain(settings);
     payload.branding.appName = payload.branding.appName.trim();
     payload.branding.appLogo = payload.branding.appLogo.trim();
+    payload.branding.appLogoPlaceholderColor =
+      payload.branding.appLogoPlaceholderColor.trim().toLowerCase();
+    payload.uiPreferences.app.loginTitle =
+      payload.uiPreferences.app.loginTitle.trim();
+    payload.uiPreferences.app.loginDescription =
+      payload.uiPreferences.app.loginDescription.trim();
     payload.uiPreferences.app.watermarkContent =
       payload.uiPreferences.app.watermarkContent.trim();
     payload.uiPreferences.copyright.companyName =
@@ -264,7 +295,7 @@ onMounted(() => {
   <div class="min-h-full bg-slate-50 p-4 md:p-6">
     <div class="mx-auto max-w-7xl space-y-6">
       <section
-        class="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#eef5ff_100%)] p-6 shadow-sm"
+        class="app-radius-panel border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#eef5ff_100%)] p-6 shadow-sm"
       >
         <div
           class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
@@ -311,7 +342,7 @@ onMounted(() => {
         description="当前页面保存的是系统级界面设置，不再区分个人偏好。右上角偏好设置和登录页工具条默认入口都已移除，后续界面展示以这里保存的配置为准。"
       />
 
-      <Card :bordered="false" class="rounded-3xl shadow-sm">
+      <Card :bordered="false" class="app-radius-panel shadow-sm">
         <template #title>
           <div class="flex items-center justify-between">
             <span class="text-base font-semibold">系统品牌</span>
@@ -346,10 +377,58 @@ onMounted(() => {
                   图片地址，保存后会同步刷新侧栏、顶部和登录页品牌展示。
                 </p>
               </div>
+
+              <div>
+                <label class="mb-2 block text-sm font-medium text-slate-700">
+                  登录页标题
+                </label>
+                <Input
+                  v-model:value="settings.uiPreferences.app.loginTitle"
+                  :maxlength="80"
+                  placeholder="欢迎回到管理系统"
+                />
+              </div>
+
+              <div>
+                <label class="mb-2 block text-sm font-medium text-slate-700">
+                  登录页说明
+                </label>
+                <Input.TextArea
+                  v-model:value="settings.uiPreferences.app.loginDescription"
+                  :auto-size="{ minRows: 2, maxRows: 4 }"
+                  :maxlength="160"
+                  placeholder="输入一段简短的登录页说明文案，保存后会立即更新认证页展示。"
+                />
+              </div>
+
+              <div>
+                <label class="mb-2 block text-sm font-medium text-slate-700">
+                  Logo 占位底色
+                </label>
+                <div class="flex flex-wrap items-center gap-3">
+                  <input
+                    v-model="settings.branding.appLogoPlaceholderColor"
+                    type="color"
+                    class="app-radius-control h-11 w-14 cursor-pointer border border-slate-200 bg-white p-1"
+                  />
+                  <Input
+                    v-model:value="settings.branding.appLogoPlaceholderColor"
+                    class="max-w-[220px]"
+                    placeholder="#1d4ed8"
+                  />
+                  <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <span
+                      :style="{ backgroundColor: logoPlaceholderColor }"
+                      class="inline-flex size-4 rounded-full border border-slate-200"
+                    ></span>
+                    <span>空 Logo 时会用这个底色展示默认占位</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div
-              class="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-5"
+              class="app-radius-panel border border-dashed border-slate-200 bg-slate-50 p-5"
             >
               <div class="text-sm font-medium text-slate-700">Logo 预览</div>
               <div class="mt-4 flex min-h-[180px] items-center justify-center">
@@ -359,8 +438,22 @@ onMounted(() => {
                   :preview="false"
                   class="max-h-[140px] max-w-full object-contain"
                 />
-                <div v-else class="text-sm text-slate-400">
-                  输入图片地址后将在这里显示
+                <div
+                  v-else
+                  class="app-radius-panel flex w-full max-w-[240px] flex-col items-center border border-slate-200 bg-white px-6 py-7 text-center shadow-sm"
+                >
+                  <div
+                    :style="{ backgroundColor: logoPlaceholderColor }"
+                    class="app-radius-box flex size-20 items-center justify-center text-2xl font-semibold text-white shadow-[0_16px_36px_rgba(15,23,42,0.12)]"
+                  >
+                    {{ logoPlaceholderText }}
+                  </div>
+                  <div class="mt-4 text-sm font-medium text-slate-700">
+                    默认 Logo 占位
+                  </div>
+                  <div class="mt-2 text-xs leading-6 text-slate-400">
+                    当前未设置 Logo 地址，这里会先显示系统默认占位效果。
+                  </div>
                 </div>
               </div>
             </div>
@@ -368,11 +461,11 @@ onMounted(() => {
         </Skeleton>
       </Card>
 
-      <Card :bordered="false" class="rounded-3xl shadow-sm">
+      <Card :bordered="false" class="app-radius-panel shadow-sm">
         <Tabs v-model:active-key="activeTab">
           <Tabs.TabPane key="appearance" tab="外观">
             <div class="grid gap-6 xl:grid-cols-2">
-              <Card title="主题模式" :bordered="false" class="rounded-3xl">
+              <Card title="主题模式" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">主题模式</span>
@@ -416,7 +509,7 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="辅助模式" :bordered="false" class="rounded-3xl">
+              <Card title="辅助模式" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">灰色模式</span>
@@ -461,7 +554,7 @@ onMounted(() => {
 
           <Tabs.TabPane key="layout" tab="布局">
             <div class="grid gap-6 xl:grid-cols-2">
-              <Card title="整体布局" :bordered="false" class="rounded-3xl">
+              <Card title="整体布局" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">布局模式</span>
@@ -482,7 +575,7 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="侧边栏" :bordered="false" class="rounded-3xl">
+              <Card title="侧边栏" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用侧边栏</span>
@@ -553,7 +646,7 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="头部与导航" :bordered="false" class="rounded-3xl">
+              <Card title="头部与导航" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用头部栏</span>
@@ -613,7 +706,7 @@ onMounted(() => {
               <Card
                 title="面包屑与标签栏"
                 :bordered="false"
-                class="rounded-3xl"
+                class="app-radius-panel"
               >
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
@@ -705,12 +798,12 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="顶部部件" :bordered="false" class="rounded-3xl">
+              <Card title="顶部部件" :bordered="false" class="app-radius-panel">
                 <div class="grid gap-4 md:grid-cols-2">
                   <div
                     v-for="item in widgetItems"
                     :key="item.key"
-                    class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3"
+                    class="app-radius-box flex items-center justify-between border border-slate-200 px-4 py-3"
                   >
                     <span class="text-sm text-slate-700">{{ item.label }}</span>
                     <Switch
@@ -724,7 +817,7 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="页脚与版权" :bordered="false" class="rounded-3xl">
+              <Card title="页脚与版权" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用页脚</span>
@@ -807,7 +900,7 @@ onMounted(() => {
 
           <Tabs.TabPane key="general" tab="通用">
             <div class="grid gap-6 xl:grid-cols-2">
-              <Card title="通用设置" :bordered="false" class="rounded-3xl">
+              <Card title="通用设置" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">语言</span>
@@ -853,7 +946,7 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="动画与过渡" :bordered="false" class="rounded-3xl">
+              <Card title="动画与过渡" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用过渡</span>
@@ -892,7 +985,7 @@ onMounted(() => {
 
           <Tabs.TabPane key="shortcut" tab="快捷键">
             <div class="grid gap-6 xl:grid-cols-2">
-              <Card title="全局快捷键" :bordered="false" class="rounded-3xl">
+              <Card title="全局快捷键" :bordered="false" class="app-radius-panel">
                 <div class="space-y-4">
                   <div
                     v-for="item in shortcutItems"

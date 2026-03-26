@@ -5,17 +5,7 @@
  */
 import { computed, onMounted, reactive, ref } from 'vue';
 
-import {
-  Button,
-  Form,
-  FormItem,
-  Input,
-  Modal,
-  Select,
-  Table,
-  TreeSelect,
-  message,
-} from 'ant-design-vue';
+import { Button, Input, Modal, Select, Table, message } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 
 import {
@@ -28,38 +18,66 @@ import {
   getSysUserPage,
   updateSysUser,
 } from '#/api/core';
-import type {
-  DeptLabel,
-  DeptTreeOption,
-  SysUserItem,
-  SysUserPageResult,
-} from '#/api/core';
-
-/** 表格加载状态 */
-const loading = ref(false);
-const tableData = ref<SysUserItem[]>([]);
-const errorMsg = ref('');
-
-/** 分页 */
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
-});
-
-/** 搜索 */
-const searchUsername = ref('');
-const searchNickName = ref('');
-const searchPhone = ref('');
-const searchStatus = ref<string>('');
+import type { DeptLabel, DeptTreeOption, SysUserItem } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
 const statusOptions = [
   { value: '', label: '全部' },
   { value: '0', label: '停用' },
   { value: '1', label: '启用' },
 ];
+
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysUserItem,
+  {
+    nickName: string;
+    phone: string;
+    status: string;
+    username: string;
+  },
+  {
+    nickName?: string;
+    phone?: string;
+    status?: string;
+    username?: string;
+  }
+>({
+  createParams: (currentQuery) => ({
+    username: currentQuery.username.trim() || undefined,
+    nickName: currentQuery.nickName.trim() || undefined,
+    phone: currentQuery.phone.trim() || undefined,
+    status: currentQuery.status || undefined,
+  }),
+  createQuery: () => ({
+    username: '',
+    nickName: '',
+    phone: '',
+    status: '',
+  }),
+  fallbackErrorMessage: '加载用户列表失败',
+  fetcher: async (params) => getSysUserPage(params),
+});
+
+const fetchUserList = fetchList;
 
 /** 部门树（用于下拉） */
 const deptTreeRaw = ref<DeptLabel[]>([]);
@@ -115,70 +133,10 @@ async function loadPostOptions() {
   }
 }
 
-/** 获取用户列表 */
-async function fetchUserList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: Record<string, unknown> = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchUsername.value.trim())
-      params.username = searchUsername.value.trim();
-    if (searchNickName.value.trim())
-      params.nickName = searchNickName.value.trim();
-    if (searchPhone.value.trim()) params.phone = searchPhone.value.trim();
-    if (searchStatus.value !== '') params.status = searchStatus.value;
-    const res: SysUserPageResult = await getSysUserPage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    errorMsg.value =
-      err?.message || err?.response?.data?.msg || '加载用户列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onSearch() {
-  pagination.value.current = 1;
-  fetchUserList();
-}
-
-function onReset() {
-  searchUsername.value = '';
-  searchNickName.value = '';
-  searchPhone.value = '';
-  searchStatus.value = '';
-  pagination.value.current = 1;
-  fetchUserList();
-}
-
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchUserList();
-}
-
 function renderStatus(s: string): string {
   if (s === '1') return '启用';
   if (s === '0') return '停用';
   return s || '-';
-}
-
-function renderEmpty(v: string | number | null | undefined): string {
-  return v != null && v !== '' ? String(v) : '-';
 }
 
 const columns: TableColumnType[] = [
@@ -190,7 +148,7 @@ const columns: TableColumnType[] = [
     key: 'dept',
     width: 120,
     customRender: ({ record }: { record: SysUserItem }) =>
-      record.dept?.deptName ?? record.deptId ?? '-',
+      renderAdminEmpty(record.dept?.deptName ?? record.deptId),
   },
   { title: '岗位ID', dataIndex: 'postId', key: 'postId', width: 80 },
   { title: '角色ID', dataIndex: 'roleId', key: 'roleId', width: 80 },
@@ -207,7 +165,7 @@ const columns: TableColumnType[] = [
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 160,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
   },
   { title: '操作', key: 'action', width: 140, fixed: 'right' },
 ];
@@ -424,63 +382,255 @@ const statusEditOptions = [
   { value: '1', label: '启用' },
 ];
 
+const userAddFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'username',
+    label: '用户名',
+    placeholder: '用户名',
+    props: { 'data-testid': 'input-username' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'password',
+    label: '密码',
+    placeholder: '密码',
+    props: { type: 'password', 'data-testid': 'input-password' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'nickName',
+    label: '昵称',
+    placeholder: '昵称',
+    props: { 'data-testid': 'input-nickname' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'phone',
+    label: '手机号',
+    placeholder: '手机号',
+    props: { 'data-testid': 'input-phone' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'email',
+    label: '邮箱',
+    placeholder: '邮箱',
+    props: { 'data-testid': 'input-email' },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'tree-select',
+    field: 'deptId',
+    label: '部门',
+    placeholder: '请选择部门',
+    props: {
+      treeData: deptTreeOptions.value,
+      treeDefaultExpandAll: true,
+    },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'roleId',
+    label: '角色',
+    options: roleOptions.value,
+    placeholder: '请选择角色',
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'postId',
+    label: '岗位',
+    options: postOptions.value,
+    placeholder: '请选择岗位',
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '备注',
+    span: 2,
+  },
+]);
+
+const userEditFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'username',
+    label: '用户名',
+    placeholder: '用户名',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'nickName',
+    label: '昵称',
+    placeholder: '昵称',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'phone',
+    label: '手机号',
+    placeholder: '手机号',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'email',
+    label: '邮箱',
+    placeholder: '邮箱',
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'tree-select',
+    field: 'deptId',
+    label: '部门',
+    placeholder: '请选择部门',
+    props: {
+      treeData: deptTreeOptions.value,
+      treeDefaultExpandAll: true,
+    },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'roleId',
+    label: '角色',
+    options: roleOptions.value,
+    placeholder: '请选择角色',
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'postId',
+    label: '岗位',
+    options: postOptions.value,
+    placeholder: '请选择岗位',
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '备注',
+    span: 2,
+  },
+]);
+
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detailRecord = ref<SysUserItem | null>(null);
+
+async function openDetail(record: SysUserItem) {
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    detailRecord.value = await getSysUserDetail(record.userId);
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    message.error(err?.message || '获取用户详情失败');
+    detailVisible.value = false;
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
 onMounted(() => {
   loadDeptTree();
   loadRoleOptions();
   loadPostOptions();
-  fetchUserList();
+  void fetchUserList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">用户管理</h2>
-      <div class="flex gap-2">
-        <Button @click="fetchUserList">刷新</Button>
-        <Button type="primary" data-testid="btn-add-user" @click="openAddModal"
-          >新增用户</Button
-        >
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>用户管理</template>
+    <template #description>
+      管理用户、部门、角色和岗位绑定关系。复杂列表页也统一采用后台筛选网格和卡片式表格结构。
+    </template>
+    <template #header-extra>
+      <Button @click="fetchUserList">刷新</Button>
+      <AdminActionButton
+        type="primary"
+        data-testid="btn-add-user"
+        codes="admin:sysUser:add"
+        @click="openAddModal"
+      >
+        新增用户
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="用户名">
+          <Input
+            v-model:value="query.username"
+            placeholder="用户名"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="昵称">
+          <Input
+            v-model:value="query.nickName"
+            placeholder="昵称"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="手机号">
+          <Input
+            v-model:value="query.phone"
+            placeholder="手机号"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </AdminFilterField>
       </div>
-    </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">用户列表</div>
+        <p class="mt-1 text-sm text-slate-500">
+          支持按用户名、昵称、手机号和状态筛选，并维护部门、角色和岗位的绑定信息。
+        </p>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">用户名：</span>
-      <Input
-        v-model:value="searchUsername"
-        placeholder="用户名"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">昵称：</span>
-      <Input
-        v-model:value="searchNickName"
-        placeholder="昵称"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">手机号：</span>
-      <Input
-        v-model:value="searchPhone"
-        placeholder="手机号"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        class="w-28"
-        placeholder="请选择"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -488,27 +638,37 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(r: SysUserItem) => r.userId"
-      size="small"
-      bordered
+      :scroll="{ x: 1180 }"
+      size="middle"
       @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysUser:query"
+            @click="openDetail(record as SysUserItem)"
+          >
+            详情
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysUser:edit"
             @click="openEditModal(record as SysUserItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysUser:remove"
             @click="onDelete(record as SysUserItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
@@ -518,97 +678,13 @@ onMounted(() => {
       v-model:open="addVisible"
       title="新增用户"
       :confirm-loading="addSubmitting"
+      :width="860"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="用户名" required>
-          <Input
-            v-model:value="addForm.username"
-            data-testid="input-username"
-            placeholder="用户名"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="密码" required>
-          <Input
-            v-model:value="addForm.password"
-            data-testid="input-password"
-            type="password"
-            placeholder="密码"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="昵称" required>
-          <Input
-            v-model:value="addForm.nickName"
-            data-testid="input-nickname"
-            placeholder="昵称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="手机号" required>
-          <Input
-            v-model:value="addForm.phone"
-            data-testid="input-phone"
-            placeholder="手机号"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="邮箱" required>
-          <Input
-            v-model:value="addForm.email"
-            data-testid="input-email"
-            placeholder="邮箱"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="部门" required>
-          <TreeSelect
-            v-model:value="addForm.deptId"
-            :tree-data="deptTreeOptions"
-            placeholder="请选择部门"
-            tree-default-expand-all
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="角色">
-          <Select
-            v-model:value="addForm.roleId"
-            :options="roleOptions"
-            placeholder="请选择角色"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="岗位">
-          <Select
-            v-model:value="addForm.postId"
-            :options="postOptions"
-            placeholder="请选择岗位"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="addForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="addForm.remark"
-            placeholder="备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+      <AdminModalFormFields :model="addForm" :fields="userAddFormFields" />
     </Modal>
 
     <!-- 编辑弹窗 -->
@@ -617,6 +693,7 @@ onMounted(() => {
       title="编辑用户"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
+      :width="860"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
@@ -625,84 +702,76 @@ onMounted(() => {
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载详情中…
       </div>
-      <Form
+      <AdminModalFormFields
         v-else
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-        class="mt-4"
-      >
-        <FormItem label="用户名" required>
-          <Input
-            v-model:value="editForm.username"
-            placeholder="用户名"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="昵称" required>
-          <Input
-            v-model:value="editForm.nickName"
-            placeholder="昵称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="手机号" required>
-          <Input
-            v-model:value="editForm.phone"
-            placeholder="手机号"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="邮箱" required>
-          <Input
-            v-model:value="editForm.email"
-            placeholder="邮箱"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="部门" required>
-          <TreeSelect
-            v-model:value="editForm.deptId"
-            :tree-data="deptTreeOptions"
-            placeholder="请选择部门"
-            tree-default-expand-all
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="角色">
-          <Select
-            v-model:value="editForm.roleId"
-            :options="roleOptions"
-            placeholder="请选择角色"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="岗位">
-          <Select
-            v-model:value="editForm.postId"
-            :options="postOptions"
-            placeholder="请选择岗位"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="editForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="editForm.remark"
-            placeholder="备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+        :model="editForm"
+        :fields="userEditFormFields"
+      />
     </Modal>
-  </div>
+
+    <AdminDetailDrawer
+      v-model:open="detailVisible"
+      title="用户详情"
+      :loading="detailLoading"
+      width="720"
+    >
+      <template v-if="detailRecord">
+        <AdminDetailSection title="基础信息" description="账号、昵称和当前启用状态。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">用户名</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.username) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">昵称</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.nickName) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">状态</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderStatus(detailRecord.status) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">创建时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ formatAdminDateTime(detailRecord.createdAt) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="联系与组织" description="查看联系方式、部门和岗位绑定。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">手机号</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.phone) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">邮箱</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.email) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">部门</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.dept?.deptName ?? detailRecord.deptId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">岗位 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.postId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">角色 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.roleId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">性别</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.sex) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="备注" description="保留业务补充说明。">
+          <p class="text-sm leading-6 text-slate-700">
+            {{ renderAdminEmpty(detailRecord.remark) }}
+          </p>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

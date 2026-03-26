@@ -123,6 +123,9 @@ func (e *SysConfig) GetForSet(payload *dto.SystemSettingsPayload) error {
 	if appLogo, err := e.getSystemConfigValue(systemAppLogoKey); err == nil {
 		settings.Branding.AppLogo = appLogo
 	}
+	if placeholderColor, err := e.getSystemConfigValue(systemAppLogoPlaceholderColorKey); err == nil && placeholderColor != "" {
+		settings.Branding.AppLogoPlaceholderColor = placeholderColor
+	}
 	if encoded, err := e.getSystemConfigValue(systemUIPreferencesKey); err == nil && encoded != "" {
 		uiPreferences, decodeErr := decodeSystemUiPreferences(encoded)
 		if decodeErr != nil {
@@ -167,6 +170,17 @@ func (e *SysConfig) UpdateForSet(payload *dto.SystemSettingsPayload) error {
 		"",
 	); err != nil {
 		e.Log.Errorf("Service UpdateForSet appLogo error:%s", err)
+		return err
+	}
+
+	if err := e.upsertSystemConfigValue(
+		systemAppLogoPlaceholderColorKey,
+		"系统Logo占位底色",
+		settings.Branding.AppLogoPlaceholderColor,
+		"1",
+		"",
+	); err != nil {
+		e.Log.Errorf("Service UpdateForSet logoPlaceholderColor error:%s", err)
 		return err
 	}
 
@@ -247,6 +261,12 @@ func (e *SysConfig) ValidateSystemSettingsPayload(payload *dto.SystemSettingsPay
 		!strings.HasPrefix(settings.Branding.AppLogo, "http://") &&
 		!strings.HasPrefix(settings.Branding.AppLogo, "https://") {
 		return errors.New("系统 Logo 仅支持 http/https 图片地址")
+	}
+	if settings.Branding.AppLogoPlaceholderColor == "" {
+		settings.Branding.AppLogoPlaceholderColor = "#1d4ed8"
+	}
+	if !strings.HasPrefix(settings.Branding.AppLogoPlaceholderColor, "#") || len(settings.Branding.AppLogoPlaceholderColor) != 7 {
+		return errors.New("Logo 占位底色必须是 7 位十六进制颜色值")
 	}
 	encoded, err := encodeSystemUiPreferences(settings.UIPreferences)
 	if err != nil {

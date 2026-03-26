@@ -2,7 +2,7 @@ package apis
 
 import (
 	"fmt"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-admin-team/go-admin-core/sdk/api"
@@ -12,6 +12,7 @@ import (
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/middleware"
 )
 
 type SysPost struct {
@@ -31,7 +32,7 @@ type SysPost struct {
 // @Security Bearer
 func (e SysPost) GetPage(c *gin.Context) {
 	s := service.SysPost{}
-	req :=dto.SysPostPageReq{}
+	req := dto.SysPostPageReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.Form).
@@ -65,7 +66,7 @@ func (e SysPost) GetPage(c *gin.Context) {
 // @Security Bearer
 func (e SysPost) Get(c *gin.Context) {
 	s := service.SysPost{}
-	req :=dto.SysPostGetReq{}
+	req := dto.SysPostGetReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, nil).
@@ -99,7 +100,7 @@ func (e SysPost) Get(c *gin.Context) {
 // @Security Bearer
 func (e SysPost) Insert(c *gin.Context) {
 	s := service.SysPost{}
-	req :=dto.SysPostInsertReq{}
+	req := dto.SysPostInsertReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON).
@@ -116,6 +117,18 @@ func (e SysPost) Insert(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("新建岗位失败！错误详情：%s", err.Error()))
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "岗位管理",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryPost,
+		Method:        "admin.sysPost.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("岗位名称", req.PostName),
+			middleware.AuditKV("岗位编码", req.PostCode),
+			middleware.AuditKV("状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -131,7 +144,7 @@ func (e SysPost) Insert(c *gin.Context) {
 // @Security Bearer
 func (e SysPost) Update(c *gin.Context) {
 	s := service.SysPost{}
-	req :=dto.SysPostUpdateReq{}
+	req := dto.SysPostUpdateReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON, nil).
@@ -150,6 +163,19 @@ func (e SysPost) Update(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("岗位更新失败！错误详情：%s", err.Error()))
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "岗位管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryPost,
+		Method:        "admin.sysPost.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("岗位ID", req.PostId),
+			middleware.AuditKV("岗位名称", req.PostName),
+			middleware.AuditKV("岗位编码", req.PostCode),
+			middleware.AuditKV("状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -163,7 +189,7 @@ func (e SysPost) Update(c *gin.Context) {
 // @Security Bearer
 func (e SysPost) Delete(c *gin.Context) {
 	s := service.SysPost{}
-	req :=dto.SysPostDeleteReq{}
+	req := dto.SysPostDeleteReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON).
@@ -180,5 +206,16 @@ func (e SysPost) Delete(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("岗位删除失败！错误详情：%s", err.Error()))
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "岗位管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryPost,
+		Method:        "admin.sysPost.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除岗位数量", len(req.Ids)),
+			middleware.AuditKV("岗位ID", req.Ids),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }

@@ -1,126 +1,324 @@
 <script lang="ts" setup>
 /**
  * 系统管理 - 操作日志
- * 列表 + 搜索 + 分页 + 删除 + 可选详情（只读，无新增/编辑）
+ * 列表 + 搜索 + 分页 + 删除 + 详情
  */
-import { onMounted, ref } from 'vue';
-
-import { Button, Descriptions, Drawer, Input, Modal, Table, message } from 'ant-design-vue';
-import type { TableColumnType } from 'ant-design-vue';
+import { h, onMounted, ref } from 'vue';
 
 import {
-  deleteOperaLog,
-  getOperaLogDetail,
-  getOperaLogPage,
-} from '#/api/core';
-import type {
+  Button,
+  Descriptions,
+  Input,
+  Modal,
+  Select,
+  Table,
+  Tag,
+  message,
+} from 'ant-design-vue';
+import type { TableColumnType } from 'ant-design-vue';
+
+import { deleteOperaLog, getOperaLogDetail, getOperaLogPage } from '#/api/core';
+import type { SysOperaLogItem, SysOperaLogPageResult } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailCodeBlock from '#/components/admin/detail-code-block.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
+
+const businessTypeLabels: Record<string, string> = {
+  create: '新增',
+  delete: '删除',
+  password: '密码',
+  run: '执行',
+  start: '启动',
+  status: '状态',
+  stop: '停止',
+  update: '更新',
+  DELETE: '删除',
+  INSERT: '新增',
+  UPDATE: '更新',
+};
+
+const businessTypeColors: Record<string, string> = {
+  create: 'green',
+  delete: 'red',
+  password: 'gold',
+  run: 'purple',
+  start: 'cyan',
+  status: 'orange',
+  stop: 'volcano',
+  update: 'blue',
+  DELETE: 'red',
+  INSERT: 'green',
+  UPDATE: 'blue',
+};
+
+const businessTypeOptions = [
+  { label: '新增', value: 'create' },
+  { label: '更新', value: 'update' },
+  { label: '删除', value: 'delete' },
+  { label: '状态', value: 'status' },
+  { label: '密码', value: 'password' },
+  { label: '启动', value: 'start' },
+  { label: '停止', value: 'stop' },
+];
+
+const businessTypesLabels: Record<string, string> = {
+  api: '接口',
+  dept: '部门',
+  'dict-data': '字典数据',
+  'dict-type': '字典类型',
+  generator: '代码生成',
+  job: '定时任务',
+  menu: '菜单',
+  post: '岗位',
+  role: '角色',
+  'system-settings': '系统设置',
+  user: '用户',
+  'generator-import': '代码生成',
+  'generator-remove': '代码生成',
+  'generator-save': '代码生成',
+  'menu-create': '菜单',
+  'menu-delete': '菜单',
+  'menu-update': '菜单',
+  'role-create': '角色',
+  'role-data-scope': '角色',
+  'role-delete': '角色',
+  'role-status': '角色',
+  'role-update': '角色',
+};
+
+const businessTypesOptions = [
+  { label: '系统设置', value: 'system-settings' },
+  { label: '代码生成', value: 'generator' },
+  { label: '角色', value: 'role' },
+  { label: '菜单', value: 'menu' },
+  { label: '用户', value: 'user' },
+  { label: '部门', value: 'dept' },
+  { label: '岗位', value: 'post' },
+  { label: '接口', value: 'api' },
+  { label: '字典类型', value: 'dict-type' },
+  { label: '字典数据', value: 'dict-data' },
+  { label: '定时任务', value: 'job' },
+];
+
+const operatorTypeOptions = [{ label: '后台管理', value: 'MANAGE' }];
+
+const requestMethodOptions = ['GET', 'POST', 'PUT', 'DELETE'].map((value) => ({
+  label: value,
+  value,
+}));
+
+const statusOptions = [
+  { label: '正常', value: 1 },
+  { label: '异常', value: 2 },
+];
+
+function getBusinessTypeLabel(value?: string) {
+  return businessTypeLabels[value || ''] || renderEmpty(value);
+}
+
+function getBusinessTypeColor(value?: string) {
+  return businessTypeColors[value || ''] || 'default';
+}
+
+function getBusinessTypesLabel(value?: string) {
+  return businessTypesLabels[value || ''] || renderEmpty(value);
+}
+
+function getOperatorTypeLabel(value?: string) {
+  if (value === 'MANAGE') {
+    return '后台管理';
+  }
+  return renderEmpty(value);
+}
+
+function getStatusLabel(value?: string) {
+  if (value === '1') {
+    return '正常';
+  }
+  if (value === '2') {
+    return '异常';
+  }
+  return renderEmpty(value);
+}
+
+function getStatusColor(value?: string) {
+  if (value === '1') {
+    return 'success';
+  }
+  if (value === '2') {
+    return 'error';
+  }
+  return 'default';
+}
+
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
   SysOperaLogItem,
-  SysOperaLogPageResult,
-} from '#/api/core';
-
-const loading = ref(false);
-const tableData = ref<SysOperaLogItem[]>([]);
-const errorMsg = ref('');
-
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
+  {
+    beginTime: string;
+    businessType: string;
+    businessTypes: string;
+    endTime: string;
+    method: string;
+    operIp: string;
+    operUrl: string;
+    operatorType: string;
+    requestMethod: string;
+    status: '' | number;
+    title: string;
+  },
+  {
+    beginTime?: string;
+    businessType?: string;
+    businessTypes?: string;
+    endTime?: string;
+    method?: string;
+    operIp?: string;
+    operUrl?: string;
+    operatorType?: string;
+    requestMethod?: string;
+    status?: number;
+    title?: string;
+  }
+>({
+  createParams: (currentQuery) => ({
+    title: currentQuery.title.trim() || undefined,
+    businessType: currentQuery.businessType || undefined,
+    businessTypes: currentQuery.businessTypes || undefined,
+    method: currentQuery.method.trim() || undefined,
+    requestMethod: currentQuery.requestMethod || undefined,
+    operatorType: currentQuery.operatorType || undefined,
+    operUrl: currentQuery.operUrl.trim() || undefined,
+    operIp: currentQuery.operIp.trim() || undefined,
+    status:
+      currentQuery.status === '' ? undefined : Number(currentQuery.status),
+    beginTime: currentQuery.beginTime.trim() || undefined,
+    endTime: currentQuery.endTime.trim() || undefined,
+  }),
+  createQuery: () => ({
+    title: '',
+    businessType: '',
+    businessTypes: '',
+    method: '',
+    requestMethod: '',
+    operatorType: '',
+    operUrl: '',
+    operIp: '',
+    status: '' as '' | number,
+    beginTime: '',
+    endTime: '',
+  }),
+  fallbackErrorMessage: '加载列表失败',
+  fetcher: async (params) => {
+    const res: SysOperaLogPageResult = await getOperaLogPage(params);
+    return res;
+  },
 });
 
-const searchTitle = ref('');
-const searchMethod = ref('');
-const searchRequestMethod = ref('');
-const searchOperUrl = ref('');
-const searchOperIp = ref('');
-const searchStatus = ref<number | ''>('');
-const searchBeginTime = ref('');
-const searchEndTime = ref('');
-
-async function fetchList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: {
-      pageIndex: number;
-      pageSize: number;
-      title?: string;
-      method?: string;
-      requestMethod?: string;
-      operUrl?: string;
-      operIp?: string;
-      status?: number;
-      beginTime?: string;
-      endTime?: string;
-    } = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchTitle.value.trim()) params.title = searchTitle.value.trim();
-    if (searchMethod.value.trim()) params.method = searchMethod.value.trim();
-    if (searchRequestMethod.value.trim()) params.requestMethod = searchRequestMethod.value.trim();
-    if (searchOperUrl.value.trim()) params.operUrl = searchOperUrl.value.trim();
-    if (searchOperIp.value.trim()) params.operIp = searchOperIp.value.trim();
-    if (searchStatus.value !== '') params.status = searchStatus.value;
-    if (searchBeginTime.value.trim()) params.beginTime = searchBeginTime.value.trim();
-    if (searchEndTime.value.trim()) params.endTime = searchEndTime.value.trim();
-    const res: SysOperaLogPageResult = await getOperaLogPage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as { message?: string; response?: { data?: { msg?: string } } };
-    errorMsg.value = err?.message || err?.response?.data?.msg || '加载列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onSearch() {
-  pagination.value.current = 1;
-  fetchList();
-}
-
-function onReset() {
-  searchTitle.value = '';
-  searchMethod.value = '';
-  searchRequestMethod.value = '';
-  searchOperUrl.value = '';
-  searchOperIp.value = '';
-  searchStatus.value = '';
-  searchBeginTime.value = '';
-  searchEndTime.value = '';
-  pagination.value.current = 1;
-  fetchList();
-}
-
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchList();
-}
-
-function renderEmpty(value: string | null | undefined): string {
-  return value !== undefined && value !== null ? String(value) : '-';
-}
+const renderEmpty = renderAdminEmpty;
 
 const columns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
-  { title: '操作模块', dataIndex: 'title', key: 'title', width: 100, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '请求方式', dataIndex: 'requestMethod', key: 'requestMethod', width: 90, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '操作者', dataIndex: 'operName', key: 'operName', width: 90, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '部门', dataIndex: 'deptName', key: 'deptName', width: 100, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '访问地址', dataIndex: 'operUrl', key: 'operUrl', width: 140, ellipsis: true, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '客户端IP', dataIndex: 'operIp', key: 'operIp', width: 110, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '操作时间', dataIndex: 'operTime', key: 'operTime', width: 165, customRender: ({ text }: { text: string }) => renderEmpty(text) },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 70, customRender: ({ text }: { text: string }) => renderEmpty(text) },
+  {
+    title: '操作模块',
+    dataIndex: 'title',
+    key: 'title',
+    width: 110,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '操作类型',
+    dataIndex: 'businessType',
+    key: 'businessType',
+    width: 96,
+    customRender: ({ text }: { text: string }) =>
+      text
+        ? h(
+            Tag,
+            { color: getBusinessTypeColor(text) },
+            () => getBusinessTypeLabel(text),
+          )
+        : renderEmpty(text),
+  },
+  {
+    title: '审计分类',
+    dataIndex: 'businessTypes',
+    key: 'businessTypes',
+    width: 140,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) =>
+      renderEmpty(getBusinessTypesLabel(text)),
+  },
+  {
+    title: '请求方式',
+    dataIndex: 'requestMethod',
+    key: 'requestMethod',
+    width: 90,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '操作者',
+    dataIndex: 'operName',
+    key: 'operName',
+    width: 90,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '访问地址',
+    dataIndex: 'operUrl',
+    key: 'operUrl',
+    width: 180,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '客户端IP',
+    dataIndex: 'operIp',
+    key: 'operIp',
+    width: 110,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
+  {
+    title: '操作时间',
+    dataIndex: 'operTime',
+    key: 'operTime',
+    width: 165,
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    width: 86,
+    customRender: ({ text }: { text: string }) =>
+      text
+        ? h(Tag, { color: getStatusColor(text) }, () => getStatusLabel(text))
+        : renderEmpty(text),
+  },
+  {
+    title: '审计摘要',
+    dataIndex: 'remark',
+    key: 'remark',
+    width: 240,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
+  },
   { title: '操作', key: 'action', width: 120, fixed: 'right' },
 ];
 
@@ -158,7 +356,10 @@ function onDelete(record: SysOperaLogItem) {
         message.success('删除成功');
         fetchList();
       } catch (e: unknown) {
-        const err = e as { message?: string; response?: { data?: { msg?: string } } };
+        const err = e as {
+          message?: string;
+          response?: { data?: { msg?: string } };
+        };
         message.error(err?.message || err?.response?.data?.msg || '删除失败');
       }
     },
@@ -166,83 +367,128 @@ function onDelete(record: SysOperaLogItem) {
 }
 
 onMounted(() => {
-  fetchList();
+  void fetchList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">操作日志</h2>
-    </div>
+  <AdminPageShell>
+    <template #eyebrow>System Audit</template>
+    <template #title>操作日志</template>
+    <template #description>
+      重点展示系统设置、代码生成、角色与菜单变更等关键审计动作，并支持按审计分类快速筛选。
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="操作模块">
+          <Input
+            v-model:value="query.title"
+            placeholder="请输入操作模块"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="操作类型">
+          <Select
+            v-model:value="query.businessType"
+            :options="businessTypeOptions"
+            class="w-full"
+            placeholder="请选择操作类型"
+            allow-clear
+          />
+        </AdminFilterField>
+        <AdminFilterField label="审计分类">
+          <Select
+            v-model:value="query.businessTypes"
+            :options="businessTypesOptions"
+            class="w-full"
+            placeholder="请选择审计分类"
+            allow-clear
+            show-search
+            option-filter-prop="label"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="请求方式">
+          <Select
+            v-model:value="query.requestMethod"
+            :options="requestMethodOptions"
+            class="w-full"
+            placeholder="请选择请求方式"
+            allow-clear
+          />
+        </AdminFilterField>
+        <AdminFilterField label="函数">
+          <Input
+            v-model:value="query.method"
+            placeholder="请输入函数"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="操作主体">
+          <Select
+            v-model:value="query.operatorType"
+            :options="operatorTypeOptions"
+            class="w-full"
+            placeholder="请选择操作主体"
+            allow-clear
+          />
+        </AdminFilterField>
+        <AdminFilterField label="访问地址" :span="2">
+          <Input
+            v-model:value="query.operUrl"
+            placeholder="请输入访问地址"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="IP">
+          <Input
+            v-model:value="query.operIp"
+            placeholder="请输入 IP"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            class="w-full"
+            placeholder="请选择状态"
+            allow-clear
+          />
+        </AdminFilterField>
+        <AdminFilterField label="开始时间">
+          <Input
+            v-model:value="query.beginTime"
+            placeholder="如 2024-01-01"
+            allow-clear
+          />
+        </AdminFilterField>
+        <AdminFilterField label="结束时间">
+          <Input
+            v-model:value="query.endTime"
+            placeholder="如 2024-12-31"
+            allow-clear
+          />
+        </AdminFilterField>
+      </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">操作日志列表</div>
+        <p class="mt-1 text-sm text-slate-500">
+          可按审计分类、操作类型和主体快速筛选，并在详情抽屉中查看摘要、请求参数与返回数据。
+        </p>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">操作模块：</span>
-      <Input
-        v-model:value="searchTitle"
-        placeholder="请输入"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">请求方式：</span>
-      <Input
-        v-model:value="searchRequestMethod"
-        placeholder="GET/POST等"
-        allow-clear
-        class="w-28"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">函数：</span>
-      <Input
-        v-model:value="searchMethod"
-        placeholder="请输入"
-        allow-clear
-        class="w-32"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">访问地址：</span>
-      <Input
-        v-model:value="searchOperUrl"
-        placeholder="请输入"
-        allow-clear
-        class="w-44"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">IP：</span>
-      <Input
-        v-model:value="searchOperIp"
-        placeholder="请输入"
-        allow-clear
-        class="w-32"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">状态：</span>
-      <Input
-        v-model:value="searchStatus"
-        placeholder="1/2"
-        allow-clear
-        class="w-20"
-      />
-      <span class="ml-2 text-sm text-gray-600">开始时间：</span>
-      <Input
-        v-model:value="searchBeginTime"
-        placeholder="如 2024-01-01"
-        allow-clear
-        class="w-32"
-      />
-      <span class="ml-2 text-sm text-gray-600">结束时间：</span>
-      <Input
-        v-model:value="searchEndTime"
-        placeholder="如 2024-12-31"
-        allow-clear
-        class="w-32"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -250,51 +496,134 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysOperaLogItem) => record.id"
-      size="small"
-      bordered
-      @change="onTableChange"
+      :scroll="{ x: 1580 }"
+      size="middle"
+      @change="(pag) => onTableChange(pag)"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button type="link" size="small" @click="openDetail(record as SysOperaLogItem)">
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysOperLog:query"
+            @click="openDetail(record as SysOperaLogItem)"
+          >
             详情
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysOperLog:remove"
             @click="onDelete(record as SysOperaLogItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
 
-    <Drawer
+    <AdminDetailDrawer
       v-model:open="detailVisible"
       title="操作日志详情"
-      width="560"
-      :footer-style="{ textAlign: 'right' }"
+      width="680"
+      :loading="detailLoading"
     >
-      <div v-if="detailLoading" class="py-8 text-center text-gray-400">加载中…</div>
-      <Descriptions v-else-if="detailRecord" :column="1" bordered size="small">
-        <Descriptions.Item label="ID">{{ detailRecord.id }}</Descriptions.Item>
-        <Descriptions.Item label="操作模块">{{ detailRecord.title }}</Descriptions.Item>
-        <Descriptions.Item label="请求方式">{{ detailRecord.requestMethod }}</Descriptions.Item>
-        <Descriptions.Item label="操作者">{{ detailRecord.operName }}</Descriptions.Item>
-        <Descriptions.Item label="部门">{{ detailRecord.deptName }}</Descriptions.Item>
-        <Descriptions.Item label="访问地址">{{ detailRecord.operUrl }}</Descriptions.Item>
-        <Descriptions.Item label="客户端IP">{{ detailRecord.operIp }}</Descriptions.Item>
-        <Descriptions.Item label="访问位置">{{ detailRecord.operLocation }}</Descriptions.Item>
-        <Descriptions.Item label="操作时间">{{ detailRecord.operTime }}</Descriptions.Item>
-        <Descriptions.Item label="状态">{{ detailRecord.status }}</Descriptions.Item>
-        <Descriptions.Item label="耗时">{{ detailRecord.latencyTime }}</Descriptions.Item>
-        <Descriptions.Item label="请求参数"><pre class="max-h-32 overflow-auto text-xs">{{ detailRecord.operParam }}</pre></Descriptions.Item>
-        <Descriptions.Item label="返回数据"><pre class="max-h-32 overflow-auto text-xs">{{ detailRecord.jsonResult }}</pre></Descriptions.Item>
-        <Descriptions.Item label="备注">{{ detailRecord.remark }}</Descriptions.Item>
-        <Descriptions.Item label="创建时间">{{ detailRecord.createdAt }}</Descriptions.Item>
-      </Descriptions>
-    </Drawer>
-  </div>
+      <template v-if="detailRecord">
+        <AdminDetailSection title="操作概览" description="模块、请求方式和操作主体。">
+          <Descriptions
+            :column="1"
+            bordered
+            size="middle"
+            :label-style="{ width: '120px' }"
+          >
+            <Descriptions.Item label="ID">{{ detailRecord.id }}</Descriptions.Item>
+            <Descriptions.Item label="操作模块">{{
+              renderEmpty(detailRecord.title)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="操作类型">
+              <Tag :color="getBusinessTypeColor(detailRecord.businessType)">
+                {{ getBusinessTypeLabel(detailRecord.businessType) }}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="审计分类">{{
+              getBusinessTypesLabel(detailRecord.businessTypes)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="请求方式">{{
+              renderEmpty(detailRecord.requestMethod)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="函数">{{
+              renderEmpty(detailRecord.method)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="操作主体">{{
+              getOperatorTypeLabel(detailRecord.operatorType)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="操作者">{{
+              renderEmpty(detailRecord.operName)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="部门">{{
+              renderEmpty(detailRecord.deptName)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="状态">
+              <Tag :color="getStatusColor(detailRecord.status)">
+                {{ getStatusLabel(detailRecord.status) }}
+              </Tag>
+            </Descriptions.Item>
+          </Descriptions>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="审计摘要" description="关键系统操作会补充更可读的审计说明。">
+          <Descriptions
+            :column="1"
+            bordered
+            size="middle"
+            :label-style="{ width: '120px' }"
+          >
+            <Descriptions.Item label="摘要">{{
+              renderEmpty(detailRecord.remark)
+            }}</Descriptions.Item>
+          </Descriptions>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="访问信息" description="快速查看访问入口、来源和耗时。">
+          <Descriptions
+            :column="1"
+            bordered
+            size="middle"
+            :label-style="{ width: '120px' }"
+          >
+            <Descriptions.Item label="访问地址">{{
+              renderEmpty(detailRecord.operUrl)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="客户端IP">{{
+              renderEmpty(detailRecord.operIp)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="访问位置">{{
+              renderEmpty(detailRecord.operLocation)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="操作时间">{{
+              formatAdminDateTime(detailRecord.operTime)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="耗时">{{
+              renderEmpty(detailRecord.latencyTime)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="创建时间">{{
+              formatAdminDateTime(detailRecord.createdAt)
+            }}</Descriptions.Item>
+            <Descriptions.Item label="User Agent">{{
+              renderEmpty(detailRecord.userAgent)
+            }}</Descriptions.Item>
+          </Descriptions>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="请求参数" description="保留原始请求体，便于排查问题。">
+          <AdminDetailCodeBlock :value="detailRecord.operParam" />
+        </AdminDetailSection>
+
+        <AdminDetailSection title="返回数据" description="查看接口返回内容。">
+          <AdminDetailCodeBlock :value="detailRecord.jsonResult" />
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

@@ -9,6 +9,7 @@ import (
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/middleware"
 )
 
 type SysConfig struct {
@@ -278,6 +279,20 @@ func (e SysConfig) Update2Set(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
+
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "参数设置",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategorySystemSettings,
+		Method:        "admin.sysConfig.set",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("系统名称", req.Branding.AppName),
+			middleware.AuditKV("登录标题", req.UIPreferences.App.LoginTitle),
+			middleware.AuditKV("页脚公司", req.UIPreferences.Copyright.CompanyName),
+			middleware.AuditKV("主题模式", req.UIPreferences.Theme.Mode),
+		),
+	})
 
 	e.OK("", "更新成功")
 }

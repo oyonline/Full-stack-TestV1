@@ -11,8 +11,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "pnpm vite build",
-    "prepublishOnly": "npm run build"
+    "build": "node ./scripts/build.mjs",
+    "prepublishOnly": "npm run build",
+    "stub": "pnpm unbuild --stub"
   },
   "files": [
     "dist",
@@ -26,7 +27,8 @@
       "default": "./dist/bem.scss"
     },
     "./theme": {
-      "default": "./src/css/global.css"
+      "development": "./src/css/global.css",
+      "default": "./dist/global.css"
     },
     ".": {
       "types": "./src/index.ts",

@@ -15,6 +15,7 @@ import (
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
 	"go-admin/common/actions"
+	"go-admin/common/middleware"
 )
 
 type SysUser struct {
@@ -122,6 +123,21 @@ func (e SysUser) Insert(c *gin.Context) {
 		return
 	}
 
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户名", req.Username),
+			middleware.AuditKV("昵称", req.NickName),
+			middleware.AuditKV("部门ID", req.DeptId),
+			middleware.AuditKV("角色ID", req.RoleId),
+			middleware.AuditKV("岗位ID", req.PostId),
+		),
+	})
+
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -159,6 +175,21 @@ func (e SysUser) Update(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("用户名", req.Username),
+			middleware.AuditKV("昵称", req.NickName),
+			middleware.AuditKV("部门ID", req.DeptId),
+			middleware.AuditKV("角色ID", req.RoleId),
+			middleware.AuditKV("岗位ID", req.PostId),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -195,6 +226,17 @@ func (e SysUser) Delete(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除用户数量", len(req.Ids)),
+			middleware.AuditKV("用户ID", req.GetId()),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }
 
@@ -280,6 +322,17 @@ func (e SysUser) UpdateStatus(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionStatus,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.updateStatus",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -317,6 +370,17 @@ func (e SysUser) ResetPwd(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionPassword,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.resetPwd",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("重置密码", "已执行"),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 

@@ -9,9 +9,14 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/response"
 
+	"go-admin/common/audit"
 	"go-admin/common/dto"
 	"go-admin/common/models"
 )
+
+type createAuditMetaProvider interface {
+	CreateAuditMeta() audit.Meta
+}
 
 // CreateAction 通用新增动作
 func CreateAction(control dto.Control) gin.HandlerFunc {
@@ -29,6 +34,9 @@ func CreateAction(control dto.Control) gin.HandlerFunc {
 		if err != nil {
 			response.Error(c, http.StatusUnprocessableEntity, err, err.Error())
 			return
+		}
+		if provider, ok := req.(createAuditMetaProvider); ok {
+			audit.Set(c, provider.CreateAuditMeta())
 		}
 		var object models.ActiveRecord
 		object, err = req.GenerateM()

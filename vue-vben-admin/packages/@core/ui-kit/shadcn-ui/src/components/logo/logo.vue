@@ -21,6 +21,10 @@ interface Props {
    */
   logoSize?: number;
   /**
+   * @zh_CN 占位 Logo 底色
+   */
+  placeholderBgColor?: string;
+  /**
    * @zh_CN Logo 图标
    */
   src?: string;
@@ -46,6 +50,7 @@ const props = withDefaults(defineProps<Props>(), {
   collapsed: false,
   href: 'javascript:void 0',
   logoSize: 32,
+  placeholderBgColor: '#1d4ed8',
   src: '',
   srcDark: '',
   theme: 'light',
@@ -62,6 +67,21 @@ const logoSrc = computed(() => {
   }
   // 否则使用默认的 src
   return props.src;
+});
+
+const fallbackText = computed(() => {
+  const text = props.text.trim().replace(/\s+/g, '');
+  if (!text) {
+    return 'S';
+  }
+
+  const asciiGroups = text.match(/[A-Za-z0-9]+/g);
+  const firstAsciiGroup = asciiGroups?.[0];
+  if (firstAsciiGroup?.[0]) {
+    return firstAsciiGroup[0].toUpperCase();
+  }
+
+  return text[0]?.toUpperCase() || 'S';
 });
 </script>
 
@@ -80,6 +100,17 @@ const logoSrc = computed(() => {
         :fit="fit"
         class="relative rounded-none bg-transparent"
       />
+      <div
+        v-else
+        :style="{
+          width: `${logoSize}px`,
+          height: `${logoSize}px`,
+          backgroundColor: placeholderBgColor,
+        }"
+        class="flex items-center justify-center rounded-lg text-sm font-semibold text-white shadow-sm"
+      >
+        {{ fallbackText }}
+      </div>
       <template v-if="!collapsed">
         <slot name="text">
           <span class="text-foreground truncate font-semibold text-nowrap">

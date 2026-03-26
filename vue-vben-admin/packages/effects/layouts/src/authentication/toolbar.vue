@@ -33,7 +33,7 @@ const showTheme = computed(() => props.toolbarList.includes('theme'));
 <template>
   <div
     :class="{
-      'rounded-3xl bg-accent px-3 py-1': toolbarList.length > 1,
+      'app-radius-panel bg-accent px-3 py-1': toolbarList.length > 1,
     }"
     class="absolute top-4 right-2 z-10 flex-center"
   >

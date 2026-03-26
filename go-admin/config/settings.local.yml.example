@@ -4,6 +4,8 @@ settings:
     host: 0.0.0.0
     name: productManager
     port: 10082
+  logger:
+    enableddb: true
   jwt:
     secret: replace-with-a-local-secret
     timeout: 3600

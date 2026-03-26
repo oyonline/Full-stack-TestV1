@@ -9,9 +9,14 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/response"
 
+	"go-admin/common/audit"
 	"go-admin/common/dto"
 	"go-admin/common/models"
 )
+
+type updateAuditMetaProvider interface {
+	UpdateAuditMeta() audit.Meta
+}
 
 // UpdateAction 通用更新动作
 func UpdateAction(control dto.Control) gin.HandlerFunc {
@@ -29,6 +34,9 @@ func UpdateAction(control dto.Control) gin.HandlerFunc {
 		if err != nil {
 			response.Error(c, http.StatusUnprocessableEntity, err, "参数验证失败")
 			return
+		}
+		if provider, ok := req.(updateAuditMetaProvider); ok {
+			audit.Set(c, provider.UpdateAuditMeta())
 		}
 		var object models.ActiveRecord
 		object, err = req.GenerateM()

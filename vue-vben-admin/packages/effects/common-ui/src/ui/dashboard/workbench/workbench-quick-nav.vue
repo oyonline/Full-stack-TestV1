@@ -37,8 +37,8 @@ defineEmits(['click']);
             'border-r-0': index % 3 === 2,
             'border-b-0': index < 3,
             'pb-4': index > 2,
-            'rounded-bl-xl': index === items.length - 3,
-            'rounded-br-xl': index === items.length - 1,
+            'app-radius-bl-box': index === items.length - 3,
+            'app-radius-br-box': index === items.length - 1,
           }"
           class="group flex-col-center w-1/3 cursor-pointer border-t border-r border-border py-8 hover:shadow-xl"
           @click="$emit('click', item)"

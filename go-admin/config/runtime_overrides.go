@@ -16,6 +16,7 @@ type localSettingsFile struct {
 
 type localSettings struct {
 	Application *localApplication `yaml:"application"`
+	Logger      *localLogger      `yaml:"logger"`
 	Jwt         *localJWT         `yaml:"jwt"`
 	Database    *localDatabase    `yaml:"database"`
 	Gen         *localGen         `yaml:"gen"`
@@ -26,6 +27,10 @@ type localApplication struct {
 	Mode string `yaml:"mode"`
 	Name string `yaml:"name"`
 	Port int64  `yaml:"port"`
+}
+
+type localLogger struct {
+	EnabledDB *bool `yaml:"enableddb"`
 }
 
 type localJWT struct {
@@ -78,6 +83,12 @@ func applyLocalConfigFile(configPath string) {
 		}
 	}
 
+	if logger := cfg.Settings.Logger; logger != nil {
+		if logger.EnabledDB != nil {
+			sdkConfig.LoggerConfig.EnabledDB = *logger.EnabledDB
+		}
+	}
+
 	if jwt := cfg.Settings.Jwt; jwt != nil {
 		if jwt.Secret != "" {
 			sdkConfig.JwtConfig.Secret = jwt.Secret
@@ -111,6 +122,11 @@ func applyEnvOverrides() {
 	if value := strings.TrimSpace(os.Getenv("GO_ADMIN_APP_PORT")); value != "" {
 		if port, err := strconv.ParseInt(value, 10, 64); err == nil {
 			sdkConfig.ApplicationConfig.Port = port
+		}
+	}
+	if value := strings.TrimSpace(os.Getenv("GO_ADMIN_LOGGER_ENABLEDDB")); value != "" {
+		if enabled, err := strconv.ParseBool(value); err == nil {
+			sdkConfig.LoggerConfig.EnabledDB = enabled
 		}
 	}
 	if value := strings.TrimSpace(os.Getenv("GO_ADMIN_JWT_SECRET")); value != "" {

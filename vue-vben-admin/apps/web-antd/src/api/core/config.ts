@@ -44,22 +44,26 @@ export interface AppConfigMap {
 
 export interface SystemBrandingSettings {
   appLogo: string;
+  appLogoPlaceholderColor: string;
   appName: string;
 }
 
+export interface SystemUiAppSettings {
+  colorGrayMode: AppPreferences['colorGrayMode'];
+  colorWeakMode: AppPreferences['colorWeakMode'];
+  contentCompact: AppPreferences['contentCompact'];
+  dynamicTitle: AppPreferences['dynamicTitle'];
+  enableCheckUpdates: AppPreferences['enableCheckUpdates'];
+  layout: AppPreferences['layout'];
+  locale: AppPreferences['locale'];
+  loginDescription: string;
+  loginTitle: string;
+  watermark: AppPreferences['watermark'];
+  watermarkContent: AppPreferences['watermarkContent'];
+}
+
 export interface SystemUiPreferences {
-  app: Pick<
-    AppPreferences,
-    | 'colorGrayMode'
-    | 'colorWeakMode'
-    | 'contentCompact'
-    | 'dynamicTitle'
-    | 'enableCheckUpdates'
-    | 'layout'
-    | 'locale'
-    | 'watermark'
-    | 'watermarkContent'
-  >;
+  app: SystemUiAppSettings;
   breadcrumb: Pick<
     BreadcrumbPreferences,
     'enable' | 'hideOnlyOne' | 'showHome' | 'showIcon' | 'styleType'

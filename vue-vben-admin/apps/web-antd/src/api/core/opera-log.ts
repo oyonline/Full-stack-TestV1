@@ -36,8 +36,11 @@ interface GetOperaLogPageParams {
   pageIndex?: number;
   pageSize?: number;
   title?: string;
+  businessType?: string;
+  businessTypes?: string;
   method?: string;
   requestMethod?: string;
+  operatorType?: string;
   operUrl?: string;
   operIp?: string;
   status?: number;
