@@ -37,8 +37,8 @@ defineEmits(['click']);
             'border-r-0': index % 3 === 2,
             'border-b-0': index < 3,
             'pb-4': index > 2,
-            'rounded-bl-xl': index === items.length - 3,
-            'rounded-br-xl': index === items.length - 1,
+            'app-radius-bl-box': index === items.length - 3,
+            'app-radius-br-box': index === items.length - 1,
           }"
           class="group w-full cursor-pointer border-t border-r border-border p-4 transition-all hover:shadow-xl md:w-1/2 lg:w-1/3"
         >

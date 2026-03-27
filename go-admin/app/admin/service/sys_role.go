@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/go-admin-team/go-admin-core/sdk/config"
 	"gorm.io/gorm/clause"
@@ -336,17 +337,36 @@ func (e *SysRole) GetWithName(d *dto.SysRoleByName, model *models.SysRole) *SysR
 
 // GetById 获取SysRole对象
 func (e *SysRole) GetById(roleId int) ([]string, error) {
+	return e.GetByIds([]int{roleId})
+}
+
+func (e *SysRole) GetByIds(roleIds []int) ([]string, error) {
 	permissions := make([]string, 0)
-	model := models.SysRole{}
-	model.RoleId = roleId
-	if err := e.Orm.Model(&model).Preload("SysMenu").First(&model).Error; err != nil {
+	if len(roleIds) == 0 {
+		return permissions, nil
+	}
+	roleList := make([]models.SysRole, 0)
+	if err := e.Orm.Model(&models.SysRole{}).Preload("SysMenu").Find(&roleList, roleIds).Error; err != nil {
 		return nil, err
 	}
-	l := *model.SysMenu
-	for i := 0; i < len(l); i++ {
-		if l[i].Permission != "" {
-			permissions = append(permissions, l[i].Permission)
+	seen := make(map[string]struct{})
+	for _, role := range roleList {
+		if role.SysMenu == nil {
+			continue
+		}
+		menuList := *role.SysMenu
+		for i := 0; i < len(menuList); i++ {
+			permission := menuList[i].Permission
+			if permission == "" {
+				continue
+			}
+			if _, ok := seen[permission]; ok {
+				continue
+			}
+			seen[permission] = struct{}{}
+			permissions = append(permissions, permission)
 		}
 	}
+	sort.Strings(permissions)
 	return permissions, nil
 }

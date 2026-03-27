@@ -1,5 +1,6 @@
 import type { Preferences } from '@vben/preferences';
 
+import { reactive } from 'vue';
 import { preferencesManager, updatePreferences } from '@vben/preferences';
 
 import type {
@@ -12,6 +13,11 @@ function clonePlain<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+export const systemDisplayState = reactive({
+  loginDescription: '',
+  loginTitle: '',
+});
+
 function createDefaultUiPreferencesFromInitial(
   initialPreferences: Preferences,
 ): SystemUiPreferences {
@@ -23,6 +29,8 @@ function createDefaultUiPreferencesFromInitial(
       dynamicTitle: initialPreferences.app.dynamicTitle,
       enableCheckUpdates: initialPreferences.app.enableCheckUpdates,
       layout: initialPreferences.app.layout,
+      loginDescription: '',
+      loginTitle: '',
       locale: initialPreferences.app.locale,
       watermark: initialPreferences.app.watermark,
       watermarkContent: initialPreferences.app.watermarkContent,
@@ -128,6 +136,7 @@ export function createDefaultSystemSettings(): SystemSettingsResponse {
   return {
     branding: {
       appLogo: '',
+      appLogoPlaceholderColor: '#1d4ed8',
       appName: initialPreferences.app.name,
     },
     uiPreferences: createDefaultUiPreferencesFromInitial(initialPreferences),
@@ -159,6 +168,12 @@ function applyCompactUiPreferencesSection(
         target.app.layout = String(
           sectionValue.l,
         ) as SystemUiPreferences['app']['layout'];
+      }
+      if ('t' in sectionValue) {
+        target.app.loginTitle = String(sectionValue.t ?? '');
+      }
+      if ('y' in sectionValue) {
+        target.app.loginDescription = String(sectionValue.y ?? '');
       }
       if ('o' in sectionValue) {
         target.app.locale = String(
@@ -370,6 +385,12 @@ export function decodeSystemUiPreferences(
 export function applySystemSettingsToRuntime(
   settings: Pick<SystemSettingsResponse, 'branding' | 'uiPreferences'>,
 ) {
+  systemDisplayState.loginTitle = String(
+    settings.uiPreferences.app.loginTitle ?? '',
+  ).trim();
+  systemDisplayState.loginDescription = String(
+    settings.uiPreferences.app.loginDescription ?? '',
+  ).trim();
   updatePreferences({
     ...settings.uiPreferences,
     app: {
@@ -377,6 +398,7 @@ export function applySystemSettingsToRuntime(
       name: settings.branding.appName,
     },
     logo: {
+      placeholderBgColor: settings.branding.appLogoPlaceholderColor,
       source: settings.branding.appLogo,
       sourceDark: settings.branding.appLogo,
     },
@@ -389,6 +411,8 @@ export function appConfigMapToSystemSettings(
   return {
     branding: {
       appLogo: appConfig.sys_app_logo?.trim() || '',
+      appLogoPlaceholderColor:
+        appConfig.sys_app_logo_placeholder_color?.trim() || '#1d4ed8',
       appName:
         appConfig.sys_app_name?.trim() ||
         preferencesManager.getInitialPreferences().app.name,

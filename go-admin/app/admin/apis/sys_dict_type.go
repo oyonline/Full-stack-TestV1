@@ -11,6 +11,7 @@ import (
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/middleware"
 )
 
 type SysDictType struct {
@@ -31,7 +32,7 @@ type SysDictType struct {
 // @Security Bearer
 func (e SysDictType) GetPage(c *gin.Context) {
 	s := service.SysDictType{}
-	req :=dto.SysDictTypeGetPageReq{}
+	req := dto.SysDictTypeGetPageReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.Form).
@@ -62,7 +63,7 @@ func (e SysDictType) GetPage(c *gin.Context) {
 // @Security Bearer
 func (e SysDictType) Get(c *gin.Context) {
 	s := service.SysDictType{}
-	req :=dto.SysDictTypeGetReq{}
+	req := dto.SysDictTypeGetReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, nil).
@@ -82,7 +83,7 @@ func (e SysDictType) Get(c *gin.Context) {
 	e.OK(object, "查询成功")
 }
 
-//Insert 字典类型创建
+// Insert 字典类型创建
 // @Summary 添加字典类型
 // @Description 获取JSON
 // @Tags 字典类型
@@ -94,7 +95,7 @@ func (e SysDictType) Get(c *gin.Context) {
 // @Security Bearer
 func (e SysDictType) Insert(c *gin.Context) {
 	s := service.SysDictType{}
-	req :=dto.SysDictTypeInsertReq{}
+	req := dto.SysDictTypeInsertReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON).
@@ -109,9 +110,21 @@ func (e SysDictType) Insert(c *gin.Context) {
 	err = s.Insert(&req)
 	if err != nil {
 		e.Logger.Error(err)
-		e.Error(500, err,fmt.Sprintf(" 创建字典类型失败，详情：%s", err.Error()))
+		e.Error(500, err, fmt.Sprintf(" 创建字典类型失败，详情：%s", err.Error()))
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "字典类型",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryDictType,
+		Method:        "admin.sysDictType.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("字典名称", req.DictName),
+			middleware.AuditKV("字典编码", req.DictType),
+			middleware.AuditKV("状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -127,7 +140,7 @@ func (e SysDictType) Insert(c *gin.Context) {
 // @Security Bearer
 func (e SysDictType) Update(c *gin.Context) {
 	s := service.SysDictType{}
-	req :=dto.SysDictTypeUpdateReq{}
+	req := dto.SysDictTypeUpdateReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON, nil).
@@ -144,6 +157,19 @@ func (e SysDictType) Update(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "字典类型",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryDictType,
+		Method:        "admin.sysDictType.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("字典ID", req.Id),
+			middleware.AuditKV("字典名称", req.DictName),
+			middleware.AuditKV("字典编码", req.DictType),
+			middleware.AuditKV("状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -157,7 +183,7 @@ func (e SysDictType) Update(c *gin.Context) {
 // @Security Bearer
 func (e SysDictType) Delete(c *gin.Context) {
 	s := service.SysDictType{}
-	req :=dto.SysDictTypeDeleteReq{}
+	req := dto.SysDictTypeDeleteReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.JSON, nil).
@@ -174,6 +200,17 @@ func (e SysDictType) Delete(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "字典类型",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryDictType,
+		Method:        "admin.sysDictType.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除字典类型数量", len(req.Ids)),
+			middleware.AuditKV("字典ID", req.Ids),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }
 
@@ -189,7 +226,7 @@ func (e SysDictType) Delete(c *gin.Context) {
 // @Security Bearer
 func (e SysDictType) GetAll(c *gin.Context) {
 	s := service.SysDictType{}
-	req :=dto.SysDictTypeGetPageReq{}
+	req := dto.SysDictTypeGetPageReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
 		Bind(&req, binding.Form).

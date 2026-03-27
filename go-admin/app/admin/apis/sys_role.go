@@ -3,6 +3,7 @@ package apis
 import (
 	"fmt"
 	"go-admin/common/global"
+	"go-admin/common/middleware"
 	"net/http"
 
 	"github.com/gin-gonic/gin/binding"
@@ -135,6 +136,20 @@ func (e SysRole) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败,"+err.Error())
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "角色管理",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryRole,
+		Method:        "admin.sysRole.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("角色名称", req.RoleName),
+			middleware.AuditKV("权限字符", req.RoleKey),
+			middleware.AuditKV("数据范围", req.DataScope),
+			middleware.AuditCount("菜单数量", len(req.MenuIds)),
+			middleware.AuditCount("部门数量", len(req.DeptIds)),
+		),
+	})
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -178,6 +193,21 @@ func (e SysRole) Update(c *gin.Context) {
 		return
 	}
 
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "角色管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryRole,
+		Method:        "admin.sysRole.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("角色ID", req.RoleId),
+			middleware.AuditKV("角色名称", req.RoleName),
+			middleware.AuditKV("权限字符", req.RoleKey),
+			middleware.AuditKV("数据范围", req.DataScope),
+			middleware.AuditCount("菜单数量", len(req.MenuIds)),
+			middleware.AuditCount("部门数量", len(req.DeptIds)),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -210,7 +240,17 @@ func (e SysRole) Delete(c *gin.Context) {
 		e.Error(500, err, "")
 		return
 	}
-
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "角色管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryRole,
+		Method:        "admin.sysRole.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除角色数量", len(req.Ids)),
+			middleware.AuditKV("角色ID", fmt.Sprint(req.Ids)),
+		),
+	})
 	e.OK(req.GetId(), fmt.Sprintf("删除角色角色 %v 状态成功！", req.GetId()))
 }
 
@@ -243,6 +283,17 @@ func (e SysRole) Update2Status(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("更新角色状态失败，失败原因：%s ", err.Error()))
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "角色管理",
+		BusinessType:  middleware.AuditActionStatus,
+		BusinessTypes: middleware.AuditCategoryRole,
+		Method:        "admin.sysRole.updateStatus",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("角色ID", req.RoleId),
+			middleware.AuditKV("角色状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), fmt.Sprintf("更新角色 %v 状态成功！", req.GetId()))
 }
 
@@ -280,5 +331,17 @@ func (e SysRole) Update2DataScope(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("更新角色数据权限失败！错误详情：%s", err.Error()))
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "角色管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryRole,
+		Method:        "admin.sysRole.updateDataScope",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("角色ID", req.RoleId),
+			middleware.AuditKV("数据范围", req.DataScope),
+			middleware.AuditCount("部门数量", len(req.DeptIds)),
+		),
+	})
 	e.OK(nil, "操作成功")
 }

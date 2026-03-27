@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	systemAppNameKey       = "sys_app_name"
-	systemAppLogoKey       = "sys_app_logo"
-	systemUIPreferencesKey = "sys_ui_preferences"
+	systemAppNameKey                 = "sys_app_name"
+	systemAppLogoKey                 = "sys_app_logo"
+	systemAppLogoPlaceholderColorKey = "sys_app_logo_placeholder_color"
+	systemUIPreferencesKey           = "sys_ui_preferences"
 
 	systemUIPreferencesConfigName   = "界面偏好配置"
 	systemUIPreferencesConfigType   = "Y"
@@ -43,6 +44,8 @@ type compactSystemAppSettings struct {
 	DynamicTitle      *bool   `json:"d,omitempty"`
 	EnableCheckUpdate *bool   `json:"u,omitempty"`
 	Layout            *string `json:"l,omitempty"`
+	LoginDescription  *string `json:"y,omitempty"`
+	LoginTitle        *string `json:"t,omitempty"`
 	Locale            *string `json:"o,omitempty"`
 	Watermark         *bool   `json:"m,omitempty"`
 	WatermarkContent  *string `json:"x,omitempty"`
@@ -155,6 +158,8 @@ func defaultSystemUiPreferences() dto.SystemUiPreferences {
 			DynamicTitle:       true,
 			EnableCheckUpdates: true,
 			Layout:             "sidebar-nav",
+			LoginDescription:   "",
+			LoginTitle:         "",
 			Locale:             "zh-CN",
 			Watermark:          false,
 			WatermarkContent:   "",
@@ -251,7 +256,9 @@ func defaultSystemUiPreferences() dto.SystemUiPreferences {
 
 func defaultSystemSettingsPayload() dto.SystemSettingsPayload {
 	return dto.SystemSettingsPayload{
-		Branding:      dto.SystemBrandingSettings{},
+		Branding: dto.SystemBrandingSettings{
+			AppLogoPlaceholderColor: "#1d4ed8",
+		},
 		UIPreferences: defaultSystemUiPreferences(),
 	}
 }
@@ -345,6 +352,12 @@ func decodeSystemUiPreferences(raw string) (dto.SystemUiPreferences, error) {
 		}
 		if compact.App.Layout != nil {
 			defaults.App.Layout = *compact.App.Layout
+		}
+		if compact.App.LoginTitle != nil {
+			defaults.App.LoginTitle = *compact.App.LoginTitle
+		}
+		if compact.App.LoginDescription != nil {
+			defaults.App.LoginDescription = *compact.App.LoginDescription
 		}
 		if compact.App.Locale != nil {
 			defaults.App.Locale = *compact.App.Locale
@@ -661,6 +674,12 @@ func buildCompactAppSettings(defaults dto.SystemUiAppSettings, current dto.Syste
 	}
 	if current.Layout != defaults.Layout {
 		compact.Layout = stringPtr(current.Layout)
+	}
+	if current.LoginTitle != defaults.LoginTitle {
+		compact.LoginTitle = stringPtr(current.LoginTitle)
+	}
+	if current.LoginDescription != defaults.LoginDescription {
+		compact.LoginDescription = stringPtr(current.LoginDescription)
 	}
 	if current.Locale != defaults.Locale {
 		compact.Locale = stringPtr(current.Locale)

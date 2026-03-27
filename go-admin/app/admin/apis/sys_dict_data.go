@@ -10,6 +10,7 @@ import (
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/middleware"
 )
 
 type SysDictData struct {
@@ -116,6 +117,18 @@ func (e SysDictData) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "字典数据",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryDictData,
+		Method:        "admin.sysDictData.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("标签", req.DictLabel),
+			middleware.AuditKV("键值", req.DictValue),
+			middleware.AuditKV("字典类型", req.DictType),
+		),
+	})
 
 	e.OK(req.GetId(), "创建成功")
 }
@@ -149,6 +162,19 @@ func (e SysDictData) Update(c *gin.Context) {
 		e.Error(500, err, "更新失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "字典数据",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryDictData,
+		Method:        "admin.sysDictData.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("字典编码", req.Id),
+			middleware.AuditKV("标签", req.DictLabel),
+			middleware.AuditKV("键值", req.DictValue),
+			middleware.AuditKV("字典类型", req.DictType),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -179,6 +205,17 @@ func (e SysDictData) Delete(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "字典数据",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryDictData,
+		Method:        "admin.sysDictData.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除字典数据数量", len(req.Ids)),
+			middleware.AuditKV("字典编码", req.Ids),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }
 
@@ -216,5 +253,5 @@ func (e SysDictData) GetAll(c *gin.Context) {
 		l = append(l, d)
 	}
 
-	e.OK(l,"查询成功")
+	e.OK(l, "查询成功")
 }

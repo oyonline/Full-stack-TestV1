@@ -14,6 +14,7 @@ interface Props {
   appName?: string;
   logo?: string;
   logoDark?: string;
+  logoPlaceholderBgColor?: string;
   pageTitle?: string;
   pageDescription?: string;
   sloganImage?: string;
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
   copyright: true,
   logo: '',
   logoDark: '',
+  logoPlaceholderBgColor: '#1d4ed8',
   pageDescription: '',
   pageTitle: '',
   sloganImage: '',
@@ -49,6 +51,21 @@ const logoSrc = computed(() => {
   }
   // 否则使用默认的 logo
   return props.logo;
+});
+
+const fallbackLogoText = computed(() => {
+  const text = props.appName.trim().replace(/\s+/g, '');
+  if (!text) {
+    return 'S';
+  }
+
+  const asciiGroups = text.match(/[A-Za-z0-9]+/g);
+  const firstAsciiGroup = asciiGroups?.[0];
+  if (firstAsciiGroup?.[0]) {
+    return firstAsciiGroup[0].toUpperCase();
+  }
+
+  return text[0]?.toUpperCase() || 'S';
 });
 </script>
 
@@ -96,6 +113,13 @@ const logoSrc = computed(() => {
             class="mr-2"
             width="42"
           />
+          <div
+            v-else-if="appName"
+            :style="{ backgroundColor: logoPlaceholderBgColor }"
+            class="app-radius-box mr-2 flex size-[42px] items-center justify-center text-base font-semibold text-white shadow-sm"
+          >
+            {{ fallbackLogoText }}
+          </div>
           <p v-if="appName" class="m-0 text-xl font-medium">
             {{ appName }}
           </p>
@@ -139,7 +163,7 @@ const logoSrc = computed(() => {
     <div v-if="authPanelCenter" class="relative flex-center w-full">
       <div class="login-background absolute top-0 left-0 size-full"></div>
       <AuthenticationFormView
-        class="w-full rounded-3xl pb-20 shadow-float shadow-primary/5 md:w-2/3 md:bg-background lg:w-1/2 xl:w-[36%]"
+        class="app-radius-panel w-full pb-20 shadow-float shadow-primary/5 md:w-2/3 md:bg-background lg:w-1/2 xl:w-[36%]"
         data-side="bottom"
       >
         <template v-if="copyright" #copyright>

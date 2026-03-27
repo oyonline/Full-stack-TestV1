@@ -10,7 +10,7 @@ import { preferences } from '@vben/preferences';
 import { message } from 'ant-design-vue';
 
 import { getAllMenusApi } from '#/api';
-import { BasicLayout, IFrameView } from '#/layouts';
+import { BasicLayout, IFrameView, RouteView } from '#/layouts';
 import { $t } from '#/locales';
 
 const forbiddenComponent = () => import('#/views/_core/fallback/forbidden.vue');
@@ -37,6 +37,11 @@ const HOME_COMPONENT = '/home/index';
 const HOME_PATH = '/home';
 const CONFIG_MANAGE_PATH = '/admin/sys-config';
 const CONFIG_SETTINGS_PATH = '/admin/sys-config/set';
+const DICT_PARENT_PATH = '/admin/dict';
+const DICT_TYPE_PATH = '/admin/sys-dict-type';
+const LOG_PARENT_PATH = '/log';
+const LOGIN_LOG_PATH = '/admin/sys-login-log';
+const ROUTE_VIEW_COMPONENT = 'RouteView';
 
 /**
  * 短 key 到 Iconify 的映射表
@@ -100,6 +105,7 @@ function mapComponent(
   if (!comp && hasChildren) return 'BasicLayout';
   if (/^Layout$/i.test(comp) || /^BasicLayout$/i.test(comp))
     return 'BasicLayout';
+  if (/^RouteView$/i.test(comp)) return ROUTE_VIEW_COMPONENT;
   if (/^IFrameView$/i.test(comp)) return 'IFrameView';
 
   let candidate = normalizeViewPath(comp);
@@ -181,6 +187,26 @@ function normalizeConfigEntryVisibility(nodes: RouteRecordStringComponent[]) {
           hideInMenu: true,
           title: item.meta?.title ?? '参数管理',
         };
+      }
+      if (item.children?.length) {
+        visit(item.children);
+      }
+    }
+  };
+
+  visit(nodes);
+}
+
+function applyDictAndLogRedirects(nodes: RouteRecordStringComponent[]) {
+  const visit = (items: RouteRecordStringComponent[]) => {
+    for (const item of items) {
+      if (item.path === DICT_PARENT_PATH) {
+        item.component = ROUTE_VIEW_COMPONENT;
+        item.redirect = DICT_TYPE_PATH;
+      }
+      if (item.path === LOG_PARENT_PATH) {
+        item.component = ROUTE_VIEW_COMPONENT;
+        item.redirect = LOGIN_LOG_PATH;
       }
       if (item.children?.length) {
         visit(item.children);
@@ -323,6 +349,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
   const layoutMap: ComponentRecordType = {
     BasicLayout,
     IFrameView,
+    RouteView,
   };
 
   const result = await generateAccessible(preferences.app.accessMode, {
@@ -355,6 +382,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
       }
       ensureLandingRoute(list, validViewPathSet);
       normalizeConfigEntryVisibility(list);
+      applyDictAndLogRedirects(list);
       return list;
     },
     // 可以指定没有权限跳转403页面

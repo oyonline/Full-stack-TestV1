@@ -25,6 +25,9 @@ import {
   updateConfig,
 } from '#/api/core';
 import type { SysConfigItem, SysConfigPageResult } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
 
 const protectedConfigKeys = new Set([
   'sys_app_name',
@@ -288,6 +291,9 @@ const editSubmitting = ref(false);
 const editLoading = ref(false);
 /** 当前编辑的配置 ID */
 const editConfigId = ref<number | null>(null);
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detailRecord = ref<SysConfigItem | null>(null);
 
 /** 编辑表单 */
 const editForm = reactive({
@@ -298,6 +304,20 @@ const editForm = reactive({
   isFrontend: '0',
   remark: '',
 });
+
+async function openDetail(record: SysConfigItem) {
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    detailRecord.value = await getConfigDetail(record.id);
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    message.error(err?.message || '获取参数配置详情失败');
+    detailVisible.value = false;
+  } finally {
+    detailLoading.value = false;
+  }
+}
 
 /** 打开编辑弹窗 */
 async function openEditModal(record: SysConfigItem) {
@@ -428,7 +448,9 @@ onMounted(() => {
       </div>
       <div class="flex gap-2">
         <Button @click="fetchConfigList">刷新</Button>
-        <Button type="primary" @click="openAddModal">新增参数</Button>
+        <AdminActionButton type="primary" codes="admin:sysConfig:add" @click="openAddModal">
+          新增参数
+        </AdminActionButton>
       </div>
     </div>
 
@@ -493,23 +515,35 @@ onMounted(() => {
           </div>
         </template>
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysConfig:query"
+            @click="openDetail(record as SysConfigItem)"
+          >
+            详情
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysConfig:edit"
+            disabled-mode="disable"
             :disabled="isProtectedConfig(record as SysConfigItem)"
             @click="openEditModal(record as SysConfigItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysConfig:remove"
+            disabled-mode="disable"
             :disabled="isProtectedConfig(record as SysConfigItem)"
             @click="onDelete(record as SysConfigItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
@@ -636,5 +670,53 @@ onMounted(() => {
         </FormItem>
       </Form>
     </Modal>
+
+    <AdminDetailDrawer
+      v-model:open="detailVisible"
+      title="参数配置详情"
+      :loading="detailLoading"
+      width="720"
+    >
+      <template v-if="detailRecord">
+        <AdminDetailSection title="基础信息" description="查看配置名称、键名和当前值。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">参数名称</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderEmpty(detailRecord.configName) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">参数键名</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderEmpty(detailRecord.configKey) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+              <dt class="text-xs text-slate-500">参数值</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderEmpty(detailRecord.configValue) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">配置类型</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderEmpty(detailRecord.configType) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">是否前台</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderIsFrontend(detailRecord.isFrontend) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">创建时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderEmpty(detailRecord.createdAt) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">更新时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderEmpty(detailRecord.updatedAt) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="备注" description="保留配置的补充说明和维护意图。">
+          <p class="text-sm leading-6 text-slate-700">
+            {{ renderEmpty(detailRecord.remark) }}
+          </p>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
   </div>
 </template>

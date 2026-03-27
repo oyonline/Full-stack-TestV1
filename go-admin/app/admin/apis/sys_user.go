@@ -3,8 +3,10 @@ package apis
 import (
 	"github.com/gin-gonic/gin/binding"
 	"go-admin/app/admin/models"
+	"go-admin/common/authctx"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-admin-team/go-admin-core/sdk/api"
@@ -15,6 +17,7 @@ import (
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
 	"go-admin/common/actions"
+	"go-admin/common/middleware"
 )
 
 type SysUser struct {
@@ -34,7 +37,7 @@ func (e SysUser) GetPage(c *gin.Context) {
 	req := dto.SysUserGetPageReq{}
 	err := e.MakeContext(c).
 		MakeOrm().
-		Bind(&req).
+		Bind(&req, binding.Form).
 		MakeService(&s.Service).
 		Errors
 	if err != nil {
@@ -122,6 +125,22 @@ func (e SysUser) Insert(c *gin.Context) {
 		return
 	}
 
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户名", req.Username),
+			middleware.AuditKV("昵称", req.NickName),
+			middleware.AuditKV("部门ID", req.DeptId),
+			middleware.AuditKV("主角色ID", req.PrimaryRoleId),
+			middleware.AuditKV("角色ID集合", req.RoleIds),
+			middleware.AuditKV("岗位ID", req.PostId),
+		),
+	})
+
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -159,6 +178,22 @@ func (e SysUser) Update(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("用户名", req.Username),
+			middleware.AuditKV("昵称", req.NickName),
+			middleware.AuditKV("部门ID", req.DeptId),
+			middleware.AuditKV("主角色ID", req.PrimaryRoleId),
+			middleware.AuditKV("角色ID集合", req.RoleIds),
+			middleware.AuditKV("岗位ID", req.PostId),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -195,6 +230,17 @@ func (e SysUser) Delete(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除用户数量", len(req.Ids)),
+			middleware.AuditKV("用户ID", req.GetId()),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }
 
@@ -280,6 +326,17 @@ func (e SysUser) UpdateStatus(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionStatus,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.updateStatus",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("状态", req.Status),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -317,6 +374,17 @@ func (e SysUser) ResetPwd(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "用户管理",
+		BusinessType:  middleware.AuditActionPassword,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.resetPwd",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("重置密码", "已执行"),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -421,20 +489,26 @@ func (e SysUser) GetInfo(c *gin.Context) {
 		return
 	}
 	p := actions.GetPermissionFromContext(c)
-	var roles = make([]string, 1)
-	roles[0] = user.GetRoleName(c)
-	var permissions = make([]string, 1)
-	permissions[0] = "*:*:*"
-	var buttons = make([]string, 1)
-	buttons[0] = "*:*:*"
+	primaryRoleID := authctx.GetPrimaryRoleID(c)
+	primaryRoleName := authctx.GetPrimaryRoleName(c)
+	primaryRoleKey := authctx.GetPrimaryRoleKey(c)
+	roleIDs := authctx.GetRoleIDs(c)
+	roleNames := authctx.GetRoleNames(c)
+	roleKeys := authctx.GetRoleKeys(c)
 
 	var mp = make(map[string]interface{})
-	mp["roles"] = roles
-	if user.GetRoleName(c) == "admin" || user.GetRoleName(c) == "系统管理员" {
-		mp["permissions"] = permissions
-		mp["buttons"] = buttons
+	mp["roles"] = []string{primaryRoleName}
+	mp["primaryRoleId"] = primaryRoleID
+	mp["primaryRoleName"] = primaryRoleName
+	mp["primaryRoleKey"] = primaryRoleKey
+	mp["roleIds"] = roleIDs
+	mp["roleNames"] = roleNames
+	mp["roleKeys"] = roleKeys
+	if containsAdminRole(roleKeys, roleNames) {
+		mp["permissions"] = []string{"*:*:*"}
+		mp["buttons"] = []string{"*:*:*"}
 	} else {
-		list, _ := r.GetById(user.GetRoleId(c))
+		list, _ := r.GetByIds(roleIDs)
 		mp["permissions"] = list
 		mp["buttons"] = list
 	}
@@ -456,4 +530,18 @@ func (e SysUser) GetInfo(c *gin.Context) {
 	mp["name"] = sysUser.NickName
 	mp["code"] = 200
 	e.OK(mp, "")
+}
+
+func containsAdminRole(roleKeys []string, roleNames []string) bool {
+	for _, roleKey := range roleKeys {
+		if strings.EqualFold(roleKey, "admin") {
+			return true
+		}
+	}
+	for _, roleName := range roleNames {
+		if roleName == "系统管理员" || strings.EqualFold(roleName, "admin") {
+			return true
+		}
+	}
+	return false
 }

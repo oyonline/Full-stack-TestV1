@@ -103,7 +103,7 @@ useScrollLock();
         <div class="flex-center size-full">
           <div class="flex w-full justify-center gap-4 px-4 sm:gap-6 md:gap-8">
             <div
-              class="relative flex-center h-[140px] w-[140px] rounded-xl bg-accent text-[36px] sm:h-[160px] sm:w-[160px] sm:text-[42px] md:h-[200px] md:w-[200px] md:text-[72px]"
+              class="app-radius-box relative flex-center h-[140px] w-[140px] bg-accent text-[36px] sm:h-[160px] sm:w-[160px] sm:text-[42px] md:h-[200px] md:w-[200px] md:text-[72px]"
             >
               <span
                 class="absolute top-3 left-3 text-xs font-semibold sm:text-sm md:text-xl"
@@ -113,7 +113,7 @@ useScrollLock();
               {{ hour }}
             </div>
             <div
-              class="flex-center h-[140px] w-[140px] rounded-xl bg-accent text-[36px] sm:h-[160px] sm:w-[160px] sm:text-[42px] md:h-[200px] md:w-[200px] md:text-[72px]"
+              class="app-radius-box flex-center h-[140px] w-[140px] bg-accent text-[36px] sm:h-[160px] sm:w-[160px] sm:text-[42px] md:h-[200px] md:w-[200px] md:text-[72px]"
             >
               {{ minute }}
             </div>

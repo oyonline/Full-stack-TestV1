@@ -79,7 +79,7 @@ function openEntry(path: string) {
   >
     <div class="mx-auto max-w-7xl space-y-6">
       <section
-        class="overflow-hidden rounded-3xl border border-white/70 bg-[radial-gradient(circle_at_top_left,#1f6feb_0%,#1648c8_32%,#0f172a_100%)] p-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]"
+        class="app-radius-panel overflow-hidden border border-white/70 bg-[radial-gradient(circle_at_top_left,#1f6feb_0%,#1648c8_32%,#0f172a_100%)] p-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]"
       >
         <div
           class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between"
@@ -107,7 +107,7 @@ function openEntry(path: string) {
             <div
               v-for="card in statusCards"
               :key="card.label"
-              class="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 backdrop-blur"
+              class="app-radius-box border border-white/15 bg-white/10 px-4 py-4 backdrop-blur"
             >
               <div class="text-xs uppercase tracking-[0.22em] text-white/60">
                 {{ card.label }}
@@ -121,7 +121,7 @@ function openEntry(path: string) {
       </section>
 
       <section class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <Card :bordered="false" class="rounded-3xl shadow-sm">
+        <Card :bordered="false" class="app-radius-panel shadow-sm">
           <template #title>
             <div class="flex items-center justify-between">
               <span class="text-base font-semibold">快捷入口</span>
@@ -133,7 +133,7 @@ function openEntry(path: string) {
             <button
               v-for="entry in quickEntries"
               :key="entry.path"
-              class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-white hover:shadow-sm"
+              class="app-radius-box border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-white hover:shadow-sm"
               type="button"
               @click="openEntry(entry.path)"
             >
@@ -148,24 +148,24 @@ function openEntry(path: string) {
         </Card>
 
         <div class="space-y-6">
-          <Card :bordered="false" class="rounded-3xl shadow-sm">
+          <Card :bordered="false" class="app-radius-panel shadow-sm">
             <template #title>
               <span class="text-base font-semibold">今日建议</span>
             </template>
             <div class="space-y-3 text-sm text-slate-600">
-              <div class="rounded-2xl bg-slate-50 px-4 py-3">
+              <div class="app-radius-box bg-slate-50 px-4 py-3">
                 先验证登录、菜单加载和退出流程，确认首页落地后再进入业务页。
               </div>
-              <div class="rounded-2xl bg-slate-50 px-4 py-3">
+              <div class="app-radius-box bg-slate-50 px-4 py-3">
                 优先检查用户、角色、菜单三块，它们决定大部分权限链路是否正常。
               </div>
-              <div class="rounded-2xl bg-slate-50 px-4 py-3">
+              <div class="app-radius-box bg-slate-50 px-4 py-3">
                 如果发现接口异常，先看浏览器请求是否统一走了 <code>/api</code>。
               </div>
             </div>
           </Card>
 
-          <Card :bordered="false" class="rounded-3xl shadow-sm">
+          <Card :bordered="false" class="app-radius-panel shadow-sm">
             <template #title>
               <span class="text-base font-semibold">快速开始</span>
             </template>

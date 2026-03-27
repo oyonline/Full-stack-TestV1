@@ -18,6 +18,7 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/config"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 
+	"go-admin/common/audit"
 	"go-admin/common/global"
 )
 
@@ -124,8 +125,32 @@ func SetDBOperLog(c *gin.Context, clientIP string, statusCode int, reqUri string
 	} else {
 		l["status"] = dto.OperaStatusDisable
 	}
-	q := sdk.Runtime.GetMemoryQueue(c.Request.Host)
-	message, err := sdk.Runtime.GetStreamMessage("", global.OperateLog, l)
+	if value, ok := c.Get(audit.TitleKey); ok {
+		l["title"] = value
+	}
+	if value, ok := c.Get(audit.BusinessTypeKey); ok {
+		l["businessType"] = value
+	}
+	if value, ok := c.Get(audit.BusinessTypesKey); ok {
+		l["businessTypes"] = value
+	}
+	if value, ok := c.Get(audit.MethodKey); ok {
+		l["method"] = value
+	}
+	if value, ok := c.Get(audit.OperatorTypeKey); ok {
+		l["operatorType"] = value
+	}
+	if value, ok := c.Get(audit.RemarkKey); ok {
+		l["remark"] = value
+	}
+	if value, ok := c.Get(audit.OperParamKey); ok {
+		l["operParam"] = value
+	}
+	if value, ok := c.Get(audit.JSONResultKey); ok {
+		l["jsonResult"] = value
+	}
+	q := sdk.Runtime.GetMemoryQueue("")
+	message, err := sdk.Runtime.GetStreamMessage(c.Request.Host, global.OperateLog, l)
 	if err != nil {
 		log.Errorf("GetStreamMessage error, %s", err.Error())
 		// 日志报错错误，不中断请求

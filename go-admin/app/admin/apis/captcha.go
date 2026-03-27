@@ -3,6 +3,7 @@ package apis
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-admin-team/go-admin-core/sdk/api"
+	"github.com/go-admin-team/go-admin-core/sdk/config"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/captcha"
 )
 
@@ -28,10 +29,18 @@ func (e System) GenerateCaptchaHandler(c *gin.Context) {
 		return
 	}
 	e.Logger.Infof("DriverDigitFunc answer: %s", answer)
-	e.Custom(gin.H{
+	payload := gin.H{
 		"code": 200,
 		"data": b64s,
 		"id":   id,
 		"msg":  "success",
-	})
+	}
+
+	// Allow local E2E smoke tests to solve the captcha without weakening
+	// the normal interactive login flow.
+	if config.ApplicationConfig.Mode == "dev" && c.GetHeader("X-E2E-Test") == "true" {
+		payload["answer"] = answer
+	}
+
+	e.Custom(payload)
 }

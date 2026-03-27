@@ -25,6 +25,14 @@ import { IconPicker } from '@vben/common-ui';
 
 import { getSysApiList } from '#/api/core';
 import type { SysApiItem } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTreeList } from '#/composables/use-admin-tree-list';
+import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 import { requestClient } from '#/api/request';
 
 /* -------- component 最小校验：与 access.ts 的路径集合对齐 -------- */
@@ -56,7 +64,12 @@ const validViewPathSet = buildValidViewPathSet(
 function isValidComponent(comp: string): boolean {
   const c = comp?.trim() ?? '';
   if (c === '') return true;
-  if (/^Layout$/i.test(c) || /^BasicLayout$/i.test(c) || /^IFrameView$/i.test(c))
+	if (
+		/^Layout$/i.test(c) ||
+		/^BasicLayout$/i.test(c) ||
+		/^RouteView$/i.test(c) ||
+		/^IFrameView$/i.test(c)
+	)
     return true;
   let candidate = normalizeViewPath(c);
   if (candidate.endsWith('.vue')) candidate = candidate.slice(0, -4);
@@ -73,6 +86,7 @@ function isValidComponent(comp: string): boolean {
 const componentOptions = [
   { value: 'Layout', label: 'Layout' },
   { value: 'BasicLayout', label: 'BasicLayout' },
+  { value: 'RouteView', label: 'RouteView' },
   { value: 'IFrameView', label: 'IFrameView' },
   ...Array.from(validViewPathSet)
     .sort()
@@ -92,7 +106,12 @@ function filterComponentOption(input: string, option?: unknown): boolean {
 function getComponentOptionValue(comp: string): string {
   const c = comp?.trim() ?? '';
   if (c === '') return '';
-  if (/^Layout$/i.test(c) || /^BasicLayout$/i.test(c) || /^IFrameView$/i.test(c))
+	if (
+		/^Layout$/i.test(c) ||
+		/^BasicLayout$/i.test(c) ||
+		/^RouteView$/i.test(c) ||
+		/^IFrameView$/i.test(c)
+	)
     return c;
   let candidate = normalizeViewPath(c);
   if (candidate.endsWith('.vue')) candidate = candidate.slice(0, -4);
@@ -215,23 +234,49 @@ interface SysMenuDetail {
   apis: number[];
 }
 
-const loading = ref(false);
-const treeData = ref<SysMenuRow[]>([]);
-const errorMsg = ref('');
-
 /** 关联接口多选：选项来自 GET /api/v1/sys-api，value=id，label=title + path + action */
 const apiOptions = ref<{ value: number; label: string }[]>([]);
-
-/** 搜索：标题（模糊） */
-const searchTitle = ref('');
-/** 搜索：显示状态（后端 visible 为 int：1 显示 0 隐藏） */
-const searchVisible = ref<'' | '0' | '1'>('');
 
 const visibleOptions = [
   { value: '' as const, label: '全部' },
   { value: '1' as const, label: '显示' },
   { value: '0' as const, label: '隐藏' },
 ];
+
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  query,
+  treeData,
+} = useAdminTreeList<
+  SysMenuRow,
+  {
+    title: string;
+    visible: '' | '0' | '1';
+  },
+  {
+    title?: string;
+    visible?: number;
+  }
+>({
+  createParams: (currentQuery) => ({
+    title: currentQuery.title.trim() || undefined,
+    visible:
+      currentQuery.visible !== '' ? Number(currentQuery.visible) : undefined,
+  }),
+  createQuery: () => ({
+    title: '',
+    visible: '' as const,
+  }),
+  fallbackErrorMessage: '加载菜单列表失败',
+  fetcher: async (params) =>
+    requestClient.get<SysMenuRow[]>('/v1/menu', { params }),
+});
+
+const fetchMenuList = fetchList;
 
 /** 编辑/新增弹窗共用的可见下拉（不含"全部"）*/
 const yesNoOptions = [
@@ -246,38 +291,14 @@ const menuTypeOptions = [
   { value: 'F', label: '按钮' },
 ];
 
-async function fetchMenuList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: Record<string, string | number> = {};
-    if (searchTitle.value.trim()) params.title = searchTitle.value.trim();
-    if (searchVisible.value !== '') params.visible = Number(searchVisible.value);
-    const data = await requestClient.get<SysMenuRow[]>('/v1/menu', { params });
-    treeData.value = Array.isArray(data) ? data : [];
-  } catch (e: any) {
-    errorMsg.value = e?.message || e?.response?.data?.msg || '加载菜单列表失败';
-    treeData.value = [];
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onSearch() {
-  fetchMenuList();
-}
-
-function onReset() {
-  searchTitle.value = '';
-  searchVisible.value = '';
-  fetchMenuList();
-}
-
 /* -------- 编辑弹窗 -------- */
 
 const editVisible = ref(false);
 const editSubmitting = ref(false);
 const editLoading = ref(false);
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detailRecord = ref<SysMenuDetail | null>(null);
 /** 从 GET /api/v1/menu/:id 取到的完整详情，提交时作为基底与表单合并 */
 const fullDetail = ref<SysMenuDetail | null>(null);
 /** 编辑表单数据：含 component、parentId、menuType、apis 等可编辑字段，其余由 fullDetail 保持原值 */
@@ -334,11 +355,26 @@ async function onEdit(record: SysMenuRow) {
     editForm.apis = Array.isArray(detail.apis) ? [...detail.apis] : [];
     editForm.sort = detail.sort ?? 0;
     editForm.visible = detail.visible ?? '1';
-  } catch (e: any) {
-    message.error(e?.message || '获取菜单详情失败，请重试');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '获取菜单详情失败，请重试'));
     editVisible.value = false;
   } finally {
     editLoading.value = false;
+  }
+}
+
+async function openDetail(record: SysMenuRow) {
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    detailRecord.value = await requestClient.get<SysMenuDetail>(
+      `/v1/menu/${record.menuId}`,
+    );
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '获取菜单详情失败，请重试'));
+    detailVisible.value = false;
+  } finally {
+    detailLoading.value = false;
   }
 }
 
@@ -349,12 +385,14 @@ function validateComponentByMenuType(
 ): { ok: boolean; message?: string } {
   const comp = (component ?? '').trim();
   if (menuType === 'C') {
-    if (!comp) return { ok: false, message: '菜单类型为「菜单」时，组件路径不能为空' };
+    if (!comp)
+      return { ok: false, message: '菜单类型为「菜单」时，组件路径不能为空' };
   }
   if (comp && !isValidComponent(component)) {
     return {
       ok: false,
-      message: '组件路径不在当前项目有效视图中，请填写如 views/admin/sys-menu/index 或 Layout',
+      message:
+        '组件路径不在当前项目有效视图中，请填写如 views/admin/sys-menu/index 或 Layout',
     };
   }
   return { ok: true };
@@ -396,8 +434,8 @@ async function onEditOk() {
     message.success('编辑成功');
     editVisible.value = false;
     fetchMenuList();
-  } catch (e: any) {
-    message.error(e?.message || e?.response?.data?.msg || '编辑失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '编辑失败'));
   } finally {
     editSubmitting.value = false;
   }
@@ -478,8 +516,8 @@ async function onAddOk() {
     message.success('新增成功');
     addVisible.value = false;
     fetchMenuList();
-  } catch (e: any) {
-    message.error(e?.message || e?.response?.data?.msg || '新增失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '新增失败'));
   } finally {
     addSubmitting.value = false;
   }
@@ -499,11 +537,13 @@ function onDelete(record: SysMenuRow) {
     cancelText: '取消',
     onOk: async () => {
       try {
-        await requestClient.delete('/v1/menu', { data: { ids: [record.menuId] } });
+        await requestClient.delete('/v1/menu', {
+          data: { ids: [record.menuId] },
+        });
         message.success('删除成功');
         fetchMenuList();
-      } catch (e: any) {
-        message.error(e?.message || e?.response?.data?.msg || '删除失败');
+      } catch (error) {
+        message.error(resolveAdminErrorMessage(error, '删除失败'));
       }
     },
   });
@@ -512,7 +552,10 @@ function onDelete(record: SysMenuRow) {
 /** 将 SysApiItem 转为多选选项：label = title + path + action */
 function toApiOption(item: SysApiItem): { value: number; label: string } {
   const parts = [item.title, item.path, item.action].filter(Boolean);
-  return { value: item.id, label: parts.length ? parts.join(' ') : String(item.id) };
+  return {
+    value: item.id,
+    label: parts.length ? parts.join(' ') : String(item.id),
+  };
 }
 
 /** 单条接口的展示文案（title / path / action 组合） */
@@ -534,14 +577,17 @@ function getApisDisplayLabels(record: unknown): string[] {
   const ids = (record as { apis?: number[] })?.apis;
   if (Array.isArray(ids) && ids.length && apiOptions.value.length) {
     return ids
-      .map((id) => apiOptions.value.find((o) => o.value === id)?.label ?? String(id))
+      .map(
+        (id) =>
+          apiOptions.value.find((o) => o.value === id)?.label ?? String(id),
+      )
       .filter(Boolean);
   }
   return [];
 }
 
 onMounted(() => {
-  fetchMenuList();
+  void fetchMenuList();
   getSysApiList()
     .then((list) => {
       apiOptions.value = list.map(toApiOption);
@@ -553,53 +599,88 @@ onMounted(() => {
 
 const columns: TableColumnType[] = [
   { title: '菜单ID', dataIndex: 'menuId', key: 'menuId', width: 90 },
-  { title: '菜单名称', dataIndex: 'menuName', key: 'menuName', width: 140 },
-  { title: '显示标题', dataIndex: 'title', key: 'title', width: 120 },
+  {
+    title: '菜单名称',
+    dataIndex: 'menuName',
+    key: 'menuName',
+    width: 140,
+    customRender: ({ text }) => renderAdminEmpty(text as string),
+  },
+  {
+    title: '显示标题',
+    dataIndex: 'title',
+    key: 'title',
+    width: 120,
+    customRender: ({ text }) => renderAdminEmpty(text as string),
+  },
   { title: '图标', key: 'icon', width: 70, align: 'center' },
-  { title: '路径', dataIndex: 'path', key: 'path', width: 180, ellipsis: true },
+  {
+    title: '路径',
+    dataIndex: 'path',
+    key: 'path',
+    width: 180,
+    ellipsis: true,
+    customRender: ({ text }) => renderAdminEmpty(text as string),
+  },
   { title: '类型', dataIndex: 'menuType', key: 'menuType', width: 80 },
   { title: '关联接口', key: 'apisDisplay', width: 200, ellipsis: true },
   { title: '排序', dataIndex: 'sort', key: 'sort', width: 70 },
   { title: '可见', dataIndex: 'visible', key: 'visible', width: 70 },
-  { title: '操作', key: 'action', width: 140, fixed: 'right' },
+  { title: '操作', key: 'action', width: 190, fixed: 'right' },
 ];
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">菜单管理</h2>
-      <Button type="primary" @click="onAdd">新增菜单</Button>
-    </div>
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">标题：</span>
-      <Input
-        v-model:value="searchTitle"
-        placeholder="模糊匹配"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">可见：</span>
-      <Select
-        v-model:value="searchVisible"
-        :options="visibleOptions"
-        class="w-28"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-    <div v-if="errorMsg" class="mb-4 text-red-600">
-      {{ errorMsg }}
-    </div>
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>菜单管理</template>
+    <template #description>
+      管理菜单层级、组件映射和权限标识。树形页沿用统一的页头、筛选区和表格卡片结构。
+    </template>
+    <template #header-extra>
+      <AdminActionButton type="primary" codes="admin:sysMenu:add" @click="onAdd">
+        新增菜单
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="标题">
+          <Input
+            v-model:value="query.title"
+            placeholder="模糊匹配菜单标题"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="可见">
+          <Select
+            v-model:value="query.visible"
+            :options="visibleOptions"
+            placeholder="请选择可见状态"
+          />
+        </AdminFilterField>
+      </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">菜单树列表</div>
+      </div>
+    </template>
+
+    <AdminErrorAlert :message="errorMsg" />
+
     <Table
       :columns="columns"
       :data-source="treeData"
       :loading="loading"
       :pagination="false"
+      :scroll="{ x: 1180 }"
       row-key="menuId"
-      size="small"
-      bordered
+      size="middle"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'icon'">
@@ -611,7 +692,10 @@ const columns: TableColumnType[] = [
           <span v-else class="text-gray-400">-</span>
         </template>
         <template v-else-if="column.key === 'apisDisplay'">
-          <span v-if="getApisDisplayLabels(record).length" class="flex flex-wrap gap-1">
+          <span
+            v-if="getApisDisplayLabels(record).length"
+            class="flex flex-wrap gap-1"
+          >
             <Tag
               v-for="label in getApisDisplayLabels(record)"
               :key="label"
@@ -623,21 +707,31 @@ const columns: TableColumnType[] = [
           <span v-else class="text-gray-400">-</span>
         </template>
         <template v-else-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysMenu:query"
+            @click="openDetail(record as SysMenuRow)"
+          >
+            详情
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysMenu:edit"
             @click="onEdit(record as SysMenuRow)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysMenu:remove"
             @click="onDelete(record as SysMenuRow)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
@@ -648,6 +742,7 @@ const columns: TableColumnType[] = [
       title="编辑菜单"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
+      :width="860"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
@@ -656,22 +751,17 @@ const columns: TableColumnType[] = [
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载中…
       </div>
-      <Form
-        v-else
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-        class="mt-4"
-      >
-        <FormItem label="菜单名称">
+      <Form v-else layout="vertical" class="mt-4 grid gap-x-4 md:grid-cols-2">
+        <FormItem label="菜单名称" class="mb-0">
           <Input v-model:value="editForm.menuName" placeholder="menuName" />
         </FormItem>
-        <FormItem label="显示标题">
+        <FormItem label="显示标题" class="mb-0">
           <Input v-model:value="editForm.title" placeholder="title" />
         </FormItem>
-        <FormItem label="图标(icon)">
+        <FormItem label="图标(icon)" class="mb-0 md:col-span-2">
           <IconPicker v-model="editForm.icon" class="w-full" />
         </FormItem>
-        <FormItem label="类型(menuType)">
+        <FormItem label="类型(menuType)" class="mb-0">
           <Select
             v-model:value="editForm.menuType"
             :options="menuTypeOptions"
@@ -679,10 +769,10 @@ const columns: TableColumnType[] = [
             @change="onEditMenuTypeChange"
           />
         </FormItem>
-        <FormItem label="路径">
+        <FormItem label="路径" class="mb-0">
           <Input v-model:value="editForm.path" placeholder="path" />
         </FormItem>
-        <FormItem label="上级菜单">
+        <FormItem label="上级菜单" class="mb-0 md:col-span-2">
           <TreeSelect
             v-model:value="editForm.parentId"
             :tree-data="parentTreeOptionsForEdit"
@@ -693,7 +783,7 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="组件(component)">
+        <FormItem label="组件(component)" class="mb-0 md:col-span-2">
           <Select
             v-model:value="editForm.component"
             show-search
@@ -705,7 +795,7 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="权限标识(permission)">
+        <FormItem label="权限标识(permission)" class="mb-0 md:col-span-2">
           <Input
             v-model:value="editForm.permission"
             placeholder="如 system:user:list，按钮(F)类型常用"
@@ -713,7 +803,7 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="关联接口(apis)">
+        <FormItem label="关联接口(apis)" class="mb-0 md:col-span-2">
           <Select
             v-model:value="editForm.apis"
             mode="multiple"
@@ -723,11 +813,15 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="排序">
+        <FormItem label="排序" class="mb-0">
           <InputNumber v-model:value="editForm.sort" :min="0" class="w-full" />
         </FormItem>
-        <FormItem label="可见">
-          <Select v-model:value="editForm.visible" :options="yesNoOptions" />
+        <FormItem label="可见" class="mb-0">
+          <Select
+            v-model:value="editForm.visible"
+            :options="yesNoOptions"
+            class="w-full"
+          />
         </FormItem>
       </Form>
     </Modal>
@@ -737,22 +831,23 @@ const columns: TableColumnType[] = [
       v-model:open="addVisible"
       title="新增菜单"
       :confirm-loading="addSubmitting"
+      :width="860"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="菜单名称">
+      <Form layout="vertical" class="mt-4 grid gap-x-4 md:grid-cols-2">
+        <FormItem label="菜单名称" class="mb-0">
           <Input v-model:value="addForm.menuName" placeholder="menuName" />
         </FormItem>
-        <FormItem label="显示标题">
+        <FormItem label="显示标题" class="mb-0">
           <Input v-model:value="addForm.title" placeholder="title" />
         </FormItem>
-        <FormItem label="图标(icon)">
+        <FormItem label="图标(icon)" class="mb-0 md:col-span-2">
           <IconPicker v-model="addForm.icon" class="w-full" />
         </FormItem>
-        <FormItem label="类型(menuType)">
+        <FormItem label="类型(menuType)" class="mb-0">
           <Select
             v-model:value="addForm.menuType"
             :options="menuTypeOptions"
@@ -760,10 +855,10 @@ const columns: TableColumnType[] = [
             @change="onAddMenuTypeChange"
           />
         </FormItem>
-        <FormItem label="路径">
+        <FormItem label="路径" class="mb-0">
           <Input v-model:value="addForm.path" placeholder="path" />
         </FormItem>
-        <FormItem label="上级菜单">
+        <FormItem label="上级菜单" class="mb-0 md:col-span-2">
           <TreeSelect
             v-model:value="addForm.parentId"
             :tree-data="parentTreeOptionsAdd"
@@ -774,7 +869,7 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="组件(component)">
+        <FormItem label="组件(component)" class="mb-0 md:col-span-2">
           <Select
             v-model:value="addForm.component"
             show-search
@@ -786,7 +881,7 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="权限标识(permission)">
+        <FormItem label="权限标识(permission)" class="mb-0 md:col-span-2">
           <Input
             v-model:value="addForm.permission"
             placeholder="如 system:user:list，按钮(F)类型常用"
@@ -794,7 +889,7 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="关联接口(apis)">
+        <FormItem label="关联接口(apis)" class="mb-0 md:col-span-2">
           <Select
             v-model:value="addForm.apis"
             mode="multiple"
@@ -804,13 +899,104 @@ const columns: TableColumnType[] = [
             class="w-full"
           />
         </FormItem>
-        <FormItem label="排序">
+        <FormItem label="排序" class="mb-0">
           <InputNumber v-model:value="addForm.sort" :min="0" class="w-full" />
         </FormItem>
-        <FormItem label="可见">
-          <Select v-model:value="addForm.visible" :options="yesNoOptions" />
+        <FormItem label="可见" class="mb-0">
+          <Select
+            v-model:value="addForm.visible"
+            :options="yesNoOptions"
+            class="w-full"
+          />
         </FormItem>
       </Form>
     </Modal>
-  </div>
+
+    <AdminDetailDrawer
+      v-model:open="detailVisible"
+      title="菜单详情"
+      :loading="detailLoading"
+      width="760"
+    >
+      <template v-if="detailRecord">
+        <AdminDetailSection title="基础信息" description="确认菜单名称、类型和显示规则。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">菜单 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ detailRecord.menuId }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">菜单名称</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.menuName) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">显示标题</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.title) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">菜单类型</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.menuType) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">可见</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ detailRecord.visible === '1' ? '显示' : '隐藏' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">排序</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.sort) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+              <dt class="text-xs text-slate-500">图标</dt>
+              <dd class="mt-1 flex items-center gap-2 text-sm text-slate-900">
+                <IconifyIcon
+                  v-if="normalizeMenuIcon(detailRecord.icon)"
+                  :icon="normalizeMenuIcon(detailRecord.icon)!"
+                  class="text-primary text-lg"
+                />
+                <span>{{ renderAdminEmpty(detailRecord.icon) }}</span>
+              </dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="路由与权限" description="定位路径、组件映射和权限标识。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div class="md:col-span-2">
+              <dt class="text-xs text-slate-500">路径</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.path) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+              <dt class="text-xs text-slate-500">组件</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.component) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">父级菜单 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.parentId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">完整路径</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.paths) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+              <dt class="text-xs text-slate-500">权限标识</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.permission) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="关联接口" description="查看菜单与后端接口的绑定关系。">
+          <div v-if="detailRecord.sysApi?.length" class="flex flex-wrap gap-2">
+            <Tag
+              v-for="api in detailRecord.sysApi"
+              :key="api.id"
+              class="m-0"
+            >
+              {{ apiItemLabel(api) }}
+            </Tag>
+          </div>
+          <p v-else class="text-sm text-slate-500">暂无关联接口</p>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

@@ -11,6 +11,7 @@ import (
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/middleware"
 )
 
 type SysDept struct {
@@ -113,6 +114,18 @@ func (e SysDept) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "部门管理",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryDept,
+		Method:        "admin.sysDept.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("部门名称", req.DeptName),
+			middleware.AuditKV("上级部门", req.ParentId),
+			middleware.AuditKV("负责人", req.Leader),
+		),
+	})
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -147,6 +160,19 @@ func (e SysDept) Update(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "部门管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryDept,
+		Method:        "admin.sysDept.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("部门ID", req.DeptId),
+			middleware.AuditKV("部门名称", req.DeptName),
+			middleware.AuditKV("上级部门", req.ParentId),
+			middleware.AuditKV("负责人", req.Leader),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -178,6 +204,17 @@ func (e SysDept) Delete(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "部门管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryDept,
+		Method:        "admin.sysDept.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除部门数量", len(req.Ids)),
+			middleware.AuditKV("部门ID", req.Ids),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }
 

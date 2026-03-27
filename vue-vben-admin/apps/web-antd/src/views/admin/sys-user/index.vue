@@ -3,19 +3,9 @@
  * 系统管理 - 用户管理
  * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 部门/角色/岗位关联
  */
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
-import {
-  Button,
-  Form,
-  FormItem,
-  Input,
-  Modal,
-  Select,
-  Table,
-  TreeSelect,
-  message,
-} from 'ant-design-vue';
+import { Button, Input, Modal, Select, Table, Tag, message } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 
 import {
@@ -28,38 +18,72 @@ import {
   getSysUserPage,
   updateSysUser,
 } from '#/api/core';
-import type {
-  DeptLabel,
-  DeptTreeOption,
-  SysUserItem,
-  SysUserPageResult,
-} from '#/api/core';
-
-/** 表格加载状态 */
-const loading = ref(false);
-const tableData = ref<SysUserItem[]>([]);
-const errorMsg = ref('');
-
-/** 分页 */
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
-});
-
-/** 搜索 */
-const searchUsername = ref('');
-const searchNickName = ref('');
-const searchPhone = ref('');
-const searchStatus = ref<string>('');
+import type { DeptLabel, DeptTreeOption, SysUserItem } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
 const statusOptions = [
   { value: '', label: '全部' },
-  { value: '0', label: '停用' },
-  { value: '1', label: '启用' },
+  { value: '2', label: '启用' },
+  { value: '1', label: '停用' },
 ];
+
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysUserItem,
+  {
+    nickName: string;
+    phone: string;
+    roleIds: number[];
+    status: string;
+    username: string;
+  },
+  {
+    nickName?: string;
+    phone?: string;
+    roleIds?: string;
+    status?: string;
+    username?: string;
+  }
+>({
+  createParams: (currentQuery) => ({
+    username: currentQuery.username.trim() || undefined,
+    nickName: currentQuery.nickName.trim() || undefined,
+    phone: currentQuery.phone.trim() || undefined,
+    roleIds: currentQuery.roleIds.length
+      ? currentQuery.roleIds.join(',')
+      : undefined,
+    status: currentQuery.status || undefined,
+  }),
+  createQuery: () => ({
+    username: '',
+    nickName: '',
+    phone: '',
+    roleIds: [] as number[],
+    status: '',
+  }),
+  fallbackErrorMessage: '加载用户列表失败',
+  fetcher: async (params) => getSysUserPage(params),
+});
+
+const fetchUserList = fetchList;
 
 /** 部门树（用于下拉） */
 const deptTreeRaw = ref<DeptLabel[]>([]);
@@ -83,6 +107,46 @@ const roleOptions = ref<{ value: number; label: string }[]>([]);
 /** 岗位选项 */
 const postOptions = ref<{ value: number; label: string }[]>([]);
 
+const roleLabelMap = computed(() =>
+  new Map(roleOptions.value.map((item) => [item.value, item.label])),
+);
+
+const roleFilterOptions = computed(() =>
+  [...roleOptions.value].sort((a, b) => a.label.localeCompare(b.label, 'zh-CN')),
+);
+
+function getRoleLabels(record: Partial<SysUserItem> | null | undefined): string[] {
+  if (!record) {
+    return [];
+  }
+  if (record.roles?.length) {
+    return record.roles
+      .map((role) => role.roleName || roleLabelMap.value.get(role.roleId) || `角色${role.roleId}`)
+      .filter(Boolean);
+  }
+  if (record.roleIds?.length) {
+    return record.roleIds
+      .map((roleId) => roleLabelMap.value.get(roleId) || `角色${roleId}`)
+      .filter(Boolean);
+  }
+  if (record.roleId) {
+    return [roleLabelMap.value.get(record.roleId) || `角色${record.roleId}`];
+  }
+  return [];
+}
+
+function getPrimaryRoleLabel(record: Partial<SysUserItem> | null | undefined): string {
+  if (!record) {
+    return '-';
+  }
+  const primaryRoleId = record.primaryRoleId ?? record.roleId;
+  if (!primaryRoleId) {
+    return '-';
+  }
+  const fromRoleList = record.roles?.find((role) => role.roleId === primaryRoleId)?.roleName;
+  return fromRoleList || roleLabelMap.value.get(primaryRoleId) || `角色${primaryRoleId}`;
+}
+
 async function loadDeptTree() {
   try {
     deptTreeRaw.value = await getDeptTreeApi();
@@ -94,10 +158,12 @@ async function loadDeptTree() {
 async function loadRoleOptions() {
   try {
     const res = await getRolePage({ pageIndex: 1, pageSize: 500 });
-    roleOptions.value = (res.list || []).map((r) => ({
-      value: r.roleId,
-      label: r.roleName || `角色${r.roleId}`,
-    }));
+    roleOptions.value = (res.list || [])
+      .filter((r) => r.status === '2')
+      .map((r) => ({
+        value: r.roleId,
+        label: r.roleName || `角色${r.roleId}`,
+      }));
   } catch {
     roleOptions.value = [];
   }
@@ -115,70 +181,10 @@ async function loadPostOptions() {
   }
 }
 
-/** 获取用户列表 */
-async function fetchUserList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: Record<string, unknown> = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchUsername.value.trim())
-      params.username = searchUsername.value.trim();
-    if (searchNickName.value.trim())
-      params.nickName = searchNickName.value.trim();
-    if (searchPhone.value.trim()) params.phone = searchPhone.value.trim();
-    if (searchStatus.value !== '') params.status = searchStatus.value;
-    const res: SysUserPageResult = await getSysUserPage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    errorMsg.value =
-      err?.message || err?.response?.data?.msg || '加载用户列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function onSearch() {
-  pagination.value.current = 1;
-  fetchUserList();
-}
-
-function onReset() {
-  searchUsername.value = '';
-  searchNickName.value = '';
-  searchPhone.value = '';
-  searchStatus.value = '';
-  pagination.value.current = 1;
-  fetchUserList();
-}
-
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchUserList();
-}
-
 function renderStatus(s: string): string {
-  if (s === '1') return '启用';
-  if (s === '0') return '停用';
+  if (s === '2') return '启用';
+  if (s === '1' || s === '0') return '停用';
   return s || '-';
-}
-
-function renderEmpty(v: string | number | null | undefined): string {
-  return v != null && v !== '' ? String(v) : '-';
 }
 
 const columns: TableColumnType[] = [
@@ -190,10 +196,11 @@ const columns: TableColumnType[] = [
     key: 'dept',
     width: 120,
     customRender: ({ record }: { record: SysUserItem }) =>
-      record.dept?.deptName ?? record.deptId ?? '-',
+      renderAdminEmpty(record.dept?.deptName ?? record.deptId),
   },
   { title: '岗位ID', dataIndex: 'postId', key: 'postId', width: 80 },
-  { title: '角色ID', dataIndex: 'roleId', key: 'roleId', width: 80 },
+  { title: '主角色', key: 'primaryRole', width: 140 },
+  { title: '角色', key: 'roles', width: 220 },
   { title: '手机号', dataIndex: 'phone', key: 'phone', width: 120 },
   {
     title: '状态',
@@ -207,7 +214,7 @@ const columns: TableColumnType[] = [
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 160,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
   },
   { title: '操作', key: 'action', width: 140, fixed: 'right' },
 ];
@@ -222,11 +229,12 @@ const addForm = reactive({
   phone: '',
   email: '',
   deptId: undefined as number | undefined,
-  roleId: undefined as number | undefined,
+  roleIds: [] as number[],
+  primaryRoleId: undefined as number | undefined,
   postId: undefined as number | undefined,
   sex: '',
   remark: '',
-  status: '1',
+  status: '2',
 });
 
 function resetAddForm() {
@@ -236,7 +244,8 @@ function resetAddForm() {
   addForm.phone = '';
   addForm.email = '';
   addForm.deptId = undefined;
-  addForm.roleId = undefined;
+  addForm.roleIds = [];
+  addForm.primaryRoleId = undefined;
   addForm.postId = undefined;
   addForm.sex = '';
   addForm.remark = '';
@@ -259,6 +268,10 @@ function validateAdd(): { ok: boolean; message?: string } {
   if (!addForm.email?.trim()) return { ok: false, message: '请输入邮箱' };
   if (addForm.deptId == null || addForm.deptId === 0)
     return { ok: false, message: '请选择部门' };
+  if (!addForm.roleIds.length) return { ok: false, message: '请至少选择一个角色' };
+  if (addForm.primaryRoleId == null || !addForm.roleIds.includes(addForm.primaryRoleId)) {
+    return { ok: false, message: '请选择主角色' };
+  }
   return { ok: true };
 }
 
@@ -277,7 +290,9 @@ async function onAddOk() {
       phone: addForm.phone.trim(),
       email: addForm.email.trim(),
       deptId: addForm.deptId!,
-      roleId: addForm.roleId,
+      primaryRoleId: addForm.primaryRoleId!,
+      roleIds: addForm.roleIds,
+      roleId: addForm.primaryRoleId,
       postId: addForm.postId,
       sex: addForm.sex || undefined,
       remark: addForm.remark?.trim() || undefined,
@@ -312,11 +327,12 @@ const editForm = reactive({
   phone: '',
   email: '',
   deptId: undefined as number | undefined,
-  roleId: undefined as number | undefined,
+  roleIds: [] as number[],
+  primaryRoleId: undefined as number | undefined,
   postId: undefined as number | undefined,
   sex: '',
   remark: '',
-  status: '1',
+  status: '2',
 });
 
 async function openEditModal(record: SysUserItem) {
@@ -330,11 +346,13 @@ async function openEditModal(record: SysUserItem) {
     editForm.phone = detail.phone ?? '';
     editForm.email = detail.email ?? '';
     editForm.deptId = detail.deptId ?? undefined;
-    editForm.roleId = detail.roleId ?? undefined;
+    editForm.roleIds =
+      detail.roleIds?.length ? [...detail.roleIds] : detail.roleId ? [detail.roleId] : [];
+    editForm.primaryRoleId = detail.primaryRoleId ?? detail.roleId ?? undefined;
     editForm.postId = detail.postId ?? undefined;
     editForm.sex = detail.sex ?? '';
     editForm.remark = detail.remark ?? '';
-    editForm.status = detail.status ?? '1';
+    editForm.status = detail.status ?? '2';
   } catch (e: unknown) {
     const err = e as { message?: string };
     message.error(err?.message || '获取用户详情失败');
@@ -351,6 +369,10 @@ function validateEdit(): { ok: boolean; message?: string } {
   if (!editForm.email?.trim()) return { ok: false, message: '请输入邮箱' };
   if (editForm.deptId == null || editForm.deptId === 0)
     return { ok: false, message: '请选择部门' };
+  if (!editForm.roleIds.length) return { ok: false, message: '请至少选择一个角色' };
+  if (editForm.primaryRoleId == null || !editForm.roleIds.includes(editForm.primaryRoleId)) {
+    return { ok: false, message: '请选择主角色' };
+  }
   return { ok: true };
 }
 
@@ -370,7 +392,9 @@ async function onEditOk() {
       phone: editForm.phone.trim(),
       email: editForm.email.trim(),
       deptId: editForm.deptId!,
-      roleId: editForm.roleId,
+      primaryRoleId: editForm.primaryRoleId!,
+      roleIds: editForm.roleIds,
+      roleId: editForm.primaryRoleId,
       postId: editForm.postId,
       sex: editForm.sex || undefined,
       remark: editForm.remark?.trim() || undefined,
@@ -420,67 +444,336 @@ function onDelete(record: SysUserItem) {
 }
 
 const statusEditOptions = [
-  { value: '0', label: '停用' },
-  { value: '1', label: '启用' },
+  { value: '2', label: '启用' },
+  { value: '1', label: '停用' },
 ];
+
+const addPrimaryRoleOptions = computed(() =>
+  roleOptions.value.filter((option) => addForm.roleIds.includes(option.value)),
+);
+
+const editPrimaryRoleOptions = computed(() =>
+  roleOptions.value.filter((option) => editForm.roleIds.includes(option.value)),
+);
+
+watch(
+  () => addForm.roleIds,
+  (value) => {
+    if (!value.length) {
+      addForm.primaryRoleId = undefined;
+      return;
+    }
+    if (
+      addForm.primaryRoleId == null ||
+      !value.includes(addForm.primaryRoleId)
+    ) {
+      addForm.primaryRoleId = value[0];
+    }
+  },
+  { deep: true },
+);
+
+watch(
+  () => editForm.roleIds,
+  (value) => {
+    if (!value.length) {
+      editForm.primaryRoleId = undefined;
+      return;
+    }
+    if (
+      editForm.primaryRoleId == null ||
+      !value.includes(editForm.primaryRoleId)
+    ) {
+      editForm.primaryRoleId = value[0];
+    }
+  },
+  { deep: true },
+);
+
+const userAddFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'username',
+    label: '用户名',
+    placeholder: '用户名',
+    props: { 'data-testid': 'input-username' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'password',
+    label: '密码',
+    placeholder: '密码',
+    props: { type: 'password', 'data-testid': 'input-password' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'nickName',
+    label: '昵称',
+    placeholder: '昵称',
+    props: { 'data-testid': 'input-nickname' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'phone',
+    label: '手机号',
+    placeholder: '手机号',
+    props: { 'data-testid': 'input-phone' },
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'email',
+    label: '邮箱',
+    placeholder: '邮箱',
+    props: { 'data-testid': 'input-email' },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'tree-select',
+    field: 'deptId',
+    label: '部门',
+    placeholder: '请选择部门',
+    props: {
+      treeData: deptTreeOptions.value,
+      treeDefaultExpandAll: true,
+    },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'roleIds',
+    label: '角色列表',
+    options: roleOptions.value,
+    placeholder: '请选择角色',
+    props: {
+      mode: 'multiple',
+    },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'primaryRoleId',
+    label: '主角色',
+    options: addPrimaryRoleOptions.value,
+    placeholder: '请选择主角色',
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'postId',
+    label: '岗位',
+    options: postOptions.value,
+    placeholder: '请选择岗位',
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '备注',
+    span: 2,
+  },
+]);
+
+const userEditFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'username',
+    label: '用户名',
+    placeholder: '用户名',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'nickName',
+    label: '昵称',
+    placeholder: '昵称',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'phone',
+    label: '手机号',
+    placeholder: '手机号',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'email',
+    label: '邮箱',
+    placeholder: '邮箱',
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'tree-select',
+    field: 'deptId',
+    label: '部门',
+    placeholder: '请选择部门',
+    props: {
+      treeData: deptTreeOptions.value,
+      treeDefaultExpandAll: true,
+    },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'roleIds',
+    label: '角色列表',
+    options: roleOptions.value,
+    placeholder: '请选择角色',
+    props: {
+      mode: 'multiple',
+    },
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'primaryRoleId',
+    label: '主角色',
+    options: editPrimaryRoleOptions.value,
+    placeholder: '请选择主角色',
+    required: true,
+  },
+  {
+    allowClear: true,
+    component: 'select',
+    field: 'postId',
+    label: '岗位',
+    options: postOptions.value,
+    placeholder: '请选择岗位',
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '备注',
+    span: 2,
+  },
+]);
+
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detailRecord = ref<SysUserItem | null>(null);
+
+async function openDetail(record: SysUserItem) {
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    detailRecord.value = await getSysUserDetail(record.userId);
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    message.error(err?.message || '获取用户详情失败');
+    detailVisible.value = false;
+  } finally {
+    detailLoading.value = false;
+  }
+}
 
 onMounted(() => {
   loadDeptTree();
   loadRoleOptions();
   loadPostOptions();
-  fetchUserList();
+  void fetchUserList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">用户管理</h2>
-      <div class="flex gap-2">
-        <Button @click="fetchUserList">刷新</Button>
-        <Button type="primary" data-testid="btn-add-user" @click="openAddModal"
-          >新增用户</Button
-        >
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>用户管理</template>
+    <template #description>
+      管理用户、部门、角色和岗位绑定关系。复杂列表页也统一采用后台筛选网格和卡片式表格结构。
+    </template>
+    <template #header-extra>
+      <AdminActionButton
+        type="primary"
+        data-testid="btn-add-user"
+        codes="admin:sysUser:add"
+        @click="openAddModal"
+      >
+        新增用户
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="用户名">
+          <Input
+            v-model:value="query.username"
+            placeholder="用户名"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="昵称">
+          <Input
+            v-model:value="query.nickName"
+            placeholder="昵称"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="手机号">
+          <Input
+            v-model:value="query.phone"
+            placeholder="手机号"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            class="w-full"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="角色">
+          <Select
+            v-model:value="query.roleIds"
+            class="w-full"
+            :max-tag-count="2"
+            :options="roleFilterOptions"
+            mode="multiple"
+            option-filter-prop="label"
+            placeholder="请选择角色（命中任一）"
+            show-search
+          />
+        </AdminFilterField>
       </div>
-    </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">用户列表</div>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">用户名：</span>
-      <Input
-        v-model:value="searchUsername"
-        placeholder="用户名"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">昵称：</span>
-      <Input
-        v-model:value="searchNickName"
-        placeholder="昵称"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">手机号：</span>
-      <Input
-        v-model:value="searchPhone"
-        placeholder="手机号"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        class="w-28"
-        placeholder="请选择"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -488,27 +781,54 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(r: SysUserItem) => r.userId"
-      size="small"
-      bordered
+      :scroll="{ x: 1320 }"
+      size="middle"
       @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'primaryRole'">
+          <span>{{ getPrimaryRoleLabel(record as SysUserItem) }}</span>
+        </template>
+        <template v-else-if="column.key === 'roles'">
+          <div class="flex flex-wrap gap-1">
+            <Tag
+              v-for="roleLabel in getRoleLabels(record as SysUserItem)"
+              :key="roleLabel"
+              color="blue"
+            >
+              {{ roleLabel }}
+            </Tag>
+            <span v-if="!getRoleLabels(record as SysUserItem).length">
+              {{ renderAdminEmpty('-') }}
+            </span>
+          </div>
+        </template>
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysUser:query"
+            @click="openDetail(record as SysUserItem)"
+          >
+            详情
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysUser:edit"
             @click="openEditModal(record as SysUserItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysUser:remove"
             @click="onDelete(record as SysUserItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
@@ -518,97 +838,13 @@ onMounted(() => {
       v-model:open="addVisible"
       title="新增用户"
       :confirm-loading="addSubmitting"
+      :width="860"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="用户名" required>
-          <Input
-            v-model:value="addForm.username"
-            data-testid="input-username"
-            placeholder="用户名"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="密码" required>
-          <Input
-            v-model:value="addForm.password"
-            data-testid="input-password"
-            type="password"
-            placeholder="密码"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="昵称" required>
-          <Input
-            v-model:value="addForm.nickName"
-            data-testid="input-nickname"
-            placeholder="昵称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="手机号" required>
-          <Input
-            v-model:value="addForm.phone"
-            data-testid="input-phone"
-            placeholder="手机号"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="邮箱" required>
-          <Input
-            v-model:value="addForm.email"
-            data-testid="input-email"
-            placeholder="邮箱"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="部门" required>
-          <TreeSelect
-            v-model:value="addForm.deptId"
-            :tree-data="deptTreeOptions"
-            placeholder="请选择部门"
-            tree-default-expand-all
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="角色">
-          <Select
-            v-model:value="addForm.roleId"
-            :options="roleOptions"
-            placeholder="请选择角色"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="岗位">
-          <Select
-            v-model:value="addForm.postId"
-            :options="postOptions"
-            placeholder="请选择岗位"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="addForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="addForm.remark"
-            placeholder="备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+      <AdminModalFormFields :model="addForm" :fields="userAddFormFields" />
     </Modal>
 
     <!-- 编辑弹窗 -->
@@ -617,6 +853,7 @@ onMounted(() => {
       title="编辑用户"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
+      :width="860"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
@@ -625,84 +862,91 @@ onMounted(() => {
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载详情中…
       </div>
-      <Form
+      <AdminModalFormFields
         v-else
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-        class="mt-4"
-      >
-        <FormItem label="用户名" required>
-          <Input
-            v-model:value="editForm.username"
-            placeholder="用户名"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="昵称" required>
-          <Input
-            v-model:value="editForm.nickName"
-            placeholder="昵称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="手机号" required>
-          <Input
-            v-model:value="editForm.phone"
-            placeholder="手机号"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="邮箱" required>
-          <Input
-            v-model:value="editForm.email"
-            placeholder="邮箱"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="部门" required>
-          <TreeSelect
-            v-model:value="editForm.deptId"
-            :tree-data="deptTreeOptions"
-            placeholder="请选择部门"
-            tree-default-expand-all
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="角色">
-          <Select
-            v-model:value="editForm.roleId"
-            :options="roleOptions"
-            placeholder="请选择角色"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="岗位">
-          <Select
-            v-model:value="editForm.postId"
-            :options="postOptions"
-            placeholder="请选择岗位"
-            allow-clear
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="editForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="editForm.remark"
-            placeholder="备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+        :model="editForm"
+        :fields="userEditFormFields"
+      />
     </Modal>
-  </div>
+
+    <AdminDetailDrawer
+      v-model:open="detailVisible"
+      title="用户详情"
+      :loading="detailLoading"
+      width="720"
+    >
+      <template v-if="detailRecord">
+        <AdminDetailSection title="基础信息" description="账号、昵称和当前启用状态。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">用户名</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.username) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">昵称</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.nickName) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">状态</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderStatus(detailRecord.status) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">创建时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ formatAdminDateTime(detailRecord.createdAt) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="联系与组织" description="查看联系方式、部门和岗位绑定。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">手机号</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.phone) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">邮箱</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.email) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">部门</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.dept?.deptName ?? detailRecord.deptId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">岗位 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.postId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">主角色</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(getPrimaryRoleLabel(detailRecord)) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">性别</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.sex) }}</dd>
+            </div>
+          </dl>
+          <div class="mt-4">
+            <dt class="text-xs text-slate-500">全部角色</dt>
+            <dd class="mt-2 flex flex-wrap gap-2">
+              <Tag
+                v-for="roleLabel in getRoleLabels(detailRecord)"
+                :key="roleLabel"
+                color="blue"
+              >
+                {{ roleLabel }}
+              </Tag>
+              <span v-if="!getRoleLabels(detailRecord).length" class="text-sm text-slate-900">
+                {{ renderAdminEmpty('-') }}
+              </span>
+            </dd>
+          </div>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="备注" description="保留业务补充说明。">
+          <p class="text-sm leading-6 text-slate-700">
+            {{ renderAdminEmpty(detailRecord.remark) }}
+          </p>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

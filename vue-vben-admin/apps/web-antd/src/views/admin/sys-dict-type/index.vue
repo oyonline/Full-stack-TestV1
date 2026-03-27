@@ -3,18 +3,9 @@
  * 系统管理 - 字典类型
  * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 刷新
  */
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 
-import {
-  Button,
-  Form,
-  FormItem,
-  Input,
-  Modal,
-  Select,
-  Table,
-  message,
-} from 'ant-design-vue';
+import { Button, Input, Modal, Select, Table, message } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 
 import {
@@ -25,29 +16,55 @@ import {
   updateDictType,
 } from '#/api/core';
 import type { SysDictTypeItem, SysDictTypePageResult } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { renderAdminEmpty } from '#/utils/admin-crud';
 
-/** 表格加载状态 */
-const loading = ref(false);
-/** 表格数据 */
-const tableData = ref<SysDictTypeItem[]>([]);
-/** 错误提示 */
-const errorMsg = ref('');
-
-/** 分页状态 */
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysDictTypeItem,
+  {
+    dictName: string;
+    dictType: string;
+    status: '' | number;
+  },
+  {
+    dictName?: string;
+    dictType?: string;
+    status?: number;
+  }
+>({
+  createParams: (currentQuery) => ({
+    dictName: currentQuery.dictName.trim() || undefined,
+    dictType: currentQuery.dictType.trim() || undefined,
+    status:
+      currentQuery.status === '' ? undefined : Number(currentQuery.status),
+  }),
+  createQuery: () => ({
+    dictName: '',
+    dictType: '',
+    status: '' as '' | number,
+  }),
+  fallbackErrorMessage: '加载字典类型列表失败',
+  fetcher: async (params) => {
+    const res: SysDictTypePageResult = await getDictTypePage(params);
+    return res;
+  },
 });
-
-/** 搜索：字典名称（模糊） */
-const searchDictName = ref('');
-/** 搜索：字典类型（模糊） */
-const searchDictType = ref('');
-/** 搜索：状态 */
-const searchStatus = ref<number | ''>('');
 
 /** 状态下拉选项 */
 const statusOptions = [
@@ -56,73 +73,6 @@ const statusOptions = [
   { value: 2, label: '启用' },
 ];
 
-/** 获取字典类型列表 */
-async function fetchList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: {
-      pageIndex: number;
-      pageSize: number;
-      dictName?: string;
-      dictType?: string;
-      status?: number;
-    } = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchDictName.value.trim()) {
-      params.dictName = searchDictName.value.trim();
-    }
-    if (searchDictType.value.trim()) {
-      params.dictType = searchDictType.value.trim();
-    }
-    if (searchStatus.value !== '') {
-      params.status = searchStatus.value;
-    }
-    const res: SysDictTypePageResult = await getDictTypePage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    errorMsg.value =
-      err?.message || err?.response?.data?.msg || '加载字典类型列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 查询 */
-function onSearch() {
-  pagination.value.current = 1;
-  fetchList();
-}
-
-/** 重置 */
-function onReset() {
-  searchDictName.value = '';
-  searchDictType.value = '';
-  searchStatus.value = '';
-  pagination.value.current = 1;
-  fetchList();
-}
-
-/** 分页变化 */
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchList();
-}
-
 /** 状态渲染 */
 function renderStatus(status: number): string {
   if (status === 1) return '停用';
@@ -130,10 +80,7 @@ function renderStatus(status: number): string {
   return String(status);
 }
 
-/** 空值渲染 */
-function renderEmpty(value: string | null | undefined): string {
-  return value ?? '-';
-}
+const renderEmpty = renderAdminEmpty;
 
 /** 表格列定义 */
 const columns: TableColumnType[] = [
@@ -333,50 +280,95 @@ const statusEditOptions = [
   { value: 2, label: '启用' },
 ];
 
+const dictTypeFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'dictName',
+    label: '字典名称',
+    placeholder: '请输入字典名称',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'dictType',
+    label: '字典类型',
+    placeholder: '请输入字典类型（如 sys_user_sex）',
+    required: true,
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '请输入备注',
+    span: 2,
+  },
+]);
+
 onMounted(() => {
-  fetchList();
+  void fetchList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">字典类型</h2>
-      <div class="flex gap-2">
-        <Button @click="fetchList">刷新</Button>
-        <Button type="primary" @click="openAddModal">新增</Button>
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>字典类型</template>
+    <template #description>
+      维护系统字典类型定义，统一收口搜索区、操作区和表格区的视觉层级。
+    </template>
+    <template #header-extra>
+      <AdminActionButton
+        type="primary"
+        codes="admin:sysDictType:add"
+        @click="openAddModal"
+      >
+        新增
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="字典名称">
+          <Input
+            v-model:value="query.dictName"
+            placeholder="请输入字典名称"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="字典类型">
+          <Input
+            v-model:value="query.dictType"
+            placeholder="请输入字典类型"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </AdminFilterField>
       </div>
-    </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">字典类型列表</div>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">字典名称：</span>
-      <Input
-        v-model:value="searchDictName"
-        placeholder="请输入字典名称"
-        allow-clear
-        class="w-52"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">字典类型：</span>
-      <Input
-        v-model:value="searchDictType"
-        placeholder="请输入字典类型"
-        allow-clear
-        class="w-52"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        class="w-28"
-        placeholder="请选择"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -384,27 +376,29 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysDictTypeItem) => record.id"
-      size="small"
-      bordered
-      @change="onTableChange"
+      :scroll="{ x: 980 }"
+      size="middle"
+      @change="(pag) => onTableChange(pag)"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysDictType:edit"
             @click="openEditModal(record as SysDictTypeItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="system:sysdicttype:remove"
             @click="onDelete(record as SysDictTypeItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
@@ -413,42 +407,13 @@ onMounted(() => {
       v-model:open="addVisible"
       title="新增字典类型"
       :confirm-loading="addSubmitting"
+      :width="720"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="字典名称" required>
-          <Input
-            v-model:value="addForm.dictName"
-            placeholder="请输入字典名称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="字典类型" required>
-          <Input
-            v-model:value="addForm.dictType"
-            placeholder="请输入字典类型（如 sys_user_sex）"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="addForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="addForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+      <AdminModalFormFields :model="addForm" :fields="dictTypeFormFields" />
     </Modal>
 
     <Modal
@@ -456,6 +421,7 @@ onMounted(() => {
       title="编辑字典类型"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
+      :width="720"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
@@ -464,42 +430,11 @@ onMounted(() => {
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载详情中…
       </div>
-      <Form
+      <AdminModalFormFields
         v-else
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-        class="mt-4"
-      >
-        <FormItem label="字典名称" required>
-          <Input
-            v-model:value="editForm.dictName"
-            placeholder="请输入字典名称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="字典类型" required>
-          <Input
-            v-model:value="editForm.dictType"
-            placeholder="请输入字典类型"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="editForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="editForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+        :model="editForm"
+        :fields="dictTypeFormFields"
+      />
     </Modal>
-  </div>
+  </AdminPageShell>
 </template>

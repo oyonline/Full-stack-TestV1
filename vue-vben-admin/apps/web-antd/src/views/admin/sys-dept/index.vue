@@ -27,13 +27,14 @@ import {
   updateDeptApi,
   type SysDeptItem,
 } from '#/api/core';
-
-const loading = ref(false);
-const treeData = ref<SysDeptItem[]>([]);
-
-/** 搜索条件 */
-const searchDeptName = ref('');
-const searchStatus = ref<number | undefined>(undefined);
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTreeList } from '#/composables/use-admin-tree-list';
+import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 
 /** 状态选项 */
 const statusOptions = [
@@ -48,48 +49,57 @@ const formStatusOptions = [
   { value: 0, label: '禁用' },
 ];
 
-async function fetchList() {
-  loading.value = true;
-  try {
-    const params: Record<string, any> = {};
-    if (searchDeptName.value.trim()) {
-      params.deptName = searchDeptName.value.trim();
-    }
-    if (searchStatus.value !== undefined) {
-      params.status = searchStatus.value;
-    }
-    const data = await getDeptListApi(params);
-    treeData.value = Array.isArray(data) ? data : [];
-  } catch (e: any) {
-    message.error(e?.message || '获取部门列表失败');
-    treeData.value = [];
-  } finally {
-    loading.value = false;
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  query,
+  treeData,
+} = useAdminTreeList<
+  SysDeptItem,
+  {
+    deptName: string;
+    status: number | undefined;
+  },
+  {
+    deptName?: string;
+    status?: number;
   }
-}
-
-function onSearch() {
-  fetchList();
-}
-
-function onReset() {
-  searchDeptName.value = '';
-  searchStatus.value = undefined;
-  fetchList();
-}
-
-function onRefresh() {
-  fetchList();
-}
+>({
+  createParams: (currentQuery) => ({
+    deptName: currentQuery.deptName.trim() || undefined,
+    status: currentQuery.status,
+  }),
+  createQuery: () => ({
+    deptName: '',
+    status: undefined,
+  }),
+  fallbackErrorMessage: '获取部门列表失败',
+  fetcher: async (params) => getDeptListApi(params),
+});
 
 onMounted(() => {
-  fetchList();
+  void fetchList();
 });
 
 const columns: TableColumnType[] = [
   { title: '部门名称', dataIndex: 'deptName', key: 'deptName', width: 200 },
-  { title: '负责人', dataIndex: 'leader', key: 'leader', width: 120 },
-  { title: '手机', dataIndex: 'phone', key: 'phone', width: 140 },
+  {
+    title: '负责人',
+    dataIndex: 'leader',
+    key: 'leader',
+    width: 120,
+    customRender: ({ text }) => renderAdminEmpty(text as string),
+  },
+  {
+    title: '手机',
+    dataIndex: 'phone',
+    key: 'phone',
+    width: 140,
+    customRender: ({ text }) => renderAdminEmpty(text as string),
+  },
   { title: '排序', dataIndex: 'sort', key: 'sort', width: 80 },
   {
     title: '状态',
@@ -98,7 +108,7 @@ const columns: TableColumnType[] = [
     width: 80,
     customRender: ({ text }) => (text === 1 ? '启用' : '禁用'),
   },
-  { title: '操作', key: 'action', width: 120, fixed: 'right' },
+  { title: '操作', key: 'action', width: 180, fixed: 'right' },
 ];
 
 /* -------- 新增弹窗 -------- */
@@ -120,6 +130,9 @@ const editVisible = ref(false);
 const editSubmitting = ref(false);
 const editLoading = ref(false);
 const editDeptId = ref<number | null>(null);
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detailRecord = ref<SysDeptItem | null>(null);
 const editForm = reactive({
   parentId: 0,
   deptName: '',
@@ -131,7 +144,9 @@ const editForm = reactive({
 });
 
 /** 将部门树转为 TreeSelect 节点 */
-function buildOptions(items: SysDeptItem[]): { title: string; value: number; children?: any[] }[] {
+function buildOptions(
+  items: SysDeptItem[],
+): { title: string; value: number; children?: any[] }[] {
   return items.map((item) => ({
     title: item.deptName,
     value: item.deptId,
@@ -154,10 +169,9 @@ function filterDeptTreeExcludeNode(
     .filter((n) => n.deptId !== excludeDeptId)
     .map((n) => ({
       ...n,
-      children:
-        n.children?.length
-          ? filterDeptTreeExcludeNode(n.children, excludeDeptId)
-          : undefined,
+      children: n.children?.length
+        ? filterDeptTreeExcludeNode(n.children, excludeDeptId)
+        : undefined,
     }));
 }
 
@@ -215,8 +229,8 @@ async function onAddOk() {
     addForm.status = 1;
     // 刷新列表
     fetchList();
-  } catch (e: any) {
-    message.error(e?.message || '新增失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '新增失败'));
   } finally {
     addSubmitting.value = false;
   }
@@ -236,11 +250,24 @@ async function openEditModal(record: SysDeptItem) {
     editForm.phone = detail.phone ?? '';
     editForm.email = detail.email ?? '';
     editForm.status = detail.status ?? 1;
-  } catch (e: any) {
-    message.error(e?.message || '获取部门详情失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '获取部门详情失败'));
     editVisible.value = false;
   } finally {
     editLoading.value = false;
+  }
+}
+
+async function openDetail(record: SysDeptItem) {
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    detailRecord.value = await getDeptDetailApi(record.deptId);
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '获取部门详情失败'));
+    detailVisible.value = false;
+  } finally {
+    detailLoading.value = false;
   }
 }
 
@@ -268,8 +295,8 @@ async function onEditOk() {
     message.success('编辑成功');
     editVisible.value = false;
     fetchList();
-  } catch (e: any) {
-    message.error(e?.message || '编辑失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '编辑失败'));
   } finally {
     editSubmitting.value = false;
   }
@@ -289,8 +316,8 @@ function onDelete(record: SysDeptItem) {
         await deleteDeptApi([record.deptId]);
         message.success('删除成功');
         fetchList();
-      } catch (e: any) {
-        message.error(e?.message || '删除失败');
+      } catch (error) {
+        message.error(resolveAdminErrorMessage(error, '删除失败'));
       }
     },
   });
@@ -298,79 +325,102 @@ function onDelete(record: SysDeptItem) {
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">部门管理</h2>
-      <div class="flex gap-2">
-        <Button type="primary" @click="onAdd">新增部门</Button>
-        <Button @click="onRefresh">刷新</Button>
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>部门管理</template>
+    <template #description>
+      维护部门层级、负责人和状态。树形表格与 TreeSelect
+      弹窗统一使用后台页面样式骨架。
+    </template>
+    <template #header-extra>
+      <AdminActionButton type="primary" codes="admin:sysDept:add" @click="onAdd">
+        新增部门
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="部门名称">
+          <Input
+            v-model:value="query.deptName"
+            placeholder="请输入部门名称"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+            allow-clear
+          />
+        </AdminFilterField>
       </div>
-    </div>
-
-    <!-- 搜索区 -->
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">部门名称：</span>
-      <Input
-        v-model:value="searchDeptName"
-        placeholder="请输入部门名称"
-        allow-clear
-        class="w-48"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        placeholder="请选择状态"
-        allow-clear
-        class="w-28"
-      />
+    </template>
+    <template #filter-actions>
       <Button type="primary" @click="onSearch">查询</Button>
       <Button @click="onReset">重置</Button>
-    </div>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">部门树列表</div>
+      </div>
+    </template>
+
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
       :data-source="treeData"
       :loading="loading"
       :pagination="false"
+      :scroll="{ x: 980 }"
       row-key="deptId"
-      size="small"
-      bordered
+      size="middle"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysDept:query"
+            @click="openDetail(record as SysDeptItem)"
+          >
+            详情
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysDept:edit"
             @click="openEditModal(record as SysDeptItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysDept:remove"
             @click="onDelete(record as SysDeptItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
 
-    <!-- 新增弹窗 -->
     <Modal
       v-model:open="addVisible"
       title="新增部门"
       :confirm-loading="addSubmitting"
+      :width="820"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="上级部门">
+      <Form layout="vertical" class="mt-4 grid gap-x-4 md:grid-cols-2">
+        <FormItem label="上级部门" class="mb-0 md:col-span-2">
           <TreeSelect
             v-model:value="addForm.parentId"
             :tree-data="parentTreeOptions"
@@ -381,7 +431,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="部门名称" required>
+        <FormItem label="部门名称" required class="mb-0">
           <Input
             v-model:value="addForm.deptName"
             placeholder="请输入部门名称"
@@ -389,10 +439,10 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="排序">
+        <FormItem label="排序" class="mb-0">
           <InputNumber v-model:value="addForm.sort" :min="0" class="w-full" />
         </FormItem>
-        <FormItem label="负责人">
+        <FormItem label="负责人" class="mb-0">
           <Input
             v-model:value="addForm.leader"
             placeholder="请输入负责人"
@@ -400,7 +450,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="手机">
+        <FormItem label="手机" class="mb-0">
           <Input
             v-model:value="addForm.phone"
             placeholder="请输入手机"
@@ -408,7 +458,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="邮箱">
+        <FormItem label="邮箱" class="mb-0">
           <Input
             v-model:value="addForm.email"
             placeholder="请输入邮箱"
@@ -416,7 +466,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="状态">
+        <FormItem label="状态" class="mb-0">
           <Select
             v-model:value="addForm.status"
             :options="formStatusOptions"
@@ -426,18 +476,18 @@ function onDelete(record: SysDeptItem) {
       </Form>
     </Modal>
 
-    <!-- 编辑弹窗 -->
     <Modal
       v-model:open="editVisible"
       title="编辑部门"
       :confirm-loading="editSubmitting"
+      :width="820"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
       @cancel="onEditCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="上级部门">
+      <Form layout="vertical" class="mt-4 grid gap-x-4 md:grid-cols-2">
+        <FormItem label="上级部门" class="mb-0 md:col-span-2">
           <TreeSelect
             v-model:value="editForm.parentId"
             :tree-data="parentTreeOptionsForEdit"
@@ -448,7 +498,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="部门名称" required>
+        <FormItem label="部门名称" required class="mb-0">
           <Input
             v-model:value="editForm.deptName"
             placeholder="请输入部门名称"
@@ -456,10 +506,10 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="排序">
+        <FormItem label="排序" class="mb-0">
           <InputNumber v-model:value="editForm.sort" :min="0" class="w-full" />
         </FormItem>
-        <FormItem label="负责人">
+        <FormItem label="负责人" class="mb-0">
           <Input
             v-model:value="editForm.leader"
             placeholder="请输入负责人"
@@ -467,7 +517,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="手机">
+        <FormItem label="手机" class="mb-0">
           <Input
             v-model:value="editForm.phone"
             placeholder="请输入手机"
@@ -475,7 +525,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="邮箱">
+        <FormItem label="邮箱" class="mb-0">
           <Input
             v-model:value="editForm.email"
             placeholder="请输入邮箱"
@@ -483,7 +533,7 @@ function onDelete(record: SysDeptItem) {
             class="w-full"
           />
         </FormItem>
-        <FormItem label="状态">
+        <FormItem label="状态" class="mb-0">
           <Select
             v-model:value="editForm.status"
             :options="formStatusOptions"
@@ -492,5 +542,68 @@ function onDelete(record: SysDeptItem) {
         </FormItem>
       </Form>
     </Modal>
-  </div>
+
+    <AdminDetailDrawer
+      v-model:open="detailVisible"
+      title="部门详情"
+      :loading="detailLoading"
+      width="720"
+    >
+      <template v-if="detailRecord">
+        <AdminDetailSection title="基础信息" description="查看部门层级、排序和当前状态。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">部门 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ detailRecord.deptId }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">部门名称</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.deptName) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">父级部门 ID</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.parentId) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">部门路径</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.deptPath) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">排序</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.sort) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">状态</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ detailRecord.status === 1 ? '启用' : '禁用' }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="负责人信息" description="用于确认联系人和联系方式。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">负责人</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.leader) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">手机</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.phone) }}</dd>
+            </div>
+            <div class="md:col-span-2">
+              <dt class="text-xs text-slate-500">邮箱</dt>
+              <dd class="mt-1 break-all text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.email) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">创建时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.createdAt) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">更新时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.updatedAt) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

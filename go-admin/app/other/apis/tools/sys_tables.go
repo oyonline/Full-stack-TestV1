@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"go-admin/app/other/models/tools"
+	"go-admin/common/middleware"
 )
 
 type SysTable struct {
@@ -79,7 +81,7 @@ func (e SysTable) Get(c *gin.Context) {
 
 	var data tools.SysTables
 	data.TableId, _ = pkg.StringToInt(c.Param("tableId"))
-	result, err := data.Get(db,true)
+	result, err := data.Get(db, true)
 	if err != nil {
 		log.Errorf("Get error, %s", err.Error())
 		e.Error(500, err, "")
@@ -106,7 +108,7 @@ func (e SysTable) GetSysTablesInfo(c *gin.Context) {
 	if c.Request.FormValue("tableName") != "" {
 		data.TBName = c.Request.FormValue("tableName")
 	}
-	result, err := data.Get(db,true)
+	result, err := data.Get(db, true)
 	if err != nil {
 		log.Errorf("Get error, %s", err.Error())
 		e.Error(500, err, "抱歉未找到相关信息")
@@ -180,6 +182,17 @@ func (e SysTable) Insert(c *gin.Context) {
 			return
 		}
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "代码生成",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryGenerator,
+		Method:        "tools.sysTable.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("导入表数量", len(tablesList)),
+			middleware.AuditKV("导入表", strings.Join(tablesList, ", ")),
+		),
+	})
 	e.OK(nil, "添加成功")
 
 }
@@ -328,6 +341,20 @@ func (e SysTable) Update(c *gin.Context) {
 		e.Error(500, err, "")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "代码生成",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryGenerator,
+		Method:        "tools.sysTable.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("表ID", data.TableId),
+			middleware.AuditKV("数据表", data.TBName),
+			middleware.AuditKV("类名", data.ClassName),
+			middleware.AuditKV("业务名", data.BusinessName),
+			middleware.AuditKV("模板类型", data.TplCategory),
+		),
+	})
 	e.OK(result, "修改成功")
 }
 
@@ -357,5 +384,20 @@ func (e SysTable) Delete(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
+	idTexts := make([]string, 0, len(IDS))
+	for _, id := range IDS {
+		idTexts = append(idTexts, fmt.Sprint(id))
+	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "代码生成",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryGenerator,
+		Method:        "tools.sysTable.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除表数量", len(IDS)),
+			middleware.AuditKV("表ID", strings.Join(idTexts, ", ")),
+		),
+	})
 	e.OK(nil, "删除成功")
 }

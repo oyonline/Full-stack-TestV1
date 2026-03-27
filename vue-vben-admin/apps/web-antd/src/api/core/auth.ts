@@ -32,6 +32,7 @@ export namespace AuthApi {
     data: string;
     id: string;
     msg: string;
+    answer?: string;
   }
 }
 

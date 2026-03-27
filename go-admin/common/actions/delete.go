@@ -9,9 +9,14 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/response"
 
+	"go-admin/common/audit"
 	"go-admin/common/dto"
 	"go-admin/common/models"
 )
+
+type deleteAuditMetaProvider interface {
+	DeleteAuditMeta() audit.Meta
+}
 
 // DeleteAction 通用删除动作
 func DeleteAction(control dto.Control) gin.HandlerFunc {
@@ -30,6 +35,9 @@ func DeleteAction(control dto.Control) gin.HandlerFunc {
 			log.Errorf("MsgID[%s] Bind error: %s", msgID, err)
 			response.Error(c, http.StatusUnprocessableEntity, err, "参数验证失败")
 			return
+		}
+		if provider, ok := req.(deleteAuditMetaProvider); ok {
+			audit.Set(c, provider.DeleteAuditMeta())
 		}
 		var object models.ActiveRecord
 		object, err = req.GenerateM()

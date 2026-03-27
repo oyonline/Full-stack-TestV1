@@ -3,12 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue';
 
 import {
   Button,
-  Form,
-  FormItem,
   Input,
   Modal,
   Select,
-  Space,
   Table,
   Tag,
   message,
@@ -25,24 +22,59 @@ import {
   updateSysJob,
 } from '#/api/core';
 import type { SysJobItem } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 
-const loading = ref(false);
 const submitting = ref(false);
 const editLoading = ref(false);
 
-const list = ref<SysJobItem[]>([]);
-const total = ref(0);
+const renderEmpty = renderAdminEmpty;
 
-const searchForm = reactive({
-  jobName: '',
-  jobGroup: '',
-  invokeTarget: '',
-  status: undefined as number | undefined,
-});
-
-const pagination = reactive({
-  current: 1,
-  pageSize: 10,
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysJobItem,
+  {
+    invokeTarget: string;
+    jobGroup: string;
+    jobName: string;
+    status: number | undefined;
+  },
+  {
+    invokeTarget?: string;
+    jobGroup?: string;
+    jobName?: string;
+    status?: number;
+  }
+>({
+  createParams: (currentQuery) => ({
+    jobName: currentQuery.jobName.trim() || undefined,
+    jobGroup: currentQuery.jobGroup.trim() || undefined,
+    invokeTarget: currentQuery.invokeTarget.trim() || undefined,
+    status: currentQuery.status,
+  }),
+  createQuery: () => ({
+    jobName: '',
+    jobGroup: '',
+    invokeTarget: '',
+    status: undefined,
+  }),
+  fallbackErrorMessage: '加载任务列表失败',
+  fetcher: async (params) => getSysJobPage(params),
 });
 
 const modalVisible = ref(false);
@@ -93,6 +125,65 @@ const concurrentOptions = [
   { label: '禁止', value: 2 },
 ];
 
+const jobFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'jobName',
+    label: '任务名称',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'jobGroup',
+    label: '任务分组',
+  },
+  {
+    component: 'select',
+    field: 'jobType',
+    label: '任务类型',
+    options: jobTypeOptions,
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: formStatusOptions,
+  },
+  {
+    component: 'input',
+    field: 'cronExpression',
+    label: 'Cron',
+    placeholder: '例如：0 */5 * * * *',
+    required: true,
+    span: 2,
+  },
+  {
+    component: 'input',
+    field: 'invokeTarget',
+    label: '调用目标',
+    required: true,
+    span: 2,
+  },
+  {
+    component: 'input',
+    field: 'args',
+    label: '参数',
+    span: 2,
+  },
+  {
+    component: 'select',
+    field: 'misfirePolicy',
+    label: '执行策略',
+    options: misfirePolicyOptions,
+  },
+  {
+    component: 'select',
+    field: 'concurrent',
+    label: '并发控制',
+    options: concurrentOptions,
+  },
+]);
+
 function resetFormState() {
   formState.jobName = '';
   formState.jobGroup = '';
@@ -139,43 +230,8 @@ function getConcurrentText(value: number) {
   return value === 1 ? '允许' : '禁止';
 }
 
-async function fetchList() {
-  loading.value = true;
-  try {
-    const res = await getSysJobPage({
-      pageIndex: pagination.current,
-      pageSize: pagination.pageSize,
-      jobName: searchForm.jobName || undefined,
-      jobGroup: searchForm.jobGroup || undefined,
-      invokeTarget: searchForm.invokeTarget || undefined,
-      status: searchForm.status,
-    });
-
-    list.value = res?.list || [];
-    total.value = res?.count || 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function handleSearch() {
-  pagination.current = 1;
-  fetchList();
-}
-
-function handleReset() {
-  searchForm.jobName = '';
-  searchForm.jobGroup = '';
-  searchForm.invokeTarget = '';
-  searchForm.status = undefined;
-  pagination.current = 1;
-  fetchList();
-}
-
 function handleTableChange(pager: TablePaginationConfig) {
-  pagination.current = pager.current || 1;
-  pagination.pageSize = pager.pageSize || 10;
-  fetchList();
+  onTableChange(pager);
 }
 
 function openCreateModal() {
@@ -271,23 +327,35 @@ function handleDelete(record: SysJobItem) {
     okText: '确定',
     cancelText: '取消',
     async onOk() {
-      await deleteSysJob([record.jobId]);
-      message.success('删除成功');
-      fetchList();
+      try {
+        await deleteSysJob([record.jobId]);
+        message.success('删除成功');
+        fetchList();
+      } catch (error) {
+        message.error(resolveAdminErrorMessage(error, '删除失败'));
+      }
     },
   });
 }
 
 async function handleStart(record: SysJobItem) {
-  await startSysJob(record.jobId);
-  message.success('启动成功');
-  fetchList();
+  try {
+    await startSysJob(record.jobId);
+    message.success('启动成功');
+    fetchList();
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '启动失败'));
+  }
 }
 
 async function handleRemove(record: SysJobItem) {
-  await removeSysJob(record.jobId);
-  message.success('停止成功');
-  fetchList();
+  try {
+    await removeSysJob(record.jobId);
+    message.success('停止成功');
+    fetchList();
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '停止失败'));
+  }
 }
 
 const columns: TableColumnType<SysJobItem>[] = [
@@ -300,11 +368,13 @@ const columns: TableColumnType<SysJobItem>[] = [
     title: '任务名称',
     dataIndex: 'jobName',
     width: 160,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
   },
   {
     title: '任务分组',
     dataIndex: 'jobGroup',
     width: 120,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
   },
   {
     title: '任务类型',
@@ -315,6 +385,7 @@ const columns: TableColumnType<SysJobItem>[] = [
     title: 'Cron表达式',
     dataIndex: 'cronExpression',
     width: 180,
+    customRender: ({ text }: { text: string }) => renderEmpty(text),
   },
   {
     title: '调用目标',
@@ -357,138 +428,145 @@ const columns: TableColumnType<SysJobItem>[] = [
 ];
 
 onMounted(() => {
-  fetchList();
+  void fetchList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <div class="text-[18px] font-semibold">定时任务 / SCHEDULE</div>
-      <Space>
-        <Button @click="fetchList">刷新</Button>
-        <Button type="primary" @click="openCreateModal">新增</Button>
-      </Space>
-    </div>
-
-    <div class="mb-4 rounded bg-white p-4">
-      <Form layout="inline">
-        <FormItem label="任务名称">
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>定时任务</template>
+    <template #description>
+      统一维护任务名称、分组、调用目标和状态。列表页收口为标准搜索网格，操作区和表格层级更清晰。
+    </template>
+    <template #header-extra>
+      <AdminActionButton
+        type="primary"
+        codes="job:sysJob:add"
+        @click="openCreateModal"
+      >
+        新增
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="任务名称">
           <Input
-            v-model:value="searchForm.jobName"
+            v-model:value="query.jobName"
             allow-clear
             placeholder="请输入任务名称"
           />
-        </FormItem>
-        <FormItem label="任务分组">
+        </AdminFilterField>
+        <AdminFilterField label="任务分组">
           <Input
-            v-model:value="searchForm.jobGroup"
+            v-model:value="query.jobGroup"
             allow-clear
             placeholder="请输入任务分组"
           />
-        </FormItem>
-        <FormItem label="调用目标">
+        </AdminFilterField>
+        <AdminFilterField label="调用目标" :span="2">
           <Input
-            v-model:value="searchForm.invokeTarget"
+            v-model:value="query.invokeTarget"
             allow-clear
             placeholder="请输入调用目标"
           />
-        </FormItem>
-        <FormItem label="状态">
+        </AdminFilterField>
+        <AdminFilterField label="状态">
           <Select
-            v-model:value="searchForm.status"
+            v-model:value="query.status"
             :options="statusOptions"
             allow-clear
             placeholder="请选择状态"
-            style="width: 140px"
           />
-        </FormItem>
-        <FormItem>
-          <Space>
-            <Button type="primary" @click="handleSearch">查询</Button>
-            <Button @click="handleReset">重置</Button>
-          </Space>
-        </FormItem>
-      </Form>
-    </div>
+        </AdminFilterField>
+      </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">任务列表</div>
+      </div>
+    </template>
 
-    <div class="rounded bg-white p-4">
-      <Table
-        :columns="columns"
-        :data-source="list"
-        :loading="loading"
-        :pagination="{
-          current: pagination.current,
-          pageSize: pagination.pageSize,
-          total,
-          showSizeChanger: true,
-          showTotal: (v: number) => `共 ${v} 条`,
-        }"
-        :row-key="(record: SysJobItem) => record.jobId"
-        bordered
-        size="middle"
-        @change="handleTableChange"
-      >
-        <template #bodyCell="{ column, record, text }">
-          <template v-if="column.dataIndex === 'jobType'">
-            {{ getJobTypeText(text) }}
-          </template>
+    <AdminErrorAlert :message="errorMsg" />
 
-          <template v-else-if="column.dataIndex === 'misfirePolicy'">
-            {{ getMisfirePolicyText(text) }}
-          </template>
-
-          <template v-else-if="column.dataIndex === 'concurrent'">
-            {{ getConcurrentText(text) }}
-          </template>
-
-          <template v-else-if="column.dataIndex === 'status'">
-            <Tag :color="getStatusColor(text)">
-              {{ getStatusText(text) }}
-            </Tag>
-          </template>
-
-          <template v-else-if="column.key === 'action'">
-            <Space>
-              <Button
-                type="link"
-                size="small"
-                @click="openEditModal(record as SysJobItem)"
-              >
-                编辑
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                @click="handleStart(record as SysJobItem)"
-              >
-                启动
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                @click="handleRemove(record as SysJobItem)"
-              >
-                停止
-              </Button>
-              <Button
-                danger
-                type="link"
-                size="small"
-                @click="handleDelete(record as SysJobItem)"
-              >
-                删除
-              </Button>
-            </Space>
-          </template>
+    <Table
+      :columns="columns"
+      :data-source="tableData"
+      :loading="loading"
+      :pagination="pagination"
+      :row-key="(record: SysJobItem) => record.jobId"
+      :scroll="{ x: 1300 }"
+      size="middle"
+      @change="handleTableChange"
+    >
+      <template #bodyCell="{ column, record, text }">
+        <template v-if="column.dataIndex === 'jobType'">
+          {{ getJobTypeText(text) }}
         </template>
-      </Table>
-    </div>
+
+        <template v-else-if="column.dataIndex === 'misfirePolicy'">
+          {{ getMisfirePolicyText(text) }}
+        </template>
+
+        <template v-else-if="column.dataIndex === 'concurrent'">
+          {{ getConcurrentText(text) }}
+        </template>
+
+        <template v-else-if="column.dataIndex === 'status'">
+          <Tag :color="getStatusColor(text)">
+            {{ getStatusText(text) }}
+          </Tag>
+        </template>
+
+        <template v-else-if="column.key === 'action'">
+          <div class="flex flex-wrap justify-end gap-x-2 gap-y-1">
+            <AdminActionButton
+              type="link"
+              size="small"
+              codes="job:sysJob:edit"
+              @click="openEditModal(record as SysJobItem)"
+            >
+              编辑
+            </AdminActionButton>
+            <AdminActionButton
+              type="link"
+              size="small"
+              codes="job:sysJob:edit"
+              @click="handleStart(record as SysJobItem)"
+            >
+              启动
+            </AdminActionButton>
+            <AdminActionButton
+              type="link"
+              size="small"
+              codes="job:sysJob:edit"
+              @click="handleRemove(record as SysJobItem)"
+            >
+              停止
+            </AdminActionButton>
+            <AdminActionButton
+              danger
+              type="link"
+              size="small"
+              codes="job:sysJob:remove"
+              @click="handleDelete(record as SysJobItem)"
+            >
+              删除
+            </AdminActionButton>
+          </div>
+        </template>
+      </template>
+    </Table>
 
     <Modal
       v-model:open="modalVisible"
       :confirm-loading="submitting"
       :title="modalTitle"
+      :width="820"
       destroy-on-close
       ok-text="保存"
       cancel-text="取消"
@@ -498,48 +576,11 @@ onMounted(() => {
         加载中...
       </div>
 
-      <Form v-else :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <FormItem label="任务名称" required>
-          <Input v-model:value="formState.jobName" allow-clear />
-        </FormItem>
-        <FormItem label="任务分组">
-          <Input v-model:value="formState.jobGroup" allow-clear />
-        </FormItem>
-        <FormItem label="任务类型">
-          <Select v-model:value="formState.jobType" :options="jobTypeOptions" />
-        </FormItem>
-        <FormItem label="Cron" required>
-          <Input
-            v-model:value="formState.cronExpression"
-            allow-clear
-            placeholder="例如：0 */5 * * * *"
-          />
-        </FormItem>
-        <FormItem label="调用目标" required>
-          <Input v-model:value="formState.invokeTarget" allow-clear />
-        </FormItem>
-        <FormItem label="参数">
-          <Input v-model:value="formState.args" allow-clear />
-        </FormItem>
-        <FormItem label="执行策略">
-          <Select
-            v-model:value="formState.misfirePolicy"
-            :options="misfirePolicyOptions"
-          />
-        </FormItem>
-        <FormItem label="并发控制">
-          <Select
-            v-model:value="formState.concurrent"
-            :options="concurrentOptions"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="formState.status"
-            :options="formStatusOptions"
-          />
-        </FormItem>
-      </Form>
+      <AdminModalFormFields
+        v-else
+        :model="formState"
+        :fields="jobFormFields"
+      />
     </Modal>
-  </div>
+  </AdminPageShell>
 </template>

@@ -3,19 +3,9 @@
  * 系统管理 - 岗位管理
  * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除
  */
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 
-import {
-  Button,
-  Form,
-  FormItem,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Table,
-  message,
-} from 'ant-design-vue';
+import { Button, Input, Modal, Select, Table, message } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 
 import {
@@ -26,27 +16,54 @@ import {
   updatePost,
 } from '#/api/core';
 import type { SysPostItem, SysPostPageResult } from '#/api/core';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import {
+  formatAdminDateTime,
+  renderAdminEmpty,
+} from '#/utils/admin-crud';
 
-/** 表格加载状态 */
-const loading = ref(false);
-/** 表格数据 */
-const tableData = ref<SysPostItem[]>([]);
-/** 错误提示 */
-const errorMsg = ref('');
-
-/** 分页状态 */
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
+const {
+  errorMsg,
+  fetchList: fetchPostList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysPostItem,
+  {
+    postName: string;
+    status: '' | number;
+  },
+  {
+    postName?: string;
+    status?: number;
+  }
+>({
+  createParams: (currentQuery) => ({
+    postName: currentQuery.postName.trim() || undefined,
+    status:
+      currentQuery.status === '' ? undefined : Number(currentQuery.status),
+  }),
+  createQuery: () => ({
+    postName: '',
+    status: '' as '' | number,
+  }),
+  fallbackErrorMessage: '加载岗位列表失败',
+  fetcher: async (params) => {
+    const res: SysPostPageResult = await getPostPage(params);
+    return res;
+  },
 });
-
-/** 搜索：岗位名称（模糊） */
-const searchPostName = ref('');
-/** 搜索：状态（1=停用，2=启用） */
-const searchStatus = ref<number | ''>('');
 
 /** 状态下拉选项 */
 const statusOptions = [
@@ -54,65 +71,6 @@ const statusOptions = [
   { value: 1, label: '停用' },
   { value: 2, label: '启用' },
 ];
-
-/** 获取岗位列表 */
-async function fetchPostList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: {
-      pageIndex: number;
-      pageSize: number;
-      postName?: string;
-      status?: number;
-    } = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchPostName.value.trim()) {
-      params.postName = searchPostName.value.trim();
-    }
-    if (searchStatus.value !== '') {
-      params.status = searchStatus.value;
-    }
-    const res: SysPostPageResult = await getPostPage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: any) {
-    errorMsg.value = e?.message || e?.response?.data?.msg || '加载岗位列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
-  }
-}
-
-/** 查询按钮 */
-function onSearch() {
-  pagination.value.current = 1;
-  fetchPostList();
-}
-
-/** 重置按钮 */
-function onReset() {
-  searchPostName.value = '';
-  searchStatus.value = '';
-  pagination.value.current = 1;
-  fetchPostList();
-}
-
-/** 分页变化 */
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _filters: unknown,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchPostList();
-}
 
 /** 状态渲染 */
 function renderStatus(status: number): string {
@@ -122,22 +80,8 @@ function renderStatus(status: number): string {
 }
 
 /** 空值渲染 */
-function renderEmpty(value: string | null | undefined): string {
-  return value || '-';
-}
-
-/** ISO 时间格式化为 YYYY-MM-DD HH:mm:ss，便于表格单行展示 */
-function formatDateTime(isoStr: string | null | undefined): string {
-  if (!isoStr) return '-';
-  try {
-    const d = new Date(isoStr);
-    if (Number.isNaN(d.getTime())) return isoStr;
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  } catch {
-    return isoStr;
-  }
-}
+const renderEmpty = renderAdminEmpty;
+const formatDateTime = formatAdminDateTime;
 
 /** 表格列定义 */
 const columns: TableColumnType[] = [
@@ -364,119 +308,134 @@ const statusEditOptions = [
   { value: 2, label: '启用' },
 ];
 
+const postFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'postName',
+    label: '岗位名称',
+    placeholder: '请输入岗位名称',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'postCode',
+    label: '岗位编码',
+    placeholder: '请输入岗位编码',
+    required: true,
+  },
+  {
+    component: 'input-number',
+    field: 'sort',
+    label: '排序',
+    min: 0,
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '请输入备注',
+    span: 2,
+  },
+]);
+
 onMounted(() => {
-  fetchPostList();
+  void fetchPostList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <!-- 页面标题 -->
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">岗位管理</h2>
-      <Button type="primary" @click="openAddModal">新增岗位</Button>
-    </div>
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>岗位管理</template>
+    <template #description>
+      统一维护岗位名称、编码和状态。筛选区收口为标准网格，列表与弹窗采用更紧凑的后台样式。
+    </template>
+    <template #header-extra>
+      <AdminActionButton type="primary" codes="admin:sysPost:add" @click="openAddModal">
+        新增岗位
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="岗位名称">
+          <Input
+            v-model:value="query.postName"
+            placeholder="请输入岗位名称"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </AdminFilterField>
+      </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">岗位列表</div>
+      </div>
+    </template>
 
-    <!-- 搜索区 -->
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">岗位名称：</span>
-      <Input
-        v-model:value="searchPostName"
-        placeholder="请输入岗位名称"
-        allow-clear
-        class="w-52"
-        @press-enter="onSearch"
-      />
-      <span class="ml-2 text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        class="w-28"
-        placeholder="请选择"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
+    <AdminErrorAlert :message="errorMsg" />
 
-    <!-- 错误提示 -->
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
-
-    <!-- 表格区 -->
     <Table
       :columns="columns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysPostItem) => record.postId"
-      size="small"
-      bordered
-      @change="onTableChange"
+      :scroll="{ x: 920 }"
+      size="middle"
+      @change="(pag) => onTableChange(pag)"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysPost:edit"
             @click="openEditModal(record as SysPostItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysPost:remove"
             @click="onDelete(record as SysPostItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
 
-    <!-- 新增弹窗 -->
     <Modal
       v-model:open="addVisible"
       title="新增岗位"
       :confirm-loading="addSubmitting"
+      :width="720"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }" class="mt-4">
-        <FormItem label="岗位名称" required>
-          <Input
-            v-model:value="addForm.postName"
-            placeholder="请输入岗位名称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="岗位编码" required>
-          <Input
-            v-model:value="addForm.postCode"
-            placeholder="请输入岗位编码"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="排序">
-          <InputNumber v-model:value="addForm.sort" :min="0" class="w-full" />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="addForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="addForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+      <AdminModalFormFields :model="addForm" :fields="postFormFields" />
     </Modal>
 
     <!-- 编辑弹窗 -->
@@ -485,6 +444,7 @@ onMounted(() => {
       title="编辑岗位"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
+      :width="720"
       ok-text="保存"
       cancel-text="取消"
       @ok="onEditOk"
@@ -493,45 +453,11 @@ onMounted(() => {
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载详情中…
       </div>
-      <Form
+      <AdminModalFormFields
         v-else
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
-        class="mt-4"
-      >
-        <FormItem label="岗位名称" required>
-          <Input
-            v-model:value="editForm.postName"
-            placeholder="请输入岗位名称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="岗位编码" required>
-          <Input
-            v-model:value="editForm.postCode"
-            placeholder="请输入岗位编码"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="排序">
-          <InputNumber v-model:value="editForm.sort" :min="0" class="w-full" />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="editForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="editForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-      </Form>
+        :model="editForm"
+        :fields="postFormFields"
+      />
     </Modal>
-  </div>
+  </AdminPageShell>
 </template>

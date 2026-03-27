@@ -4,20 +4,9 @@
  * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 菜单树/部门树最小接入
  * 复用岗位管理母版，树选择参考 roleMenuTreeselect / roleDeptTreeselect
  */
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 
-import {
-  Button,
-  Form,
-  FormItem,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Table,
-  Tree,
-  message,
-} from 'ant-design-vue';
+import { Button, Input, Modal, Select, Table, Tree, message } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
 import type { TreeProps } from 'ant-design-vue';
 
@@ -35,31 +24,26 @@ import type {
   CreateRoleData,
   MenuLabel,
   SysRoleItem,
-  SysRolePageResult,
   UpdateRoleData,
 } from '#/api/core/role';
 import type { DeptLabel } from '#/api/core/dept';
+import AdminActionButton from '#/components/admin/action-button.vue';
+import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
+import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminErrorAlert from '#/components/admin/error-alert.vue';
+import AdminFilterField from '#/components/admin/filter-field.vue';
+import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
+import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
+import AdminPageShell from '#/components/admin/page-shell.vue';
+import { useAdminTable } from '#/composables/use-admin-table';
+import {
+  formatAdminDateTime,
+  renderAdminEmpty,
+  resolveAdminErrorMessage,
+} from '#/utils/admin-crud';
 
-/** 表格加载状态 */
-const loading = ref(false);
-const tableData = ref<SysRoleItem[]>([]);
-const errorMsg = ref('');
 type TreeNode = NonNullable<TreeProps['treeData']>[number];
 type TreeKey = string | number;
-
-/** 分页 */
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`,
-});
-
-/** 搜索 */
-const searchRoleName = ref('');
-const searchRoleKey = ref('');
-const searchStatus = ref<string>('');
 
 const statusOptions = [
   { value: '', label: '全部' },
@@ -67,67 +51,49 @@ const statusOptions = [
   { value: '2', label: '启用' },
 ];
 
-/** 获取角色列表 */
-async function fetchRoleList() {
-  loading.value = true;
-  errorMsg.value = '';
-  try {
-    const params: Record<string, unknown> = {
-      pageIndex: pagination.value.current,
-      pageSize: pagination.value.pageSize,
-    };
-    if (searchRoleName.value.trim())
-      params.roleName = searchRoleName.value.trim();
-    if (searchRoleKey.value.trim()) params.roleKey = searchRoleKey.value.trim();
-    if (searchStatus.value !== '') params.status = searchStatus.value;
-    const res: SysRolePageResult = await getRolePage(params);
-    tableData.value = res.list || [];
-    pagination.value.total = res.count || 0;
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    errorMsg.value =
-      err?.message || err?.response?.data?.msg || '加载角色列表失败';
-    tableData.value = [];
-    pagination.value.total = 0;
-  } finally {
-    loading.value = false;
+const {
+  errorMsg,
+  fetchList,
+  loading,
+  onReset,
+  onSearch,
+  onTableChange,
+  pagination,
+  query,
+  tableData,
+} = useAdminTable<
+  SysRoleItem,
+  {
+    roleKey: string;
+    roleName: string;
+    status: string;
+  },
+  {
+    roleKey?: string;
+    roleName?: string;
+    status?: string;
   }
-}
+>({
+  createParams: (currentQuery) => ({
+    roleName: currentQuery.roleName.trim() || undefined,
+    roleKey: currentQuery.roleKey.trim() || undefined,
+    status: currentQuery.status || undefined,
+  }),
+  createQuery: () => ({
+    roleName: '',
+    roleKey: '',
+    status: '',
+  }),
+  fallbackErrorMessage: '加载角色列表失败',
+  fetcher: async (params) => getRolePage(params),
+});
 
-function onSearch() {
-  pagination.value.current = 1;
-  fetchRoleList();
-}
-
-function onReset() {
-  searchRoleName.value = '';
-  searchRoleKey.value = '';
-  searchStatus.value = '';
-  pagination.value.current = 1;
-  fetchRoleList();
-}
-
-function onTableChange(
-  pag: { current?: number; pageSize?: number },
-  _filters: unknown,
-  _sorter: unknown,
-) {
-  if (pag.current) pagination.value.current = pag.current;
-  if (pag.pageSize) pagination.value.pageSize = pag.pageSize;
-  fetchRoleList();
-}
+const fetchRoleList = fetchList;
 
 function renderStatus(s: string | undefined): string {
   if (s === '2') return '启用';
   if (s === '1') return '停用';
   return s || '-';
-}
-
-function renderEmpty(v: string | number | null | undefined): string {
-  return v != null && v !== '' ? String(v) : '-';
 }
 
 const columns: TableColumnType[] = [
@@ -140,7 +106,7 @@ const columns: TableColumnType[] = [
     dataIndex: 'dataScope',
     key: 'dataScope',
     width: 100,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
+    customRender: ({ text }: { text: string }) => renderAdminEmpty(text),
   },
   {
     title: '状态',
@@ -154,7 +120,7 @@ const columns: TableColumnType[] = [
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 160,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
   },
   { title: '操作', key: 'action', width: 200, fixed: 'right' },
 ];
@@ -282,12 +248,8 @@ async function onAddOk() {
     message.success('新增成功');
     addVisible.value = false;
     fetchRoleList();
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    message.error(err?.message || err?.response?.data?.msg || '新增失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '新增失败'));
   } finally {
     addSubmitting.value = false;
   }
@@ -351,9 +313,8 @@ async function openEditModal(record: SysRoleItem) {
     editDeptTreeData.value = deptLabelToTreeData(deptRes?.depts || []);
     editDeptCheckedKeys.value = deptRes?.checkedKeys || [];
     editDeptHalfCheckedKeys.value = [];
-  } catch (e: unknown) {
-    const err = e as { message?: string };
-    message.error(err?.message || '获取角色详情失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '获取角色详情失败'));
     editVisible.value = false;
   } finally {
     editLoading.value = false;
@@ -403,12 +364,8 @@ async function onEditOk() {
     message.success('编辑成功');
     editVisible.value = false;
     fetchRoleList();
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    message.error(err?.message || err?.response?.data?.msg || '编辑失败');
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '编辑失败'));
   } finally {
     editSubmitting.value = false;
   }
@@ -432,12 +389,8 @@ function onDelete(record: SysRoleItem) {
         await deleteRole([record.roleId]);
         message.success('删除成功');
         fetchRoleList();
-      } catch (e: unknown) {
-        const err = e as {
-          message?: string;
-          response?: { data?: { msg?: string } };
-        };
-        message.error(err?.message || err?.response?.data?.msg || '删除失败');
+      } catch (error) {
+        message.error(resolveAdminErrorMessage(error, '删除失败'));
       }
     },
   });
@@ -451,12 +404,8 @@ async function onToggleStatus(record: SysRoleItem) {
     await updateRoleStatus(record.roleId, next);
     message.success(`${label}成功`);
     fetchRoleList();
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    message.error(err?.message || err?.response?.data?.msg || `${label}失败`);
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, `${label}失败`));
   }
 }
 
@@ -465,50 +414,121 @@ const statusEditOptions = [
   { value: '2', label: '启用' },
 ];
 
+const roleFormFields = computed<AdminFormFieldSchema[]>(() => [
+  {
+    component: 'input',
+    field: 'roleName',
+    label: '角色名称',
+    placeholder: '请输入角色名称',
+    required: true,
+  },
+  {
+    component: 'input',
+    field: 'roleKey',
+    label: '权限字符',
+    placeholder: '请输入权限字符',
+    required: true,
+  },
+  {
+    component: 'input-number',
+    field: 'roleSort',
+    label: '排序',
+    min: 0,
+  },
+  {
+    component: 'select',
+    field: 'status',
+    label: '状态',
+    options: statusEditOptions,
+  },
+  {
+    component: 'input',
+    field: 'dataScope',
+    label: '数据范围',
+    placeholder: '选填',
+    span: 2,
+  },
+  {
+    component: 'textarea',
+    field: 'remark',
+    label: '备注',
+    placeholder: '请输入备注',
+    span: 2,
+  },
+]);
+
+const detailVisible = ref(false);
+const detailLoading = ref(false);
+const detailRecord = ref<SysRoleItem | null>(null);
+
+async function openDetail(record: SysRoleItem) {
+  detailVisible.value = true;
+  detailLoading.value = true;
+  try {
+    detailRecord.value = await getRoleDetail(record.roleId);
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '获取角色详情失败'));
+    detailVisible.value = false;
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
 onMounted(() => {
-  fetchRoleList();
+  void fetchRoleList();
 });
 </script>
 
 <template>
-  <div class="p-4">
-    <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-medium">角色管理</h2>
-      <div class="flex gap-2">
-        <Button @click="fetchRoleList">刷新</Button>
-        <Button type="primary" @click="openAddModal">新增角色</Button>
+  <AdminPageShell>
+    <template #eyebrow>System Admin</template>
+    <template #title>角色管理</template>
+    <template #description>
+      管理角色名称、权限字符与数据范围，树权限表单与列表页统一沿用后台样式骨架。
+    </template>
+    <template #header-extra>
+      <AdminActionButton type="primary" codes="admin:sysRole:add" @click="openAddModal">
+        新增角色
+      </AdminActionButton>
+    </template>
+    <template #filters>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminFilterField label="角色名称">
+          <Input
+            v-model:value="query.roleName"
+            placeholder="请输入角色名称"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="权限字符">
+          <Input
+            v-model:value="query.roleKey"
+            placeholder="请输入权限字符"
+            allow-clear
+            @press-enter="onSearch"
+          />
+        </AdminFilterField>
+        <AdminFilterField label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="statusOptions"
+            placeholder="请选择状态"
+          />
+        </AdminFilterField>
       </div>
-    </div>
+    </template>
+    <template #filter-actions>
+      <Button type="primary" @click="onSearch">查询</Button>
+      <Button @click="onReset">重置</Button>
+    </template>
+    <template #toolbar>
+      <div>
+        <div class="text-base font-semibold text-slate-900">角色列表</div>
+      </div>
+    </template>
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <span class="text-sm text-gray-600">角色名称：</span>
-      <Input
-        v-model:value="searchRoleName"
-        placeholder="请输入角色名称"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">权限字符：</span>
-      <Input
-        v-model:value="searchRoleKey"
-        placeholder="请输入权限字符"
-        allow-clear
-        class="w-40"
-        @press-enter="onSearch"
-      />
-      <span class="text-sm text-gray-600">状态：</span>
-      <Select
-        v-model:value="searchStatus"
-        :options="statusOptions"
-        class="w-28"
-        placeholder="请选择"
-      />
-      <Button type="primary" size="small" @click="onSearch">查询</Button>
-      <Button size="small" @click="onReset">重置</Button>
-    </div>
-
-    <div v-if="errorMsg" class="mb-4 text-red-600">{{ errorMsg }}</div>
+    <AdminErrorAlert :message="errorMsg" />
 
     <Table
       :columns="columns"
@@ -516,95 +536,66 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysRoleItem) => record.roleId"
-      size="small"
-      bordered
+      :scroll="{ x: 1080 }"
+      size="middle"
       @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <Button
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysRole:query"
+            @click="openDetail(record as SysRoleItem)"
+          >
+            详情
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysRole:update"
             @click="openEditModal(record as SysRoleItem)"
           >
             编辑
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
+            codes="admin:sysRole:update"
             @click="onToggleStatus(record as SysRoleItem)"
           >
             {{ (record as SysRoleItem).status === '2' ? '停用' : '启用' }}
-          </Button>
-          <Button
+          </AdminActionButton>
+          <AdminActionButton
             type="link"
             size="small"
             danger
+            codes="admin:sysRole:remove"
             @click="onDelete(record as SysRoleItem)"
           >
             删除
-          </Button>
+          </AdminActionButton>
         </template>
       </template>
     </Table>
 
-    <!-- 新增弹窗 -->
     <Modal
       v-model:open="addVisible"
       title="新增角色"
-      width="720"
+      width="820"
       :confirm-loading="addSubmitting"
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
       @cancel="onAddCancel"
     >
-      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 18 }" class="mt-4">
-        <FormItem label="角色名称" required>
-          <Input
-            v-model:value="addForm.roleName"
-            placeholder="请输入角色名称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="权限字符" required>
-          <Input
-            v-model:value="addForm.roleKey"
-            placeholder="请输入权限字符"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="排序">
-          <InputNumber
-            v-model:value="addForm.roleSort"
-            :min="0"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="addForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="数据范围">
-          <Input
-            v-model:value="addForm.dataScope"
-            placeholder="选填"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="addForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-        <FormItem label="菜单权限">
-          <div class="max-h-48 overflow-auto rounded border p-2">
+      <AdminModalFormFields :model="addForm" :fields="roleFormFields" />
+      <div class="mt-4 grid gap-4">
+        <section>
+          <div class="mb-2 text-sm font-medium text-slate-700">菜单权限</div>
+          <div
+            class="app-radius-box max-h-48 overflow-auto border border-slate-200 bg-slate-50 p-3"
+          >
             <Tree
               v-if="addMenuTreeData.length"
               checkable
@@ -614,9 +605,12 @@ onMounted(() => {
             />
             <span v-else class="text-gray-400">加载中…</span>
           </div>
-        </FormItem>
-        <FormItem label="数据权限（部门）">
-          <div class="max-h-48 overflow-auto rounded border p-2">
+        </section>
+        <section>
+          <div class="mb-2 text-sm font-medium text-slate-700">数据权限（部门）</div>
+          <div
+            class="app-radius-box max-h-48 overflow-auto border border-slate-200 bg-slate-50 p-3"
+          >
             <Tree
               v-if="addDeptTreeData.length"
               checkable
@@ -626,15 +620,14 @@ onMounted(() => {
             />
             <span v-else class="text-gray-400">加载中…</span>
           </div>
-        </FormItem>
-      </Form>
+        </section>
+      </div>
     </Modal>
 
-    <!-- 编辑弹窗 -->
     <Modal
       v-model:open="editVisible"
       title="编辑角色"
-      width="720"
+      width="820"
       :confirm-loading="editSubmitting"
       :ok-button-props="{ disabled: editLoading }"
       ok-text="保存"
@@ -645,57 +638,17 @@ onMounted(() => {
       <div v-if="editLoading" class="py-8 text-center text-gray-400">
         加载详情中…
       </div>
-      <Form
+      <AdminModalFormFields
         v-else
-        :label-col="{ span: 5 }"
-        :wrapper-col="{ span: 18 }"
-        class="mt-4"
-      >
-        <FormItem label="角色名称" required>
-          <Input
-            v-model:value="editForm.roleName"
-            placeholder="请输入角色名称"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="权限字符" required>
-          <Input
-            v-model:value="editForm.roleKey"
-            placeholder="请输入权限字符"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="排序">
-          <InputNumber
-            v-model:value="editForm.roleSort"
-            :min="0"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <Select
-            v-model:value="editForm.status"
-            :options="statusEditOptions"
-            class="w-full"
-          />
-        </FormItem>
-        <FormItem label="数据范围">
-          <Input
-            v-model:value="editForm.dataScope"
-            placeholder="选填"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="备注">
-          <Input.TextArea
-            v-model:value="editForm.remark"
-            placeholder="请输入备注"
-            allow-clear
-            :rows="2"
-          />
-        </FormItem>
-        <FormItem label="菜单权限">
-          <div class="max-h-48 overflow-auto rounded border p-2">
+        :model="editForm"
+        :fields="roleFormFields"
+      />
+      <div v-if="!editLoading" class="mt-4 grid gap-4">
+        <section>
+          <div class="mb-2 text-sm font-medium text-slate-700">菜单权限</div>
+          <div
+            class="app-radius-box max-h-48 overflow-auto border border-slate-200 bg-slate-50 p-3"
+          >
             <Tree
               v-if="editMenuTreeData.length"
               checkable
@@ -705,9 +658,12 @@ onMounted(() => {
             />
             <span v-else class="text-gray-400">暂无数据</span>
           </div>
-        </FormItem>
-        <FormItem label="数据权限（部门）">
-          <div class="max-h-48 overflow-auto rounded border p-2">
+        </section>
+        <section>
+          <div class="mb-2 text-sm font-medium text-slate-700">数据权限（部门）</div>
+          <div
+            class="app-radius-box max-h-48 overflow-auto border border-slate-200 bg-slate-50 p-3"
+          >
             <Tree
               v-if="editDeptTreeData.length"
               checkable
@@ -717,8 +673,52 @@ onMounted(() => {
             />
             <span v-else class="text-gray-400">暂无数据</span>
           </div>
-        </FormItem>
-      </Form>
+        </section>
+      </div>
     </Modal>
-  </div>
+
+    <AdminDetailDrawer
+      v-model:open="detailVisible"
+      title="角色详情"
+      :loading="detailLoading"
+      width="720"
+    >
+      <template v-if="detailRecord">
+        <AdminDetailSection title="基础信息" description="角色标识、排序和当前状态。">
+          <dl class="grid gap-4 md:grid-cols-2">
+            <div>
+              <dt class="text-xs text-slate-500">角色名称</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.roleName) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">权限字符</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.roleKey) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">排序</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.roleSort) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">状态</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderStatus(detailRecord.status) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">创建时间</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ formatAdminDateTime(detailRecord.createdAt) }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-500">数据范围</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.dataScope) }}</dd>
+            </div>
+          </dl>
+        </AdminDetailSection>
+
+        <AdminDetailSection title="备注" description="保留角色的业务补充说明。">
+          <p class="text-sm leading-6 text-slate-700">
+            {{ renderAdminEmpty(detailRecord.remark) }}
+          </p>
+        </AdminDetailSection>
+      </template>
+    </AdminDetailDrawer>
+  </AdminPageShell>
 </template>

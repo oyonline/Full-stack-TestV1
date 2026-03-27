@@ -11,6 +11,7 @@ import (
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
 	"go-admin/common/actions"
+	"go-admin/common/middleware"
 )
 
 type SysApi struct {
@@ -115,6 +116,19 @@ func (e SysApi) Update(c *gin.Context) {
 		e.Error(500, err, "更新失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "接口管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryAPI,
+		Method:        "admin.sysApi.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("接口ID", req.Id),
+			middleware.AuditKV("接口标题", req.Title),
+			middleware.AuditKV("接口地址", req.Path),
+			middleware.AuditKV("请求方式", req.Action),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -144,5 +158,16 @@ func (e SysApi) DeleteSysApi(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "接口管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryAPI,
+		Method:        "admin.sysApi.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除接口数量", len(req.Ids)),
+			middleware.AuditKV("接口ID", req.Ids),
+		),
+	})
 	e.OK(req.GetId(), "删除成功")
 }

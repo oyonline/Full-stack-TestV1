@@ -112,8 +112,9 @@ func (s *SysConfigDeleteReq) GetId() interface{} {
 }
 
 type SystemBrandingSettings struct {
-	AppLogo string `json:"appLogo"`
-	AppName string `json:"appName"`
+	AppLogo                 string `json:"appLogo"`
+	AppLogoPlaceholderColor string `json:"appLogoPlaceholderColor"`
+	AppName                 string `json:"appName"`
 }
 
 type SystemUiAppSettings struct {
@@ -123,6 +124,8 @@ type SystemUiAppSettings struct {
 	DynamicTitle       bool   `json:"dynamicTitle"`
 	EnableCheckUpdates bool   `json:"enableCheckUpdates"`
 	Layout             string `json:"layout"`
+	LoginDescription   string `json:"loginDescription"`
+	LoginTitle         string `json:"loginTitle"`
 	Locale             string `json:"locale"`
 	Watermark          bool   `json:"watermark"`
 	WatermarkContent   string `json:"watermarkContent"`

@@ -11,7 +11,6 @@ import { notification } from 'ant-design-vue';
 import { defineStore } from 'pinia';
 
 import {
-  getAccessCodesApi,
   getAllMenusApi,
   getUserInfoApi,
   loginApi,
@@ -46,16 +45,21 @@ export const useAuthStore = defineStore('auth', () => {
         accessStore.setAccessToken(accessToken);
 
         // 获取用户信息并存储到 accessStore 中
-        const [fetchUserInfoResult, accessCodes, menus] = await Promise.all([
+        const [fetchUserInfoResult, menus] = await Promise.all([
           fetchUserInfo(),
-          getAccessCodesApi(),
           getAllMenusApi(),
         ]);
 
         userInfo = fetchUserInfoResult;
 
         userStore.setUserInfo(userInfo);
-        accessStore.setAccessCodes(accessCodes);
+        const accessUserInfo = userInfo as UserInfo & {
+          buttons?: string[];
+          permissions?: string[];
+        };
+        accessStore.setAccessCodes(
+          accessUserInfo.buttons || accessUserInfo.permissions || [],
+        );
         accessStore.setAccessMenus(menus || []);
 
         if (accessStore.loginExpired) {

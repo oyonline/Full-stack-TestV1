@@ -6,24 +6,30 @@ import { computed, h, onMounted, ref } from 'vue';
 import { AuthenticationLogin, z } from '@vben/common-ui';
 import { $t } from '@vben/locales';
 
+import { message } from 'ant-design-vue';
+
 import { useAuthStore } from '#/store';
 import { getCaptchaApi } from '#/api';
 
 defineOptions({ name: 'Login' });
 
 const authStore = useAuthStore();
+const loginFormRef = ref<any>();
 
 // 验证码相关
 const captchaBase64 = ref('');
 const captchaId = ref('');
 
 // 获取验证码
-async function fetchCaptcha() {
+async function fetchCaptcha(clearCode = true) {
   try {
     const res = await getCaptchaApi();
     if (res.code === 200) {
       captchaBase64.value = res.data;
       captchaId.value = res.id;
+      if (clearCode) {
+        await loginFormRef.value?.getFormApi?.().setFieldValue('code', '');
+      }
     }
   } catch (error) {
     console.error('获取验证码失败:', error);
@@ -32,7 +38,7 @@ async function fetchCaptcha() {
 
 // 页面加载时获取验证码
 onMounted(() => {
-  fetchCaptcha();
+  fetchCaptcha(false);
 });
 
 // 验证码组件（修复：输入框+图片+文字 全部水平一行，宽度与上面一致）
@@ -117,18 +123,24 @@ const formSchema = computed((): VbenFormSchema[] => {
 
 // 自定义登录处理
 async function handleLogin(values: any) {
-  await authStore.authLogin({
-    username: values.username,
-    password: values.password,
-    code: values.code,
-    uuid: captchaId.value,
-  });
+  try {
+    await authStore.authLogin({
+      username: values.username,
+      password: values.password,
+      code: values.code,
+      uuid: captchaId.value,
+    });
+  } catch (error: any) {
+    message.error(error?.message || '登录失败，请重试');
+    await fetchCaptcha();
+  }
 }
 </script>
 
 <template>
   <!-- 问题3、4、5：通过配置项隐藏其他登录方式 -->
   <AuthenticationLogin
+    ref="loginFormRef"
     :form-schema="formSchema"
     :loading="authStore.loginLoading"
     :show-code-login="false"

@@ -6,9 +6,11 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/api"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 	"go-admin/app/admin/models"
+	"go-admin/common/authctx"
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/middleware"
 )
 
 type SysMenu struct {
@@ -106,6 +108,20 @@ func (e SysMenu) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "菜单管理",
+		BusinessType:  middleware.AuditActionCreate,
+		BusinessTypes: middleware.AuditCategoryMenu,
+		Method:        "admin.sysMenu.insert",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("菜单标题", req.Title),
+			middleware.AuditKV("路由路径", req.Path),
+			middleware.AuditKV("权限标识", req.Permission),
+			middleware.AuditKV("上级菜单", req.ParentId),
+			middleware.AuditCount("关联接口数", len(req.Apis)),
+		),
+	})
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -140,6 +156,20 @@ func (e SysMenu) Update(c *gin.Context) {
 		e.Error(500, err, "更新失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "菜单管理",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryMenu,
+		Method:        "admin.sysMenu.update",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("菜单ID", req.MenuId),
+			middleware.AuditKV("菜单标题", req.Title),
+			middleware.AuditKV("路由路径", req.Path),
+			middleware.AuditKV("权限标识", req.Permission),
+			middleware.AuditCount("关联接口数", len(req.Apis)),
+		),
+	})
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -170,6 +200,17 @@ func (e SysMenu) Delete(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "菜单管理",
+		BusinessType:  middleware.AuditActionDelete,
+		BusinessTypes: middleware.AuditCategoryMenu,
+		Method:        "admin.sysMenu.delete",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditCount("删除菜单数量", len(control.Ids)),
+			middleware.AuditKV("菜单ID", control.Ids),
+		),
+	})
 	e.OK(control.GetId(), "删除成功")
 }
 
@@ -192,7 +233,7 @@ func (e SysMenu) GetMenuRole(c *gin.Context) {
 		return
 	}
 
-	result, err := s.SetMenuRole(user.GetRoleName(c))
+	result, err := s.SetMenuRole(authctx.GetPrimaryRoleKey(c))
 
 	if err != nil {
 		e.Error(500, err, "查询失败")
