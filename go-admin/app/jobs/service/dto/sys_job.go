@@ -6,7 +6,6 @@ import (
 	"go-admin/app/jobs/models"
 
 	"go-admin/common/dto"
-	"go-admin/common/middleware"
 	common "go-admin/common/models"
 )
 
@@ -81,39 +80,6 @@ func (s *SysJobControl) GetId() interface{} {
 	return s.JobId
 }
 
-func (s *SysJobControl) CreateAuditMeta() middleware.AuditMeta {
-	return middleware.AuditMeta{
-		Title:         "定时任务",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryJob,
-		Method:        "jobs.sysJob.create",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("任务名称", s.JobName),
-			middleware.AuditKV("任务分组", s.JobGroup),
-			middleware.AuditKV("调用目标", s.InvokeTarget),
-			middleware.AuditKV("Cron", s.CronExpression),
-		),
-	}
-}
-
-func (s *SysJobControl) UpdateAuditMeta() middleware.AuditMeta {
-	return middleware.AuditMeta{
-		Title:         "定时任务",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryJob,
-		Method:        "jobs.sysJob.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("任务ID", s.JobId),
-			middleware.AuditKV("任务名称", s.JobName),
-			middleware.AuditKV("任务分组", s.JobGroup),
-			middleware.AuditKV("调用目标", s.InvokeTarget),
-			middleware.AuditKV("Cron", s.CronExpression),
-		),
-	}
-}
-
 type SysJobById struct {
 	dto.ObjectById
 }
@@ -125,20 +91,6 @@ func (s *SysJobById) Generate() dto.Control {
 
 func (s *SysJobById) GenerateM() (common.ActiveRecord, error) {
 	return &models.SysJob{}, nil
-}
-
-func (s *SysJobById) DeleteAuditMeta() middleware.AuditMeta {
-	return middleware.AuditMeta{
-		Title:         "定时任务",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryJob,
-		Method:        "jobs.sysJob.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditCount("删除任务数量", len(s.Ids)),
-			middleware.AuditKV("任务ID", s.GetId()),
-		),
-	}
 }
 
 type SysJobItem struct {

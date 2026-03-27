@@ -6,9 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-admin-team/go-admin-core/sdk/pkg"
 	"go-admin/common/dto"
 	common "go-admin/common/models"
+
+	"github.com/go-admin-team/go-admin-core/sdk/pkg"
 )
 
 type SysUserGetPageReq struct {
@@ -295,4 +296,13 @@ func uniqueSysUserRoleIDs(values []int) []int {
 	}
 	sort.Ints(result)
 	return result
+}
+
+type UserBatch struct {
+	OpenIds []string `form:"openIds" comment:"飞书用户应用ID"`
+	common.ControlBy
+}
+
+func (s *UserBatch) GetId() interface{} {
+	return s.OpenIds
 }

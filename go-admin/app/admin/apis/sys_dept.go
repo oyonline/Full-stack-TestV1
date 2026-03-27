@@ -1,13 +1,14 @@
 package apis
 
 import (
+	"go-admin/app/admin/models"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-admin-team/go-admin-core/sdk/api"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 	_ "github.com/go-admin-team/go-admin-core/sdk/pkg/response"
-	"go-admin/app/admin/models"
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
@@ -168,9 +169,6 @@ func (e SysDept) Update(c *gin.Context) {
 		OperatorType:  middleware.AuditOperatorManage,
 		Remark: middleware.AuditSummary(
 			middleware.AuditKV("部门ID", req.DeptId),
-			middleware.AuditKV("部门名称", req.DeptName),
-			middleware.AuditKV("上级部门", req.ParentId),
-			middleware.AuditKV("负责人", req.Leader),
 		),
 	})
 	e.OK(req.GetId(), "更新成功")

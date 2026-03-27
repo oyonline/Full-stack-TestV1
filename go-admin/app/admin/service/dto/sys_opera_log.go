@@ -38,7 +38,7 @@ func (m *SysOperaLogGetPageReq) GetNeedSearch() interface{} {
 }
 
 type SysOperaLogControl struct {
-	ID            int       `uri:"Id" comment:"编码"` // 编码
+	ID            int64     `uri:"Id" comment:"编码"` // 编码
 	Title         string    `json:"title" comment:"操作模块"`
 	BusinessType  string    `json:"businessType" comment:"操作类型"`
 	BusinessTypes string    `json:"businessTypes" comment:""`

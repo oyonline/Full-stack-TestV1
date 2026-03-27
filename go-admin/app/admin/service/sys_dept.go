@@ -2,10 +2,13 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"go-admin/app/admin/models"
+	"go-admin/common/utils/feishuUtils"
 
 	log "github.com/go-admin-team/go-admin-core/logger"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg"
+	"gorm.io/gorm"
 
 	"go-admin/app/admin/service/dto"
 	cDto "go-admin/common/dto"
@@ -15,6 +18,20 @@ import (
 
 type SysDept struct {
 	service.Service
+	Su *SysUser
+}
+
+// GetDepts 获取SysDept列表
+func (e *SysDept) GetDepts(list *[]models.SysDept) error {
+	var err error
+	var data models.SysDept
+
+	err = e.Orm.Model(&data).Find(list).Error
+	if err != nil {
+		e.Log.Errorf("db error:%s", err)
+		return err
+	}
+	return nil
 }
 
 // GetPage 获取SysDept列表
@@ -86,6 +103,12 @@ func (e *SysDept) Insert(c *dto.SysDeptInsertReq) error {
 	mp["dept_path"] = deptPath
 	if err = tx.Model(&data).Update("dept_path", deptPath).Error; err != nil {
 		e.Log.Errorf("db error:%s", err)
+		return err
+	}
+	err = buildPathLevel(&data, tx)
+	err = tx.Model(&data).Updates(map[string]interface{}{"dept_path": data.DeptPath, "dept_path_name": data.DeptPathName, "level": data.Level}).Error
+	if err != nil {
+		e.Log.Errorf("Updates error:%s", err)
 		return err
 	}
 	return nil
@@ -291,4 +314,203 @@ func deptLabelCall(deptList *[]models.SysDept, dept dto.DeptLabel) dto.DeptLabel
 	}
 	dept.Children = childrenList
 	return dept
+}
+
+// PullDepartmentChildrens 拉取全部通讯录部门信息
+func (e *SysDept) PullDepartmentChildrens(d *dto.DepartmentBatch) error {
+	var err error
+	tx := e.Orm.Debug().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	client, err := feishuUtils.NewFeishuClient()
+	if err != nil {
+		return err
+	}
+
+	e.Su.Client = client
+	err = e.DepartmentChildrenCall(d.OpenDepartmentIds[0], &d.ParentId, &d.CreateBy, tx)
+	if err != nil {
+		return err
+	}
+
+	// 根据用户修改部门leader信息
+	// UPDATE sys_dept AS a, sys_user AS b
+	// SET a.leader_uid = b.user_id, a.leader = b.cn_name, a.phone = b.phone, a.email = b.email
+	// WHERE a.leader_user_id != '' AND a.leader_user_id = b.open_id
+	rawSQL := "UPDATE sys_dept AS a, sys_user AS b SET a.leader_uid = b.user_id, a.leader = b.cn_name, a.phone = b.phone, a.email = b.email WHERE a.leader_user_id != '' AND a.leader_user_id = b.open_id"
+	err = tx.Table("sys_dept").Exec(rawSQL).Error
+	if err != nil {
+		e.Log.Errorf("根据用户修改部门leader信息错误:%s", err)
+		return err
+	}
+
+	return nil
+}
+
+// DepartmentChildrenCall 递归拉取子部门信息
+func (e *SysDept) DepartmentChildrenCall(parentDepartmentId string, parentId *int, createBy *int, tx *gorm.DB) error {
+	var err error
+
+	// 拉取通讯录根部门信息
+	items, err := e.Su.Client.GetDepartmentChildrens(parentDepartmentId)
+	if err != nil {
+		return err
+	}
+	for _, v := range items {
+		var data = models.SysDept{}
+		err = tx.Find(&data, "open_department_id = ?", v.OpenDepartmentId).Error
+		if err != nil {
+			return err
+		}
+		data.FeishuGenerate(v)
+		data.ParentId = *parentId
+		data.UpdateBy = *createBy
+		if data.DeptId == 0 {
+			data.CreateBy = *createBy
+			err = tx.Create(&data).Error
+			if err != nil {
+				return err
+			}
+			err = buildPathLevel(&data, tx)
+			err = tx.Model(&data).Updates(map[string]interface{}{"dept_path": data.DeptPath, "dept_path_name": data.DeptPathName, "level": data.Level}).Error
+		} else {
+			err = buildPathLevel(&data, tx)
+			err = tx.Omit("dept_code", "user_number", "dept_type").Save(&data).Error
+		}
+		if err != nil {
+			return err
+		}
+		// 拉取部门用户信息
+		err = e.Su.PullDepartmentUsers(*v.OpenDepartmentId, &data.DeptId, createBy)
+		if err != nil {
+			return err
+		}
+
+		err = e.DepartmentChildrenCall(*v.OpenDepartmentId, &data.DeptId, createBy, tx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// buildPathLevel
+func buildPathLevel(data *models.SysDept, tx *gorm.DB) error {
+	var err error
+	deptPath := pkg.IntToString(data.DeptId) + "/"
+	deptPathName := " > " + data.DeptName
+	if data.ParentId != 0 {
+		var deptP models.SysDept
+		err = tx.First(&deptP, data.ParentId).Error
+		deptPath = deptP.DeptPath + deptPath
+		deptPathName = deptP.DeptPathName + deptPathName
+		data.Level = deptP.Level + 1
+	} else {
+		deptPath = "/0/" + deptPath
+		deptPathName = "深圳波赛冬网络科技有限公司" + deptPathName
+		data.Level = 1
+	}
+	data.DeptPath = deptPath
+	data.DeptPathName = deptPathName
+	return err
+}
+
+// PullDepartmentBatchs 根据部门ID拉取通讯录部门信息
+func (e *SysDept) PullDepartmentBatchs(d *dto.DepartmentBatch) error {
+	var err error
+	tx := e.Orm.Debug().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	client, err := feishuUtils.NewFeishuClient()
+	if err != nil {
+		return err
+	}
+
+	// 根据部门ID拉取通讯录部门信息
+	e.Su.Client = client
+	items, err := client.GetDepartmentBatchs(d.OpenDepartmentIds)
+	if err != nil {
+		return err
+	}
+	for _, v := range items {
+		var data models.SysDept
+		e.Orm.Delete(&models.SysUserDept{}, "open_department_id = ?", v.OpenDepartmentId)
+		err = e.Orm.Find(&data, "open_department_id = ?", v.OpenDepartmentId).Error
+		if err != nil {
+			e.Log.Errorf("获取部门信息 error:%s", err)
+			return err
+		}
+		data.FeishuGenerate(v)
+		data.ParentId = d.ParentId
+		data.UpdateBy = d.CreateBy
+		if data.DeptId == 0 {
+			data.CreateBy = d.CreateBy
+			err = tx.Create(&data).Error
+			if err != nil {
+				e.Log.Errorf("新增部门信息 error:%s", err)
+				return err
+			}
+			err = buildPathLevel(&data, tx)
+			err = tx.Model(&data).Updates(map[string]interface{}{"dept_path": data.DeptPath, "dept_path_name": data.DeptPathName, "level": data.Level}).Error
+		} else {
+			err = buildPathLevel(&data, tx)
+			err = tx.Omit("dept_code", "user_number", "dept_type").Save(&data).Error
+		}
+		if err != nil {
+			e.Log.Errorf("修改部门信息 error:%s", err)
+			return err
+		}
+		// 拉取部门用户信息
+		err = e.Su.PullDepartmentUsers(*v.OpenDepartmentId, &data.DeptId, &d.CreateBy)
+		if err != nil {
+			return err
+		}
+
+		// 根据修改部门leader信息
+		if *v.LeaderUserId != "" {
+			var user models.SysUser
+			e.Su.Orm.Find(&user, "open_id = ?", v.LeaderUserId)
+			err = tx.Model(&data).
+				Updates(map[string]interface{}{
+					"leader_uid": user.UserId,
+					"leader":     user.CnName,
+					"phone":      user.Phone,
+					"email":      user.Email,
+				}).Error
+			if err != nil {
+				e.Log.Errorf("修改部门leader信息 error:%s", err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// PullDepartments 同步飞书部门Department
+func (e *SysDept) PullDepartments() error {
+	var err error
+	client, err := feishuUtils.NewFeishuClient()
+	if err != nil {
+		return err
+	}
+
+	// 获取飞书token
+	list, err := client.GetDepartmentList()
+	if err != nil {
+		return err
+	}
+	fmt.Println(list)
+	return nil
 }

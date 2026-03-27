@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/utils/feishuUtils"
 	"sort"
 
 	log "github.com/go-admin-team/go-admin-core/logger"
@@ -18,6 +19,7 @@ import (
 
 type SysUser struct {
 	service.Service
+	Client *feishuUtils.FeishuClient
 }
 
 // GetPage 获取SysUser列表
@@ -476,4 +478,81 @@ func (e *SysUser) syncUserRoles(tx *gorm.DB, userID int, primaryRoleID int, role
 		})
 	}
 	return tx.Create(&relations).Error
+}
+
+// PullUserBatchs 根据飞书用户应用ID获取信息
+func (e *SysUser) PullUserBatchs(c *dto.UserBatch) error {
+	var err error
+
+	client, err := feishuUtils.NewFeishuClient()
+	if err != nil {
+		return err
+	}
+
+	// 获取飞书用户信息
+	items, err := client.GetUserBatchs(c.OpenIds)
+	if err != nil {
+		return err
+	}
+	for _, v := range items {
+		var data = models.SysUser{}
+		err = e.Orm.Find(&data, "open_id = ?", v.OpenId).Error
+		if err != nil {
+			return err
+		}
+		data.FeishuGenerate(v)
+		data.UpdateBy = c.CreateBy
+		if data.UserId == 0 {
+			data.Password = "123456"
+			data.RoleId = 0
+			data.CreateBy = c.CreateBy
+			err = e.Orm.Create(&data).Error
+		} else {
+			err = e.Orm.Omit("password", "salt").Updates(&data).Error
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// PullDepartmentUsers 拉取飞书部门用户信息
+func (e *SysUser) PullDepartmentUsers(openDepartmentId string, deptId *int, createBy *int) error {
+	items, err := e.Client.GetUserByDepartments(openDepartmentId)
+	if err != nil {
+		return err
+	}
+	var userDept []models.SysUserDept
+	for _, v := range items {
+		var data = models.SysUser{}
+		err = e.Orm.Find(&data, "open_id = ?", v.OpenId).Error
+		if err != nil {
+			return err
+		}
+		data.FeishuGenerate(v)
+		data.UpdateBy = *createBy
+		if data.UserId == 0 {
+			data.DeptId = *deptId
+			data.Password = "123456"
+			data.RoleId = 1
+			data.CreateBy = *createBy
+			err = e.Orm.Create(&data).Error
+		} else {
+			err = e.Orm.Omit("password", "salt").Updates(&data).Error
+		}
+		if err != nil {
+			return err
+		}
+		ud := models.SysUserDept{
+			DeptId:           *deptId,
+			UserId:           data.UserId,
+			OpenDepartmentId: data.OpenDepartmentId,
+		}
+		userDept = append(userDept, ud)
+	}
+	if len(userDept) > 0 {
+		e.Orm.Create(&userDept)
+	}
+	return nil
 }

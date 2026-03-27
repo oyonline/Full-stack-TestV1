@@ -9,7 +9,6 @@ import (
 
 	"go-admin/app/jobs/service"
 	"go-admin/common/dto"
-	"go-admin/common/middleware"
 )
 
 type SysJob struct {
@@ -37,16 +36,6 @@ func (e SysJob) RemoveJobForService(c *gin.Context) {
 		e.Error(500, err, "")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "定时任务",
-		BusinessType:  middleware.AuditActionStop,
-		BusinessTypes: middleware.AuditCategoryJob,
-		Method:        "jobs.sysJob.stop",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("任务ID", v.GetIds()),
-		),
-	})
 	e.OK(nil, s.Msg)
 }
 
@@ -76,15 +65,5 @@ func (e SysJob) StartJobForService(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "定时任务",
-		BusinessType:  middleware.AuditActionStart,
-		BusinessTypes: middleware.AuditCategoryJob,
-		Method:        "jobs.sysJob.start",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("任务ID", v.Id),
-		),
-	})
 	e.OK(nil, s.Msg)
 }
