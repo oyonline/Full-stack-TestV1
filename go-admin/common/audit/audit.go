@@ -27,6 +27,9 @@ const (
 	ActionStart    = "start"
 	ActionStop     = "stop"
 	ActionRun      = "run"
+	ActionApprove  = "approve"
+	ActionReject   = "reject"
+	ActionWithdraw = "withdraw"
 )
 
 const (
@@ -41,6 +44,8 @@ const (
 	CategoryDictType       = "dict-type"
 	CategoryDictData       = "dict-data"
 	CategoryJob            = "job"
+	CategoryWorkflow       = "workflow"
+	CategoryModule         = "module"
 )
 
 const (

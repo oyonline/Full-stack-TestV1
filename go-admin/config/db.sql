@@ -1,4 +1,198 @@
 -- 开始初始化数据 ;
+CREATE TABLE IF NOT EXISTS module_registry (
+  module_id int NOT NULL AUTO_INCREMENT,
+  module_key varchar(64) NOT NULL,
+  module_name varchar(128) NOT NULL,
+  route_base varchar(128) NOT NULL,
+  menu_root_code varchar(128) NOT NULL,
+  status varchar(4) NOT NULL DEFAULT '2',
+  sort int NOT NULL DEFAULT 0,
+  remark varchar(255) DEFAULT NULL,
+  permission_hint varchar(128) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  updated_at datetime(3) DEFAULT NULL,
+  deleted_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (module_id),
+  UNIQUE KEY uk_module_registry_module_key (module_key),
+  UNIQUE KEY uk_module_registry_route_base (route_base),
+  UNIQUE KEY uk_module_registry_menu_root_code (menu_root_code),
+  KEY idx_module_registry_deleted_at (deleted_at)
+);
+CREATE TABLE IF NOT EXISTS wf_definition (
+  definition_id int NOT NULL AUTO_INCREMENT,
+  definition_key varchar(64) NOT NULL,
+  definition_name varchar(128) NOT NULL,
+  module_key varchar(64) NOT NULL,
+  business_type varchar(64) NOT NULL,
+  status varchar(4) NOT NULL DEFAULT '2',
+  version int NOT NULL DEFAULT 1,
+  remark varchar(255) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  updated_at datetime(3) DEFAULT NULL,
+  deleted_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (definition_id),
+  UNIQUE KEY uk_wf_definition_key (definition_key),
+  KEY idx_wf_definition_module_key (module_key),
+  KEY idx_wf_definition_business_type (business_type),
+  KEY idx_wf_definition_deleted_at (deleted_at)
+);
+CREATE TABLE IF NOT EXISTS wf_definition_node (
+  node_id int NOT NULL AUTO_INCREMENT,
+  definition_id int NOT NULL,
+  node_key varchar(64) NOT NULL,
+  node_name varchar(128) NOT NULL,
+  node_type varchar(32) NOT NULL,
+  sort int NOT NULL DEFAULT 0,
+  approver_type varchar(32) DEFAULT NULL,
+  approver_value varchar(128) DEFAULT NULL,
+  approver_name varchar(128) DEFAULT NULL,
+  remark varchar(255) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  updated_at datetime(3) DEFAULT NULL,
+  deleted_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (node_id),
+  KEY idx_wf_definition_node_definition_id (definition_id),
+  KEY idx_wf_definition_node_deleted_at (deleted_at)
+);
+CREATE TABLE IF NOT EXISTS wf_instance (
+  instance_id int NOT NULL AUTO_INCREMENT,
+  definition_id int NOT NULL,
+  definition_key varchar(64) NOT NULL,
+  definition_name varchar(128) NOT NULL,
+  module_key varchar(64) NOT NULL,
+  business_type varchar(64) NOT NULL,
+  business_id varchar(64) NOT NULL,
+  business_no varchar(128) DEFAULT NULL,
+  title varchar(255) NOT NULL,
+  status varchar(32) NOT NULL,
+  current_node_id int NOT NULL DEFAULT 0,
+  current_node_key varchar(64) DEFAULT NULL,
+  current_node_name varchar(128) DEFAULT NULL,
+  starter_id int NOT NULL,
+  starter_name varchar(128) DEFAULT NULL,
+  started_at datetime(3) DEFAULT NULL,
+  finished_at datetime(3) DEFAULT NULL,
+  last_action varchar(32) DEFAULT NULL,
+  last_action_remark varchar(255) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  updated_at datetime(3) DEFAULT NULL,
+  deleted_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (instance_id),
+  KEY idx_wf_instance_definition_id (definition_id),
+  KEY idx_wf_instance_module_key (module_key),
+  KEY idx_wf_instance_business_type (business_type),
+  KEY idx_wf_instance_business_id (business_id),
+  KEY idx_wf_instance_status (status),
+  KEY idx_wf_instance_starter_id (starter_id),
+  KEY idx_wf_instance_deleted_at (deleted_at)
+);
+CREATE TABLE IF NOT EXISTS wf_task (
+  task_id int NOT NULL AUTO_INCREMENT,
+  instance_id int NOT NULL,
+  definition_id int NOT NULL,
+  node_id int NOT NULL,
+  node_key varchar(64) NOT NULL,
+  node_name varchar(128) NOT NULL,
+  assignee_type varchar(32) NOT NULL,
+  assignee_id int NOT NULL,
+  assignee_name varchar(128) DEFAULT NULL,
+  status varchar(32) NOT NULL,
+  action varchar(32) DEFAULT NULL,
+  comment varchar(255) DEFAULT NULL,
+  action_by int NOT NULL DEFAULT 0,
+  action_by_name varchar(128) DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  processed_at datetime(3) DEFAULT NULL,
+  cancelled_reason varchar(255) DEFAULT NULL,
+  PRIMARY KEY (task_id),
+  KEY idx_wf_task_instance_id (instance_id),
+  KEY idx_wf_task_definition_id (definition_id),
+  KEY idx_wf_task_node_id (node_id),
+  KEY idx_wf_task_assignee_id (assignee_id),
+  KEY idx_wf_task_action_by (action_by),
+  KEY idx_wf_task_status (status)
+);
+CREATE TABLE IF NOT EXISTS wf_action_log (
+  log_id int NOT NULL AUTO_INCREMENT,
+  instance_id int NOT NULL,
+  task_id int NOT NULL DEFAULT 0,
+  action varchar(32) NOT NULL,
+  from_status varchar(32) DEFAULT NULL,
+  to_status varchar(32) DEFAULT NULL,
+  from_node_key varchar(64) DEFAULT NULL,
+  from_node_name varchar(128) DEFAULT NULL,
+  to_node_key varchar(64) DEFAULT NULL,
+  to_node_name varchar(128) DEFAULT NULL,
+  operator_id int NOT NULL DEFAULT 0,
+  operator_name varchar(128) DEFAULT NULL,
+  comment varchar(255) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (log_id),
+  KEY idx_wf_action_log_instance_id (instance_id),
+  KEY idx_wf_action_log_task_id (task_id),
+  KEY idx_wf_action_log_operator_id (operator_id)
+);
+CREATE TABLE IF NOT EXISTS wf_business_binding (
+  binding_id int NOT NULL AUTO_INCREMENT,
+  module_key varchar(64) NOT NULL,
+  business_type varchar(64) NOT NULL,
+  business_id varchar(64) NOT NULL,
+  business_no varchar(128) DEFAULT NULL,
+  title varchar(255) DEFAULT NULL,
+  instance_id int NOT NULL,
+  workflow_status varchar(32) NOT NULL,
+  business_status varchar(32) NOT NULL,
+  last_action varchar(32) DEFAULT NULL,
+  last_action_remark varchar(255) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  updated_at datetime(3) DEFAULT NULL,
+  deleted_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (binding_id),
+  KEY idx_wf_business_binding_module_key (module_key),
+  KEY idx_wf_business_binding_business_type (business_type),
+  KEY idx_wf_business_binding_business_id (business_id),
+  KEY idx_wf_business_binding_instance_id (instance_id),
+  KEY idx_wf_business_binding_deleted_at (deleted_at)
+);
+CREATE TABLE IF NOT EXISTS att_file (
+  attachment_id int NOT NULL AUTO_INCREMENT,
+  module_key varchar(64) NOT NULL,
+  business_type varchar(64) NOT NULL,
+  business_id varchar(64) NOT NULL,
+  business_no varchar(128) DEFAULT NULL,
+  file_name varchar(255) NOT NULL,
+  file_ext varchar(32) DEFAULT NULL,
+  file_size bigint DEFAULT NULL,
+  content_type varchar(128) DEFAULT NULL,
+  storage_type varchar(32) NOT NULL DEFAULT 'local',
+  storage_path varchar(512) NOT NULL,
+  uploader_id int DEFAULT NULL,
+  uploader_name varchar(128) DEFAULT NULL,
+  create_by int DEFAULT NULL,
+  update_by int DEFAULT NULL,
+  created_at datetime(3) DEFAULT NULL,
+  updated_at datetime(3) DEFAULT NULL,
+  deleted_at datetime(3) DEFAULT NULL,
+  PRIMARY KEY (attachment_id),
+  KEY idx_att_file_module_key (module_key),
+  KEY idx_att_file_business_type (business_type),
+  KEY idx_att_file_business_id (business_id),
+  KEY idx_att_file_uploader_id (uploader_id),
+  KEY idx_att_file_deleted_at (deleted_at)
+);
+ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS introduction varchar(255) DEFAULT NULL COMMENT '个人简介';
 INSERT INTO sys_api VALUES (5, 'go-admin/app/admin/apis.SysLoginLog.Get-fm', '登录日志通过id获取', '/api/v1/sys-login-log/:id', 'BUS', 'GET', '2021-05-13 19:59:00.728', '2021-06-17 11:37:12.331', NULL, 0, 0);
 INSERT INTO sys_api VALUES (6, 'go-admin/app/admin/apis.SysOperaLog.GetPage-fm', '操作日志列表', '/api/v1/sys-opera-log', 'BUS', 'GET', '2021-05-13 19:59:00.778', '2021-06-17 11:48:40.732', NULL, 0, 0);
 INSERT INTO sys_api VALUES (7, 'go-admin/app/admin/apis.SysOperaLog.Get-fm', '操作日志通过id获取', '/api/v1/sys-opera-log/:id', 'BUS', 'GET', '2021-05-13 19:59:00.821', '2021-06-16 21:49:48.598', NULL, 0, 0);
@@ -45,6 +239,11 @@ INSERT INTO sys_api VALUES (59, 'go-admin/app/admin/apis.SysPost.GetPage-fm', '�
 INSERT INTO sys_api VALUES (60, 'go-admin/app/admin/apis.SysPost.Get-fm', '岗位通过id获取', '/api/v1/post/:id', 'BUS', 'GET', '2021-05-13 19:59:03.433', '2021-06-17 11:48:40.732', NULL, 0, 0);
 INSERT INTO sys_api VALUES (62, 'go-admin/app/admin/apis.SysConfig.GetSysConfigBySysApp-fm', '系统前端参数', '/api/v1/app-config', 'SYS', 'GET', '2021-05-13 19:59:03.526', '2021-06-13 20:53:49.994', NULL, 0, 0);
 INSERT INTO sys_api VALUES (63, 'go-admin/app/admin/apis.SysUser.GetProfile-fm', '*用户信息获取', '/api/v1/user/profile', 'SYS', 'GET', '2021-05-13 19:59:03.567', '2021-06-13 20:53:50.038', NULL, 0, 0);
+INSERT INTO sys_api
+SELECT 1001, 'go-admin/app/admin/apis.SysUser.UpdateProfile-fm', '*个人资料更新', '/api/v1/user/profile', 'SYS', 'PUT', NOW(3), NOW(3), NULL, 0, 0
+WHERE NOT EXISTS (
+  SELECT 1 FROM sys_api WHERE handle = 'go-admin/app/admin/apis.SysUser.UpdateProfile-fm' OR path = '/api/v1/user/profile' AND action = 'PUT'
+);
 INSERT INTO sys_api VALUES (66, 'github.com/go-admin-team/go-admin-core/sdk/pkg/ws.(*Manager).WsClient-fm', '链接ws【定时任务log】', '/ws/:id/:channel', 'BUS', 'GET', '2021-05-13 19:59:03.705', '2021-06-13 20:53:50.167', NULL, 0, 0);
 INSERT INTO sys_api VALUES (67, 'github.com/go-admin-team/go-admin-core/sdk/pkg/ws.(*Manager).UnWsClient-fm', '退出ws【定时任务log】', '/wslogout/:id/:channel', 'BUS', 'GET', '2021-05-13 19:59:03.756', '2021-06-13 20:53:50.209', NULL, 0, 0);
 INSERT INTO sys_api VALUES (68, 'go-admin/common/middleware/handler.Ping', '*用户基本信息', '/info', 'SYS', 'GET', '2021-05-13 19:59:03.800', '2021-06-13 20:53:50.251', NULL, 0, 0);
@@ -252,6 +451,9 @@ INSERT INTO sys_menu VALUES (531, '', '修改接口', 'app-group-fill', '', '/0/
 INSERT INTO sys_menu VALUES (537, 'SysTools', '系统工具', 'system-tools', '/sys-tools', '', 'M', '', '', 0, false, '', 'Layout', 30, '0', '1', 1, 1, '2021-05-21 11:13:32.166', '2021-06-16 21:26:12.446', NULL);
 INSERT INTO sys_menu VALUES (540, 'SysConfigSet', '参数设置', 'system-tools', '/admin/sys-config/set', '', 'C', '', 'admin:sysConfigSet:list', 2, false, '', '/admin/sys-config/set', 0, '0', '1', 1, 1, '2021-05-25 16:06:52.560', '2021-06-17 11:48:40.703', NULL);
 INSERT INTO sys_menu VALUES (542, '', '修改', 'upload', '', '', 'F', '', 'admin:sysConfigSet:update', 540, false, '', '', 0, '0', '1', 1, 1, '2021-06-13 11:45:48.670', '2021-06-17 11:48:40.703', NULL);
+INSERT INTO sys_menu VALUES (680, 'WorkflowCenter', '流程中心', 'ant-design:deployment-unit-outlined', '/platform/workflow', '/0/537/680', 'M', '', '', 537, false, '', 'RouteView', 20, '0', 1, 1, '2026-03-27 00:00:00.000', '2026-03-27 00:00:00.000', NULL);
+INSERT INTO sys_menu VALUES (681, 'WorkflowTodo', '我的待办', 'ant-design:unordered-list-outlined', '/platform/workflow/todo', '/0/537/680/681', 'C', '', 'platform:workflow:todo:list', 680, false, '', '/platform/workflow/todo/index', 10, '0', 1, 1, '2026-03-27 00:00:00.000', '2026-03-27 00:00:00.000', NULL);
+INSERT INTO sys_menu VALUES (682, 'WorkflowStarted', '我发起的', 'ant-design:send-outlined', '/platform/workflow/started', '/0/537/680/682', 'C', '', 'platform:workflow:started:list', 680, false, '', '/platform/workflow/started/index', 20, '0', 1, 1, '2026-03-27 00:00:00.000', '2026-03-27 00:00:00.000', NULL);
 INSERT INTO sys_menu_api_rule VALUES (216, 6);
 INSERT INTO sys_menu_api_rule VALUES (250, 6);
 INSERT INTO sys_menu_api_rule VALUES (58, 21);
@@ -325,4 +527,5 @@ INSERT INTO sys_post VALUES (3, '首席运营官', 'COO', 3, '2','测试工程�
 INSERT INTO sys_role VALUES (1, '系统管理员', '2', 'admin', 1, '', '', true, '', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL);
 INSERT INTO sys_user VALUES (1, 'admin', '$2a$10$/Glr4g9Svr6O0kvjsRJCXu3f0W8/dsP3XZyVNi1019ratWpSPMyw.', 'zhangwj', '13818888888', 1, '', '', '1', '1@qq.com', 1, 1, '', '2', 1, 1, '2021-05-13 19:56:37.914', '2021-05-13 19:56:40.205', NULL);
 INSERT INTO sys_user_role (user_id, role_id, is_primary, created_at, updated_at) VALUES (1, 1, 1, '2021-05-13 19:56:37.914', '2021-05-13 19:56:40.205');
+INSERT INTO module_registry VALUES (1, 'finance-budget', '财务预算管控', '/finance/budget', 'finance:budget', '2', 10, '首个真实业务模块接入样板', 'finance-budget', 1, 1, '2026-03-27 00:00:00.000', '2026-03-27 00:00:00.000', NULL);
 -- 数据完成 ;

@@ -9,6 +9,7 @@ import (
 	log "github.com/go-admin-team/go-admin-core/logger"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg"
 	"github.com/go-admin-team/go-admin-core/sdk/service"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	"go-admin/common/actions"
@@ -179,6 +180,31 @@ func (e *SysUser) UpdateAvatar(c *dto.UpdateSysUserAvatarReq, p *actions.DataPer
 	return nil
 }
 
+// UpdateProfile 更新个人资料
+func (e *SysUser) UpdateProfile(c *dto.UpdateSysUserProfileReq, p *actions.DataPermission) error {
+	var err error
+	var model models.SysUser
+	db := e.Orm.Scopes(
+		actions.Permission(model.TableName(), p),
+	).First(&model, c.GetId())
+	if err = db.Error; err != nil {
+		e.Log.Errorf("Service UpdateProfile error: %s", err)
+		return err
+	}
+	if db.RowsAffected == 0 {
+		return errors.New("无权更新该数据")
+	}
+	c.Generate(&model)
+	err = e.Orm.Table(model.TableName()).
+		Where("user_id = ?", c.UserId).
+		Updates(map[string]interface{}{"introduction": model.Introduction}).Error
+	if err != nil {
+		e.Log.Errorf("Service UpdateProfile error: %s", err)
+		return err
+	}
+	return nil
+}
+
 // UpdateStatus 更新用户状态
 func (e *SysUser) UpdateStatus(c *dto.UpdateSysUserStatusReq, p *actions.DataPermission) error {
 	var err error
@@ -216,8 +242,18 @@ func (e *SysUser) ResetPwd(c *dto.ResetSysUserPwdReq, p *actions.DataPermission)
 	if db.RowsAffected == 0 {
 		return errors.New("无权更新该数据")
 	}
-	c.Generate(&model)
-	err = e.Orm.Omit("username", "nick_name", "phone", "role_id", "avatar", "sex").Save(&model).Error
+	var hash []byte
+	if hash, err = bcrypt.GenerateFromPassword([]byte(c.Password), bcrypt.DefaultCost); err != nil {
+		e.Log.Errorf("generate password hash error: %s", err)
+		return err
+	}
+	err = e.Orm.Model(&models.SysUser{}).
+		Where("user_id = ?", c.UserId).
+		Updates(map[string]interface{}{
+			"password":  string(hash),
+			"salt":      "",
+			"update_by": c.UpdateBy,
+		}).Error
 	if err != nil {
 		e.Log.Errorf("At Service ResetSysUserPwd error: %s", err)
 		return err
@@ -276,14 +312,20 @@ func (e *SysUser) UpdatePwd(id int, oldPassword, newPassword string, p *actions.
 		return err
 	}
 	if !ok {
-		err = errors.New("incorrect Password")
+		err = errors.New("旧密码错误")
 		e.Log.Warnf("user[%d] %s", id, err.Error())
 		return err
 	}
-	c.Password = newPassword
-	db := e.Orm.Model(c).Where("user_id = ?", id).
-		Select("Password", "Salt").
-		Updates(c)
+	var hash []byte
+	if hash, err = bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost); err != nil {
+		e.Log.Errorf("generate password hash error: %s", err)
+		return err
+	}
+	db := e.Orm.Model(&models.SysUser{}).Where("user_id = ?", id).
+		Updates(map[string]interface{}{
+			"password": string(hash),
+			"salt":     "",
+		})
 	if err = db.Error; err != nil {
 		e.Log.Errorf("db error: %s", err)
 		return err

@@ -15,6 +15,9 @@ const (
 	AuditActionStart    = audit.ActionStart
 	AuditActionStop     = audit.ActionStop
 	AuditActionRun      = audit.ActionRun
+	AuditActionApprove  = audit.ActionApprove
+	AuditActionReject   = audit.ActionReject
+	AuditActionWithdraw = audit.ActionWithdraw
 )
 
 const (
@@ -29,6 +32,8 @@ const (
 	AuditCategoryDictType       = audit.CategoryDictType
 	AuditCategoryDictData       = audit.CategoryDictData
 	AuditCategoryJob            = audit.CategoryJob
+	AuditCategoryWorkflow       = audit.CategoryWorkflow
+	AuditCategoryModule         = audit.CategoryModule
 )
 
 const (

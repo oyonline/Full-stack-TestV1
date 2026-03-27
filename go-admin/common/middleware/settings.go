@@ -28,6 +28,7 @@ var CasbinExclude = []UrlInfo{
 	{Url: "/api/v1/configKey/:configKey", Method: "GET"},
 	{Url: "/api/v1/app-config", Method: "GET"},
 	{Url: "/api/v1/user/profile", Method: "GET"},
+	{Url: "/api/v1/user/profile", Method: "PUT"},
 	{Url: "/info", Method: "GET"},
 	{Url: "/api/v1/login", Method: "POST"},
 	{Url: "/api/v1/logout", Method: "POST"},

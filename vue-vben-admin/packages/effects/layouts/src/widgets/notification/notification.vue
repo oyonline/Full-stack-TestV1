@@ -24,6 +24,18 @@ interface Props {
    * 消息列表
    */
   notifications?: NotificationItem[];
+  /**
+   * 占位标题
+   */
+  placeholderTitle?: string;
+  /**
+   * 占位说明
+   */
+  placeholderDescription?: string;
+  /**
+   * 是否仅保留占位
+   */
+  placeholderOnly?: boolean;
 }
 
 defineOptions({ name: 'NotificationPopup' });
@@ -31,6 +43,9 @@ defineOptions({ name: 'NotificationPopup' });
 withDefaults(defineProps<Props>(), {
   dot: false,
   notifications: () => [],
+  placeholderDescription: '',
+  placeholderOnly: false,
+  placeholderTitle: '',
 });
 
 const emit = defineEmits<{
@@ -107,6 +122,7 @@ function navigateTo(
       <div class="flex items-center justify-between p-4 py-3">
         <div class="text-foreground">{{ $t('ui.widgets.notifications') }}</div>
         <VbenIconButton
+          v-if="!placeholderOnly"
           :disabled="notifications.length <= 0"
           :tooltip="$t('ui.widgets.markAllAsRead')"
           @click="handleMakeAll"
@@ -172,6 +188,17 @@ function navigateTo(
         </ul>
       </VbenScrollbar>
 
+      <template v-else-if="placeholderOnly">
+        <div class="flex min-h-[150px] w-full flex-col items-start justify-center gap-2 px-4 py-5">
+          <div class="text-sm font-medium text-foreground">
+            {{ placeholderTitle || $t('ui.widgets.notifications') }}
+          </div>
+          <div class="text-xs leading-6 text-muted-foreground">
+            {{ placeholderDescription }}
+          </div>
+        </div>
+      </template>
+
       <template v-else>
         <div class="flex-center min-h-[150px] w-full text-muted-foreground">
           {{ $t('common.noData') }}
@@ -179,6 +206,7 @@ function navigateTo(
       </template>
 
       <div
+        v-if="!placeholderOnly"
         class="flex items-center justify-between border-t border-border px-4 py-3"
       >
         <VbenButton

@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"go-admin/app/admin/models"
 	"go-admin/common/authctx"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
 
@@ -292,6 +291,54 @@ func (e SysUser) InsetAvatar(c *gin.Context) {
 	e.OK(filPath, "修改成功")
 }
 
+// UpdateProfile
+// @Summary 修改个人资料
+// @Description 获取JSON
+// @Tags 个人中心
+// @Accept  application/json
+// @Product application/json
+// @Param data body dto.UpdateSysUserProfileReq true "body"
+// @Success 200 {object} response.Response "{"code": 200, "data": [...]}"
+// @Router /api/v1/user/profile [put]
+// @Security Bearer
+func (e SysUser) UpdateProfile(c *gin.Context) {
+	s := service.SysUser{}
+	req := dto.UpdateSysUserProfileReq{}
+	err := e.MakeContext(c).
+		MakeOrm().
+		Bind(&req, binding.JSON).
+		MakeService(&s.Service).
+		Errors
+	if err != nil {
+		e.Logger.Error(err)
+		e.Error(500, err, err.Error())
+		return
+	}
+
+	p := actions.GetPermissionFromContext(c)
+	req.UserId = user.GetUserId(c)
+	req.SetUpdateBy(req.UserId)
+
+	err = s.UpdateProfile(&req, p)
+	if err != nil {
+		e.Logger.Error(err)
+		e.Error(http.StatusForbidden, err, "个人资料保存失败")
+		return
+	}
+	middleware.SetAuditMeta(c, middleware.AuditMeta{
+		Title:         "个人中心",
+		BusinessType:  middleware.AuditActionUpdate,
+		BusinessTypes: middleware.AuditCategoryUser,
+		Method:        "admin.sysUser.updateProfile",
+		OperatorType:  middleware.AuditOperatorManage,
+		Remark: middleware.AuditSummary(
+			middleware.AuditKV("用户ID", req.UserId),
+			middleware.AuditKV("个人简介", req.Introduction),
+		),
+	})
+	e.OK(nil, "保存成功")
+}
+
 // UpdateStatus 修改用户状态
 // @Summary 修改用户状态
 // @Description 获取JSON
@@ -414,14 +461,14 @@ func (e SysUser) UpdatePwd(c *gin.Context) {
 
 	// 数据权限检查
 	p := actions.GetPermissionFromContext(c)
-	var hash []byte
-	if hash, err = bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost); err != nil {
-		req.NewPassword = string(hash)
-	}
 
 	err = s.UpdatePwd(user.GetUserId(c), req.OldPassword, req.NewPassword, p)
 	if err != nil {
 		e.Logger.Error(err)
+		if err.Error() == "旧密码错误" {
+			e.Error(http.StatusForbidden, err, err.Error())
+			return
+		}
 		e.Error(http.StatusForbidden, err, "密码修改失败")
 		return
 	}
@@ -519,7 +566,7 @@ func (e SysUser) GetInfo(c *gin.Context) {
 		e.Error(http.StatusUnauthorized, err, "登录失败")
 		return
 	}
-	mp["introduction"] = " am a super administrator"
+	mp["introduction"] = sysUser.Introduction
 	mp["avatar"] = "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif"
 	if sysUser.Avatar != "" {
 		mp["avatar"] = sysUser.Avatar

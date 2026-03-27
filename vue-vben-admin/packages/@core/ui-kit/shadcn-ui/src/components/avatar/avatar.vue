@@ -18,6 +18,8 @@ interface Props extends AvatarFallbackProps, AvatarImageProps, AvatarRootProps {
   class?: ClassType;
   dot?: boolean;
   dotClass?: ClassType;
+  fallbackClass?: ClassType;
+  fallbackStyle?: CSSProperties;
   fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
   size?: number;
 }
@@ -64,7 +66,9 @@ const rootStyle = computed(() => {
   >
     <Avatar :class="props.class" class="size-full">
       <AvatarImage :alt="alt" :src="src" :style="imageStyle" />
-      <AvatarFallback>{{ text }}</AvatarFallback>
+      <AvatarFallback :class="fallbackClass" :style="fallbackStyle">
+        {{ text }}
+      </AvatarFallback>
     </Avatar>
     <span
       v-if="dot"

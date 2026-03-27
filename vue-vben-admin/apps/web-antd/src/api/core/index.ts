@@ -1,3 +1,4 @@
+export * from './attachment';
 export * from './auth';
 export * from './config';
 export * from './dept';
@@ -12,3 +13,4 @@ export * from './role';
 export * from './sys-api';
 export * from './user';
 export * from './server-monitor';
+export * from './workflow';
