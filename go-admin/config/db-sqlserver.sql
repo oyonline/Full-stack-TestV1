@@ -341,4 +341,5 @@ INSERT INTO sys_post (post_id, post_name, post_code, sort, status, remark, creat
 INSERT INTO sys_role (role_id, role_name, status, role_key, role_sort, flag, remark, admin, data_scope, create_by, update_by, created_at, updated_at, deleted_at)VALUES 
 (1, '系统管理员', '2', 'admin', 1, '', '', 1, '', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL);
 INSERT INTO sys_user VALUES (1, 'admin', '$2a$10$/Glr4g9Svr6O0kvjsRJCXu3f0W8/dsP3XZyVNi1019ratWpSPMyw.', 'zhangwj', '13818888888', 1, '', '', '1', '1@qq.com', 1, 1, '', '2', 1, 1, '2021-05-13 19:56:37.914', '2021-05-13 19:56:40.205', NULL);
+INSERT INTO sys_user_role (user_id, role_id, is_primary, created_at, updated_at) VALUES (1, 1, 1, '2021-05-13 19:56:37.914', '2021-05-13 19:56:40.205');
 -- 数据完成 ;

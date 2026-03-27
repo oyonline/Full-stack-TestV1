@@ -323,7 +323,6 @@ onMounted(() => {
       维护系统字典类型定义，统一收口搜索区、操作区和表格区的视觉层级。
     </template>
     <template #header-extra>
-      <Button @click="fetchList">刷新</Button>
       <AdminActionButton
         type="primary"
         codes="admin:sysDictType:add"
@@ -366,9 +365,6 @@ onMounted(() => {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">字典类型列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          用于维护字典名称、类型标识和当前状态，保持后续字典数据页引用一致。
-        </p>
       </div>
     </template>
 

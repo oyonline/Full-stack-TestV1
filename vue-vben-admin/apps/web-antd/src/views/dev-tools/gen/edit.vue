@@ -322,7 +322,7 @@ watch(
 </script>
 
 <template>
-  <AdminPageShell>
+  <AdminPageShell header-mode="compact">
     <template #eyebrow>DEV TOOLS</template>
     <template #title>代码生成配置</template>
     <template #description>

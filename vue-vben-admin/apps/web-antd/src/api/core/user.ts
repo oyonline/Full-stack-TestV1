@@ -14,6 +14,12 @@ interface GoAdminGetInfoData {
   introduction?: string;
   name?: string;
   permissions?: string[];
+  primaryRoleId?: number;
+  primaryRoleKey?: string;
+  primaryRoleName?: string;
+  roleIds?: number[];
+  roleKeys?: string[];
+  roleNames?: string[];
   roles?: string[];
   userId?: number;
   userName?: string;
@@ -39,10 +45,14 @@ export async function getUserInfoApi(): Promise<UserInfo> {
     realName: d.name ?? '',
     avatar: d.avatar ?? '',
     userId: d.userId != null ? String(d.userId) : '',
-    roles: d.roles ?? [],
+    roles: d.primaryRoleName ? [d.primaryRoleName] : (d.roles ?? []),
     desc: d.introduction ?? '',
     homePath: '/home',
     token: '',
+    ...(d.primaryRoleId != null && { primaryRoleId: d.primaryRoleId }),
+    ...(d.primaryRoleName && { primaryRoleName: d.primaryRoleName }),
+    ...(d.roleIds && { roleIds: d.roleIds }),
+    ...(d.roleNames && { roleNames: d.roleNames }),
     ...(d.permissions && { permissions: d.permissions }),
     ...(d.buttons && { buttons: d.buttons }),
   } as UserInfo;
@@ -56,6 +66,12 @@ export interface SysUserDeptRef {
   deptName?: string;
 }
 
+export interface SysUserRoleRef {
+  roleId: number;
+  roleKey?: string;
+  roleName?: string;
+}
+
 /** 用户列表项（与后端 models.SysUser 对齐） */
 export interface SysUserItem {
   userId: number;
@@ -63,13 +79,16 @@ export interface SysUserItem {
   nickName: string;
   phone: string;
   roleId: number;
+  primaryRoleId?: number;
+  roleIds?: number[];
+  roles?: SysUserRoleRef[];
   avatar?: string;
   sex?: string;
   email?: string;
   deptId: number;
   postId: number;
   remark?: string;
-  status: string; // "0" 停用 "1" 启用
+  status: string; // "2" 启用/正常 "1" 停用/关闭
   dept?: SysUserDeptRef;
   createBy?: number;
   updateBy?: number;
@@ -94,6 +113,7 @@ export interface GetSysUserPageParams {
   phone?: string;
   status?: string;
   roleId?: string;
+  roleIds?: string;
   postId?: string;
   deptId?: string;
 }
@@ -124,6 +144,8 @@ export interface CreateSysUserData {
   phone: string;
   email: string;
   deptId: number;
+  primaryRoleId: number;
+  roleIds: number[];
   roleId?: number;
   postId?: number;
   sex?: string;
@@ -147,6 +169,8 @@ export interface UpdateSysUserData {
   phone: string;
   email: string;
   deptId: number;
+  primaryRoleId: number;
+  roleIds: number[];
   roleId?: number;
   postId?: number;
   sex?: string;

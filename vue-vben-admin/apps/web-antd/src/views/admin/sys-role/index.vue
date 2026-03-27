@@ -487,7 +487,6 @@ onMounted(() => {
       管理角色名称、权限字符与数据范围，树权限表单与列表页统一沿用后台样式骨架。
     </template>
     <template #header-extra>
-      <Button @click="fetchRoleList">刷新</Button>
       <AdminActionButton type="primary" codes="admin:sysRole:add" @click="openAddModal">
         新增角色
       </AdminActionButton>
@@ -526,9 +525,6 @@ onMounted(() => {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">角色列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          支持按角色名称、权限字符和状态筛选，并维护菜单树与部门树权限。
-        </p>
       </div>
     </template>
 

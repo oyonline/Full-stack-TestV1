@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <AdminPageShell>
+  <AdminPageShell header-mode="compact">
     <template #eyebrow>DEV TOOLS</template>
     <template #title>表单构建</template>
     <template #description>

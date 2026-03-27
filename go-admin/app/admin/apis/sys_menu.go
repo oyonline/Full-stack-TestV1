@@ -6,6 +6,7 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/api"
 	"github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth/user"
 	"go-admin/app/admin/models"
+	"go-admin/common/authctx"
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
@@ -232,7 +233,7 @@ func (e SysMenu) GetMenuRole(c *gin.Context) {
 		return
 	}
 
-	result, err := s.SetMenuRole(user.GetRoleName(c))
+	result, err := s.SetMenuRole(authctx.GetPrimaryRoleKey(c))
 
 	if err != nil {
 		e.Error(500, err, "查询失败")

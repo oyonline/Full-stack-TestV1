@@ -395,7 +395,6 @@ onMounted(() => {
       维护字典标签、键值与状态，筛选区与表格区采用统一后台布局，降低列表页的横向拥挤感。
     </template>
     <template #header-extra>
-      <Button @click="fetchList">刷新</Button>
       <AdminActionButton
         type="primary"
         codes="admin:sysDictData:add"
@@ -448,9 +447,6 @@ onMounted(() => {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">字典数据列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          支持按标签、键值和字典类型快速定位数据项，列表与弹窗布局保持统一。
-        </p>
       </div>
     </template>
 

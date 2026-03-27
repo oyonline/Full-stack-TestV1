@@ -224,9 +224,6 @@ onMounted(() => {
     <template #description>
       维护接口标题、路径和请求方式。筛选区按字段重要性重排，避免多个长输入框横向堆满整行。
     </template>
-    <template #header-extra>
-      <Button @click="fetchList">刷新</Button>
-    </template>
     <template #filters>
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <AdminFilterField label="标题">
@@ -278,9 +275,6 @@ onMounted(() => {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">接口列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          支持按标题、地址、请求方式和类型快速定位接口元数据。
-        </p>
       </div>
     </template>
 

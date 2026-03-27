@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"go-admin/app/admin/models"
 	"go-admin/common"
+	"go-admin/common/authctx"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,13 +22,37 @@ func PayloadFunc(data interface{}) jwt.MapClaims {
 	if v, ok := data.(map[string]interface{}); ok {
 		u, _ := v["user"].(SysUser)
 		r, _ := v["role"].(SysRole)
+		roles, _ := v["roles"].([]SysRole)
+		roleIDs := make([]int, 0, len(roles))
+		roleKeys := make([]string, 0, len(roles))
+		roleNames := make([]string, 0, len(roles))
+		for _, role := range roles {
+			roleIDs = append(roleIDs, role.RoleId)
+			roleKeys = append(roleKeys, role.RoleKey)
+			roleNames = append(roleNames, role.RoleName)
+		}
+		if len(roleIDs) == 0 && r.RoleId > 0 {
+			roleIDs = []int{r.RoleId}
+		}
+		if len(roleKeys) == 0 && r.RoleKey != "" {
+			roleKeys = []string{r.RoleKey}
+		}
+		if len(roleNames) == 0 && r.RoleName != "" {
+			roleNames = []string{r.RoleName}
+		}
 		return jwt.MapClaims{
-			jwt.IdentityKey:  u.UserId,
-			jwt.RoleIdKey:    r.RoleId,
-			jwt.RoleKey:      r.RoleKey,
-			jwt.NiceKey:      u.Username,
-			jwt.DataScopeKey: r.DataScope,
-			jwt.RoleNameKey:  r.RoleName,
+			jwt.IdentityKey:   u.UserId,
+			jwt.RoleIdKey:     r.RoleId,
+			jwt.RoleKey:       r.RoleKey,
+			jwt.NiceKey:       u.Username,
+			jwt.DataScopeKey:  r.DataScope,
+			jwt.RoleNameKey:   r.RoleName,
+			"primaryRoleId":   r.RoleId,
+			"primaryRoleKey":  r.RoleKey,
+			"primaryRoleName": r.RoleName,
+			"roleIds":         roleIDs,
+			"roleKeys":        roleKeys,
+			"roleNames":       roleNames,
 		}
 	}
 	return jwt.MapClaims{}
@@ -37,12 +61,17 @@ func PayloadFunc(data interface{}) jwt.MapClaims {
 func IdentityHandler(c *gin.Context) interface{} {
 	claims := jwt.ExtractClaims(c)
 	return map[string]interface{}{
-		"IdentityKey": claims["identity"],
-		"UserName":    claims["nice"],
-		"RoleKey":     claims["rolekey"],
-		"UserId":      claims["identity"],
-		"RoleIds":     claims["roleid"],
-		"DataScope":   claims["datascope"],
+		"IdentityKey":     claims["identity"],
+		"UserName":        claims["nice"],
+		"RoleKey":         claims["rolekey"],
+		"UserId":          claims["identity"],
+		"PrimaryRoleId":   claims["primaryRoleId"],
+		"PrimaryRoleKey":  claims["primaryRoleKey"],
+		"PrimaryRoleName": claims["primaryRoleName"],
+		"RoleIds":         claims["roleIds"],
+		"RoleKeys":        claims["roleKeys"],
+		"RoleNames":       claims["roleNames"],
+		"DataScope":       claims["datascope"],
 	}
 }
 
@@ -91,11 +120,11 @@ func Authenticator(c *gin.Context) (interface{}, error) {
 
 		return nil, jwt.ErrInvalidVerificationode
 	}
-	sysUser, role, e := loginVals.GetUser(db)
+	sysUser, role, roles, e := loginVals.GetUser(db)
 	if e == nil {
 		username = loginVals.Username
 
-		return map[string]interface{}{"user": sysUser, "role": role}, nil
+		return map[string]interface{}{"user": sysUser, "role": role, "roles": roles}, nil
 	} else {
 		msg = "登录失败"
 		status = "1"
@@ -160,13 +189,69 @@ func LogOut(c *gin.Context) {
 func Authorizator(data interface{}, c *gin.Context) bool {
 
 	if v, ok := data.(map[string]interface{}); ok {
-		u, _ := v["user"].(models.SysUser)
-		r, _ := v["role"].(models.SysRole)
-		c.Set("role", r.RoleName)
-		c.Set("roleIds", r.RoleId)
-		c.Set("userId", u.UserId)
-		c.Set("userName", u.Username)
-		c.Set("dataScope", r.DataScope)
+		if primaryRoleName, ok := v["PrimaryRoleName"].(string); ok {
+			c.Set("primaryRoleName", primaryRoleName)
+			c.Set("role", primaryRoleName)
+		}
+		if primaryRoleKey, ok := v["PrimaryRoleKey"].(string); ok {
+			c.Set("primaryRoleKey", primaryRoleKey)
+		}
+		if primaryRoleID, ok := v["PrimaryRoleId"].(float64); ok {
+			c.Set("primaryRoleId", int(primaryRoleID))
+		}
+		switch roleNames := v["RoleNames"].(type) {
+		case []string:
+			c.Set("roleNames", roleNames)
+		case []interface{}:
+			names := make([]string, 0, len(roleNames))
+			for _, item := range roleNames {
+				if value, ok := item.(string); ok && value != "" {
+					names = append(names, value)
+				}
+			}
+			c.Set("roleNames", names)
+		}
+		switch roleKeys := v["RoleKeys"].(type) {
+		case []string:
+			c.Set("roleKeys", roleKeys)
+		case []interface{}:
+			keys := make([]string, 0, len(roleKeys))
+			for _, item := range roleKeys {
+				if value, ok := item.(string); ok && value != "" {
+					keys = append(keys, value)
+				}
+			}
+			c.Set("roleKeys", keys)
+		}
+		switch roleIDs := v["RoleIds"].(type) {
+		case []int:
+			c.Set("roleIds", roleIDs)
+		case []interface{}:
+			ids := make([]int, 0, len(roleIDs))
+			for _, item := range roleIDs {
+				switch value := item.(type) {
+				case float64:
+					ids = append(ids, int(value))
+				case int:
+					ids = append(ids, value)
+				}
+			}
+			c.Set("roleIds", ids)
+		case float64:
+			c.Set("roleIds", []int{int(roleIDs)})
+		}
+		if userID, ok := v["UserId"].(float64); ok {
+			c.Set("userId", int(userID))
+		}
+		if userName, ok := v["UserName"].(string); ok {
+			c.Set("userName", userName)
+		}
+		if dataScope, ok := v["DataScope"].(string); ok {
+			c.Set("dataScope", dataScope)
+		}
+		if len(authctx.GetRoleIDs(c)) == 0 {
+			return false
+		}
 		return true
 	}
 	return false

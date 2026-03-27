@@ -80,10 +80,6 @@ const {
   fetcher: async (params) => getDeptListApi(params),
 });
 
-function onRefresh() {
-  void fetchList();
-}
-
 onMounted(() => {
   void fetchList();
 });
@@ -337,7 +333,6 @@ function onDelete(record: SysDeptItem) {
       弹窗统一使用后台页面样式骨架。
     </template>
     <template #header-extra>
-      <Button @click="onRefresh">刷新</Button>
       <AdminActionButton type="primary" codes="admin:sysDept:add" @click="onAdd">
         新增部门
       </AdminActionButton>
@@ -369,9 +364,6 @@ function onDelete(record: SysDeptItem) {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">部门树列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          通过树形表格维护部门层级、负责人和联系方式，编辑弹窗统一为双列排版。
-        </p>
       </div>
     </template>
 

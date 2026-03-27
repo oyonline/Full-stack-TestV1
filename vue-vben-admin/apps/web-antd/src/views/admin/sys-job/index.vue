@@ -440,7 +440,6 @@ onMounted(() => {
       统一维护任务名称、分组、调用目标和状态。列表页收口为标准搜索网格，操作区和表格层级更清晰。
     </template>
     <template #header-extra>
-      <Button @click="fetchList">刷新</Button>
       <AdminActionButton
         type="primary"
         codes="job:sysJob:add"
@@ -489,9 +488,6 @@ onMounted(() => {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">任务列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          可查看任务状态、Cron 表达式和执行策略，并进行启动、停止和删除操作。
-        </p>
       </div>
     </template>
 

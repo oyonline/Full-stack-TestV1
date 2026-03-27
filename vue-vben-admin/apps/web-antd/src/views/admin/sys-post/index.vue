@@ -387,11 +387,7 @@ onMounted(() => {
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">岗位列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          查看岗位状态、排序和编码，支持新增、编辑与删除操作。
-        </p>
       </div>
-      <Button @click="fetchPostList">刷新</Button>
     </template>
 
     <AdminErrorAlert :message="errorMsg" />

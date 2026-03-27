@@ -638,7 +638,6 @@ const columns: TableColumnType[] = [
       管理菜单层级、组件映射和权限标识。树形页沿用统一的页头、筛选区和表格卡片结构。
     </template>
     <template #header-extra>
-      <Button @click="fetchMenuList">刷新</Button>
       <AdminActionButton type="primary" codes="admin:sysMenu:add" @click="onAdd">
         新增菜单
       </AdminActionButton>
@@ -669,9 +668,6 @@ const columns: TableColumnType[] = [
     <template #toolbar>
       <div>
         <div class="text-base font-semibold text-slate-900">菜单树列表</div>
-        <p class="mt-1 text-sm text-slate-500">
-          重点查看菜单层级、组件路径和接口绑定关系，树表和编辑弹窗的样式统一收口。
-        </p>
       </div>
     </template>
 

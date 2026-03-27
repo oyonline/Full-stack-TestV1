@@ -5,6 +5,10 @@ export interface SmokeAccount {
   username: string;
 }
 
+export interface LoginApiResult {
+  accessToken: string;
+}
+
 interface CaptchaPayload {
   answer?: string;
   code?: number;
@@ -30,6 +34,10 @@ const DEFAULT_API_BASE_URL =
 
 export function getSmokeAccount(): SmokeAccount {
   return DEFAULT_ACCOUNT;
+}
+
+export function getApiBaseUrl() {
+  return DEFAULT_API_BASE_URL;
 }
 
 function attachDebugListeners(page: Page) {
@@ -150,6 +158,35 @@ async function fetchCaptcha(
     rawBody,
     responseHeaders: response.headers(),
     status: response.status(),
+  };
+}
+
+export async function loginByApi(
+  request: APIRequestContext,
+  account: SmokeAccount = DEFAULT_ACCOUNT,
+): Promise<LoginApiResult> {
+  const captchaFixture = await fetchCaptcha(request);
+  const response = await request.post(`${DEFAULT_API_BASE_URL}/api/v1/login`, {
+    data: {
+      code: String(captchaFixture.payload.answer),
+      password: account.password,
+      username: account.username,
+      uuid: captchaFixture.payload.id,
+    },
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const body = (await response.json()) as {
+    code?: number;
+    msg?: string;
+    token?: string;
+  };
+  expect(body.code, body.msg || '登录失败').toBe(200);
+  expect(body.token).toBeTruthy();
+  return {
+    accessToken: body.token!,
   };
 }
 
