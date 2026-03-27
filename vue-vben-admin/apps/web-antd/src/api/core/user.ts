@@ -58,6 +58,27 @@ export async function getUserInfoApi(): Promise<UserInfo> {
   } as UserInfo;
 }
 
+export interface UpdateUserProfileData {
+  introduction: string;
+}
+
+export async function updateUserProfile(
+  data: UpdateUserProfileData,
+): Promise<void> {
+  return requestClient.put('/v1/user/profile', data);
+}
+
+export interface UpdateUserPasswordData {
+  newPassword: string;
+  oldPassword: string;
+}
+
+export async function updateUserPassword(
+  data: UpdateUserPasswordData,
+): Promise<void> {
+  return requestClient.put('/v1/user/pwd/set', data);
+}
+
 // --------------- 用户管理 CRUD（/v1/sys-user） ---------------
 
 /** 部门简要（列表中的 dept 关联） */

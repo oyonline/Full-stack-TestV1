@@ -144,3 +144,10 @@ pnpm test:e2e
 ## 文档
 
 - 脚手架使用说明：[docs/scaffold-guide.md](/Users/linshen/Desktop/Full-stack-TestV1/docs/scaffold-guide.md)
+- 项目记忆入口：[.ai-memory/README.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/README.md)
+- 项目关键决策：[.ai-memory/project-decisions.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/project-decisions.md)
+- 前后端协议：[.ai-memory/backend-frontend-contracts.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/backend-frontend-contracts.md)
+- 已知问题：[.ai-memory/known-issues.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/known-issues.md)
+- 排查手册：[.ai-memory/runbooks.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/runbooks.md)
+- 模块地图：[.ai-memory/module-map.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/module-map.md)
+- 后端配置说明：[go-admin/config/README.md](/Users/linshen/Desktop/Full-stack-TestV1/go-admin/config/README.md)

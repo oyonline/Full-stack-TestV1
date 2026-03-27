@@ -36,6 +36,14 @@ interface Props {
    */
   avatar?: string;
   /**
+   * 头像回退文本
+   */
+  avatarText?: string;
+  /**
+   * 头像默认背景色
+   */
+  avatarBackgroundColor?: string;
+  /**
    * @zh_CN 描述
    */
   description?: string;
@@ -72,6 +80,8 @@ defineOptions({
 
 const props = withDefaults(defineProps<Props>(), {
   avatar: '',
+  avatarBackgroundColor: '',
+  avatarText: '',
   description: '',
   enableShortcutKey: true,
   menus: () => [],
@@ -131,6 +141,18 @@ const enableShortcutKey = computed(() => {
   return props.enableShortcutKey && preferences.shortcutKeys.enable;
 });
 
+const avatarAlt = computed(() => props.avatarText || props.text);
+
+const avatarFallbackStyle = computed(() => {
+  if (!props.avatarBackgroundColor || props.avatar) {
+    return undefined;
+  }
+  return {
+    backgroundColor: props.avatarBackgroundColor,
+    color: '#ffffff',
+  };
+});
+
 function handleOpenLock() {
   lockModalApi.open();
 }
@@ -149,6 +171,11 @@ function handleLogout() {
 function handleSubmitLogout() {
   emit('logout');
   logoutModalApi.close();
+}
+
+async function handleMenuClick(handler: AnyFunction) {
+  openPopover.value = false;
+  await handler();
 }
 
 if (enableShortcutKey.value) {
@@ -190,9 +217,15 @@ if (enableShortcutKey.value) {
 
   <DropdownMenu v-model:open="openPopover">
     <DropdownMenuTrigger ref="refTrigger" :disabled="props.trigger === 'hover'">
-      <div class="mr-2 ml-1 cursor-pointer rounded-full p-1.5 hover:bg-accent">
-        <div class="flex-center hover:text-accent-foreground">
-          <VbenAvatar :alt="text" :src="avatar" class="size-8" dot />
+        <div class="mr-2 ml-1 cursor-pointer rounded-full p-1.5 hover:bg-accent">
+          <div class="flex-center hover:text-accent-foreground">
+            <VbenAvatar
+              :alt="avatarAlt"
+              :fallback-style="avatarFallbackStyle"
+              :src="avatar"
+              class="size-8"
+              dot
+            />
         </div>
       </div>
     </DropdownMenuTrigger>
@@ -200,7 +233,8 @@ if (enableShortcutKey.value) {
       <div ref="refContent">
         <DropdownMenuLabel class="flex items-center p-3">
           <VbenAvatar
-            :alt="text"
+            :alt="avatarAlt"
+            :fallback-style="avatarFallbackStyle"
             :src="avatar"
             class="size-12"
             dot
@@ -228,7 +262,7 @@ if (enableShortcutKey.value) {
           v-for="menu in menus"
           :key="menu.text"
           class="mx-1 flex cursor-pointer items-center rounded-sm py-1 leading-8"
-          @click="menu.handler"
+          @click.stop="handleMenuClick(menu.handler)"
         >
           <VbenIcon :icon="menu.icon" class="mr-2 size-4" />
           {{ menu.text }}
@@ -237,7 +271,7 @@ if (enableShortcutKey.value) {
         <DropdownMenuItem
           v-if="preferences.widget.lockScreen"
           class="mx-1 flex cursor-pointer items-center rounded-sm py-1 leading-8"
-          @click="handleOpenLock"
+          @click.stop="handleOpenLock"
         >
           <LockKeyhole class="mr-2 size-4" />
           {{ $t('ui.widgets.lockScreen.title') }}
@@ -248,7 +282,7 @@ if (enableShortcutKey.value) {
         <DropdownMenuSeparator v-if="preferences.widget.lockScreen" />
         <DropdownMenuItem
           class="mx-1 flex cursor-pointer items-center rounded-sm py-1 leading-8"
-          @click="handleLogout"
+          @click.stop="handleLogout"
         >
           <LogOut class="mr-2 size-4" />
           {{ $t('common.logout') }}

@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import type { VbenFormSchema } from '#/adapter/form';
+import type { UpdateUserPasswordData } from '#/api/core';
 
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import { ProfilePasswordSetting, z } from '@vben/common-ui';
 
 import { message } from 'ant-design-vue';
+
+import { updateUserPassword } from '#/api/core';
+
+const submitting = ref(false);
 
 const formSchema = computed((): VbenFormSchema[] => {
   return [
@@ -50,8 +55,23 @@ const formSchema = computed((): VbenFormSchema[] => {
   ];
 });
 
-function handleSubmit() {
-  message.success('密码修改成功');
+async function handleSubmit(values: Record<string, any>) {
+  if (submitting.value) {
+    return;
+  }
+  const payload: UpdateUserPasswordData = {
+    oldPassword: values.oldPassword ?? '',
+    newPassword: values.newPassword ?? '',
+  };
+  try {
+    submitting.value = true;
+    await updateUserPassword(payload);
+    message.success('密码修改成功');
+  } catch (error: any) {
+    message.error(error?.message || error?.response?.data?.msg || '密码修改失败');
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 <template>
