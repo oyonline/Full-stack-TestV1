@@ -146,3 +146,62 @@ docs/               # VitePress 文档
 - **pre-commit 钩子**（lefthook）：自动对暂存文件执行 prettier + eslint + stylelint，推荐使用 `pnpm commit`（czg）提交。
 - **新增页面**：在 `src/views/` 下创建 `.vue` 文件，在 `src/router/routes/modules/` 下添加路由模块；若使用 backend 模式，还需确保后端接口返回对应菜单数据。
 - **国际化**：统一使用 `$t('key')`，locale 文件位于 `packages/locales/`，项目级国际化文件位于 `src/locales/langs`。
+
+---
+
+## 改动记录
+
+### 2026-03-28 圆角偏好设置与列表框架样式优化
+
+**改动目标**：解决参数设置中的"外观/圆角"设置对列表页面框架不生效的问题，并优化列表页面视觉风格。
+
+**改动详情**：
+
+#### 1. 新增 `app-radius-panel` 圆角类（packages/styles/src/antd/index.css、packages/styles/src/antdv-next/index.css）
+- 添加 `.app-radius-panel { border-radius: var(--radius); }`
+- 使使用该类名的面板能够响应偏好设置中的圆角变化
+
+#### 2. Ant Design Vue 组件圆角适配（packages/styles/src/antd/index.css、packages/styles/src/antdv-next/index.css）
+- 覆盖基础变量：`--ant-border-radius`、`--ant-border-radius-lg/sm/xs`
+- 适配组件：Card、Modal、Table、Button、Input、Select、DatePicker、Tag、Badge、Alert、Message、Notification、Popover、Tooltip、Dropdown、Menu、Pagination、Steps、Tabs、Form 等
+- 使用 `var(--radius)` 或 `calc(var(--radius) - 2px)` 等计算值确保各组件圆角协调
+
+#### 3. 列表框架视觉优化（apps/web-antd/src/components/admin/page-shell.vue）
+- 筛选区和表格区的容器样式从 `border border-slate-200 bg-white shadow-sm` 改为 `bg-white shadow-sm`
+- 移除灰色边框，保留阴影，使列表页面更干净清爽
+- 与系统设置页面的卡片风格保持一致
+
+**影响范围**：
+- 所有使用 `AdminPageShell` 的列表页面（用户管理、角色管理等）
+- 所有使用 `app-radius-panel` 类的面板（系统设置、字典管理、首页等）
+- 所有 Ant Design Vue 组件的圆角表现
+
+**验证方式**：
+1. 打开偏好设置 → 外观 → 圆角，切换不同值
+2. 观察列表页面框架、Ant Design Vue 组件的圆角变化
+3. 列表页面边框已去除，呈现干净的白底阴影卡片风格
+
+---
+
+### 2026-03-28 首页改为开发中占位页面
+
+**改动目标**：首页原内容为开发测试导向，改为简洁的"开发中"占位页面，待后续规划 Dashboard 功能。
+
+**改动详情**：
+
+#### 1. 首页内容替换（apps/web-antd/src/views/home/index.vue）
+- 保留蓝色渐变欢迎头部（含系统名称、欢迎语、当前日期、用户信息）
+- 移除原快捷入口、今日建议、快速开始等开发测试内容
+- 移除原状态卡片（权限模式/开发链路/登录校验），改为简洁的用户信息展示
+- 新增开发中占位区域：
+  - 🚧 图标 + "首页功能开发中" 标题
+  - "预计上线时间：待定" 提示
+  - 辅助说明文字
+  - "前往用户管理" 快捷按钮
+
+**影响范围**：仅首页（/home）视觉呈现
+
+**验证方式**：
+1. 访问首页，确认显示开发中占位页面
+2. 点击"前往用户管理"按钮可正常跳转
+3. 头部欢迎信息（用户名、日期）正常显示

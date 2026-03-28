@@ -8,6 +8,6 @@
 
 当前请以这些文档为准：
 
-- [项目关键决策](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/project-decisions.md)
-- [前后端协议](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/backend-frontend-contracts.md)
-- [模块地图](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/module-map.md)
+- [项目关键决策](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/project-decisions.md)
+- [前后端协议](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/backend-frontend-contracts.md)
+- [模块地图](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/module-map.md)

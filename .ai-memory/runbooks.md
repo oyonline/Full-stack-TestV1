@@ -1,5 +1,10 @@
 # 排查手册
 
+说明：
+
+- 这份手册以“当前排查顺序”为主，不单独替代代码真相源。
+- 如果某条手册提到的 migration 或文件尚未进入已提交历史，那它只能视为本地联调提示。
+
 ## 登录失败排查
 
 先查顺序：
@@ -29,6 +34,25 @@
 - 分组菜单用 `RouteView`
 - 承接静态页用 `IFrameView`
 - 真实页面必须能映射到 `src/views`
+
+## 字典管理链路排查
+
+先查：
+
+1. 左侧导航下是否只剩 `字典类型`
+2. `sys_menu` 中是否已不存在 `menu_id = 59`、`menu_id = 240`
+3. `sys_menu` 中 `241/242/243` 的 `parent_id` 是否已是 `543`
+4. `sys_menu_api_rule` 是否已补齐：
+   - `543 -> 24`
+   - `236 -> 24`
+5. `sys_migration` 是否已有 `1775300000000`
+6. 旧地址 `/admin/sys-dict-data` 是否已回到 `/admin/sys-dict-type`
+
+经验规则：
+
+- 当前正式产品形态是“字典类型目录页 -> 字典类型详情页”。
+- 如果再次看到“全部字典数据”出现在左侧导航，优先怀疑旧菜单种子、旧批处理脚本或本地库状态回滚，而不是先改前端路由。
+- 当前类型下的数据读取权限已并入字典类型查看权限，不要再试图恢复 `admin:sysDictData:list/query` 作为正式产品权限。
 
 ## 点击无响应排查
 
@@ -96,18 +120,102 @@
 
 如果用户列表报反射错误，先查用户查询 DTO 是否新增了未标注 `search:"-"` 的普通字符串字段。
 
+## 左侧导航缺失排查
+
+先查：
+
+1. `sys_menu` 是否为空
+2. `sys_user` / `sys_role` / `sys_user_role` 是否至少有 `admin` 这套基础数据
+3. `sys_migration` 是否有完整版本记录
+4. 重新登录后 `/api/v1/menurole` 是否仍返回空
+
+经验规则：
+
+- 本项目里“首页能进但没有左侧导航”优先怀疑数据库未初始化完整。
+- `admin` 角色菜单是后端按管理员特例直接从 `sys_menu` 取，不依赖先补前端假数据。
+
+## 数据库初始化修复
+
+推荐顺序：
+
+1. 备份当前本地库
+2. 检查 [settings.dev.yml](/Users/linshen/Cursor/Full-stack-TestV1/go-admin/config/settings.dev.yml) 是否仍指向本地 MySQL
+3. 重新编译后端二进制
+4. 执行数据库迁移
+5. 核对基础表和迁移版本
+6. 再启动后端与前端联调
+
+建议命令：
+
+```bash
+cd /Users/linshen/Cursor/Full-stack-TestV1/go-admin
+go build -o ./go-admin .
+./go-admin migrate -c config/settings.dev.yml
+./go-admin server -c config/settings.dev.yml
+```
+
+关键核对项：
+
+- `sys_menu`
+- `sys_api`
+- `sys_user`
+- `sys_role`
+- `sys_user_role`
+- `sys_migration`
+
+## 新增用户报 `open_id` 缺列排查
+
+先查：
+
+1. `sys_user` 是否存在 `open_id`
+2. `sys_user` 是否存在 `job_title`
+3. `sys_user` 是否存在 `open_department_id`
+4. `sys_user` 是否存在 `open_department_ids`
+5. `sys_user` 是否存在 `cn_name`
+6. `sys_migration` 是否已有 `1774900000000`
+
+经验规则：
+
+- 业务模型字段多于库表字段时，新增用户和部分飞书同步逻辑会一起出错。
+- 当前正式补丁是 migration `1774900000000_sys_user_feishu_fields.go`，不要只在一台机器上手工 `ALTER TABLE` 后就结束。
+
+## 头像设置/上传排查
+
+这一节当前只适用于“本地 working tree 已包含头像相关改动”的场景。
+
+先查：
+
+1. `sys_user` 是否存在 `avatar_type`
+2. `sys_user` 是否存在 `avatar_color`
+3. 当前本地是否确实带着头像相关 migration 或手工补库状态
+4. 当前后端进程是否已重启到最新编译的 `./go-admin`
+5. 浏览器 Network 中 `PUT /api/v1/user/profile` 是否返回 200
+6. 浏览器 Network 中 `POST /api/v1/user/avatar` 是否返回 200
+
+上传失败时重点看：
+
+- 文件格式是否为 `jpg/png/webp`
+- 裁剪后的 blob 是否仍超过 `2MB`
+- 返回体里是否包含新的 `avatar` 与 `avatarType`
+
+字母头像显示不对时重点看：
+
+- `GET /api/v1/getinfo` 是否返回 `avatarType` / `avatarColor`
+- 当前用户是否仍被旧的图片 URL 覆盖
+- 前端是否已经重新拉取 `fetchUserInfo`
+
 ## 本地验收
 
 提交前最少执行：
 
 ```bash
-cd /Users/linshen/Desktop/Full-stack-TestV1
+cd /Users/linshen/Cursor/Full-stack-TestV1
 ./scripts/check-local.sh
 ```
 
 如需冒烟：
 
 ```bash
-cd /Users/linshen/Desktop/Full-stack-TestV1/vue-vben-admin/apps/web-antd
+cd /Users/linshen/Cursor/Full-stack-TestV1/vue-vben-admin/apps/web-antd
 pnpm test:e2e
 ```

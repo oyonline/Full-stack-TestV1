@@ -8,7 +8,9 @@ import { getWorkflowStartedPage, type WorkflowStartedItem } from '#/api/core';
 import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
 import WorkflowInstanceDetailDrawer from '../components/workflow-instance-detail-drawer.vue';
@@ -70,7 +72,7 @@ const detailOpen = ref(false);
 const currentInstanceId = ref<null | number>(null);
 const canWithdraw = ref(false);
 
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   {
     title: '标题',
     dataIndex: 'title',
@@ -144,6 +146,21 @@ const columns: TableColumnType[] = [
   },
 ];
 
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'workflow-started-list',
+});
+
 function openDetail(record: WorkflowStartedItem) {
   currentInstanceId.value = record.instanceId;
   canWithdraw.value = record.status === 'in_review';
@@ -201,18 +218,29 @@ onMounted(() => {
     <template #toolbar>
       <div class="text-sm font-medium text-slate-700">我发起的</div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert v-if="errorMsg" :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
-      :scroll="{ x: 1180 }"
+      :scroll="{ x: scrollX }"
       row-key="instanceId"
       size="middle"
       @change="onTableChange"
+      @resizeColumn="handleResizeColumn"
     />
 
     <WorkflowInstanceDetailDrawer

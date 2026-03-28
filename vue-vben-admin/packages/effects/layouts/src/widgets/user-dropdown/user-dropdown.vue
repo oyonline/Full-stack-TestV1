@@ -198,6 +198,8 @@ if (enableShortcutKey.value) {
   <LockModal
     v-if="preferences.widget.lockScreen"
     :avatar="avatar"
+    :avatar-background-color="avatarBackgroundColor"
+    :avatar-text="avatarText"
     :text="text"
     @submit="handleSubmitLock"
   />

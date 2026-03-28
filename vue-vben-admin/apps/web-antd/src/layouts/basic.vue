@@ -17,6 +17,7 @@ import { useAccessStore, useUserStore } from '@vben/stores';
 
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
+import { resolveUserAvatar } from '#/utils/user-avatar';
 import LoginForm from '#/views/_core/authentication/login.vue';
 
 const router = useRouter();
@@ -41,31 +42,15 @@ const profileDescription = computed(
     '当前账号',
 );
 
-const profileAvatarText = computed(() => {
-  const username = userStore.userInfo?.username?.trim();
-  if (!username) {
-    return 'U';
-  }
-  return username.slice(0, 1).toUpperCase();
-});
-
-const profileAvatarColor = computed(() => {
-  const seed = userStore.userInfo?.username?.trim() || 'user';
-  const palette = [
-    '#2563eb',
-    '#0f766e',
-    '#b45309',
-    '#7c3aed',
-    '#be123c',
-    '#0369a1',
-    '#15803d',
-    '#9333ea',
-  ];
-  const hash = Array.from(seed).reduce((total, char) => {
-    return total + char.charCodeAt(0);
-  }, 0);
-  return palette[hash % palette.length];
-});
+const profileAvatar = computed(() =>
+  resolveUserAvatar({
+    avatar: userStore.userInfo?.avatar,
+    avatarColor: userStore.userInfo?.avatarColor,
+    avatarType: userStore.userInfo?.avatarType,
+    realName: userStore.userInfo?.realName,
+    username: userStore.userInfo?.username,
+  }),
+);
 
 async function handleOpenProfile() {
   if (route.path === '/profile') {
@@ -120,9 +105,9 @@ watch(
   <BasicLayout @clear-preferences-and-logout="handleLogout">
     <template #user-dropdown>
       <UserDropdown
-        :avatar="userStore.userInfo?.avatar || ''"
-        :avatar-background-color="profileAvatarColor"
-        :avatar-text="profileAvatarText"
+        :avatar="profileAvatar.avatar"
+        :avatar-background-color="profileAvatar.avatarBackgroundColor"
+        :avatar-text="profileAvatar.avatarText"
         :menus
         :text="profileDisplayName"
         :description="profileDescription"
@@ -141,13 +126,20 @@ watch(
     <template #extra>
       <AuthenticationLoginExpiredModal
         v-model:open="accessStore.loginExpired"
-        :avatar="userStore.userInfo?.avatar"
+        :avatar="profileAvatar.avatar"
+        :avatar-background-color="profileAvatar.avatarBackgroundColor"
+        :avatar-text="profileAvatar.avatarText"
       >
         <LoginForm />
       </AuthenticationLoginExpiredModal>
     </template>
     <template #lock-screen>
-      <LockScreen :avatar="userStore.userInfo?.avatar" @to-login="handleLogout" />
+      <LockScreen
+        :avatar="profileAvatar.avatar"
+        :avatar-background-color="profileAvatar.avatarBackgroundColor"
+        :avatar-text="profileAvatar.avatarText"
+        @to-login="handleLogout"
+      />
     </template>
   </BasicLayout>
 </template>

@@ -14,6 +14,8 @@ import type { TableColumnType } from 'ant-design-vue';
 
 import {
   approveWorkflowTask,
+  type BizActionLogItem,
+  getBizActionLogPage,
   getWorkflowInstanceDetail,
   rejectWorkflowTask,
   withdrawWorkflowInstance,
@@ -60,6 +62,7 @@ const emit = defineEmits<{
 const detailLoading = ref(false);
 const actionLoading = ref(false);
 const detail = ref<null | WorkflowInstanceDetailResult>(null);
+const bizLogs = ref<BizActionLogItem[]>([]);
 
 const taskColumns: TableColumnType[] = [
   {
@@ -151,14 +154,23 @@ const title = computed(() => detail.value?.instance.title || '流程实例详情
 async function loadDetail() {
   if (!props.instanceId) {
     detail.value = null;
+    bizLogs.value = [];
     return;
   }
   detailLoading.value = true;
   try {
     detail.value = await getWorkflowInstanceDetail(props.instanceId);
+    if (detail.value?.instance) {
+      const { moduleKey, businessType, businessId } = detail.value.instance;
+      if (moduleKey && businessType && businessId) {
+        const result = await getBizActionLogPage({ moduleKey, businessType, businessId });
+        bizLogs.value = result.list ?? [];
+      }
+    }
   } catch (error) {
     message.error((error as Error)?.message || '加载流程详情失败');
     detail.value = null;
+    bizLogs.value = [];
   } finally {
     detailLoading.value = false;
   }
@@ -262,6 +274,17 @@ watch(
       <AdminDetailSection title="审批记录时间线">
         <Timeline v-if="timelineItems.length" :items="timelineItems" />
         <div v-else class="text-sm text-slate-400">暂无审批记录</div>
+      </AdminDetailSection>
+
+      <AdminDetailSection title="业务操作记录">
+        <Timeline
+          v-if="bizLogs.length"
+          :items="bizLogs.map((item: BizActionLogItem) => ({
+            children: `${formatAdminDateTime(item.createdAt)}  ${item.operatorName} · ${item.action}${item.fromStatus || item.toStatus ? ` · ${item.fromStatus || '—'} → ${item.toStatus || '—'}` : ''}${item.remark ? ` · ${item.remark}` : ''}`,
+            color: 'blue',
+          }))"
+        />
+        <div v-else class="text-sm text-slate-400">暂无业务操作记录</div>
       </AdminDetailSection>
 
       <AdminDetailSection title="关联附件">

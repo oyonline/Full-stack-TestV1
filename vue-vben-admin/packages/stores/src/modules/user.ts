@@ -7,7 +7,7 @@ interface BasicUserInfo {
    */
   avatar: string;
   /**
-   * 用户昵称
+   * 姓名
    */
   realName: string;
   /**
@@ -19,7 +19,7 @@ interface BasicUserInfo {
    */
   userId: string;
   /**
-   * 用户名
+   * 登录账号
    */
   username: string;
 }

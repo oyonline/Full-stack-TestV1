@@ -1,6 +1,8 @@
 import type { BasicUserInfo } from '@vben/types';
 
 export interface Props {
+  avatarBackgroundColor?: string;
+  avatarText?: string;
   title?: string;
   userInfo: BasicUserInfo | null;
   tabs: {

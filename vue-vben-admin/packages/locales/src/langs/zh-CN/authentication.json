@@ -8,7 +8,7 @@
   "selectAccount": "快速选择账号",
   "username": "账号",
   "password": "密码",
-  "usernameTip": "请输入用户名",
+  "usernameTip": "请输入登录账号",
   "passwordTip": "请输入密码",
   "verifyRequiredTip": "请先完成验证",
   "passwordErrorTip": "密码错误",

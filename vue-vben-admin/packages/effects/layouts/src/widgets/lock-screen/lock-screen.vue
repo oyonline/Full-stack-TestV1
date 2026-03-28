@@ -13,14 +13,18 @@ import { useDateFormat, useNow } from '@vueuse/core';
 
 interface Props {
   avatar?: string;
+  avatarBackgroundColor?: string;
+  avatarText?: string;
 }
 
 defineOptions({
   name: 'LockScreen',
 });
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   avatar: '',
+  avatarBackgroundColor: '',
+  avatarText: '',
 });
 
 defineEmits<{ toLogin: [] }>();
@@ -61,6 +65,17 @@ const [Form, { form, validate, getFieldComponentRef }] = useVbenForm(
 const validPass = computed(
   () => lockScreenPassword?.value === form?.values?.password,
 );
+
+const avatarAlt = computed(() => props.avatarText || 'U');
+const avatarFallbackStyle = computed(() => {
+  if (!props.avatarBackgroundColor || props.avatar) {
+    return undefined;
+  }
+  return {
+    backgroundColor: props.avatarBackgroundColor,
+    color: '#ffffff',
+  };
+});
 
 async function handleSubmit() {
   const { valid } = await validate();
@@ -129,7 +144,12 @@ useScrollLock();
         @keydown.enter.prevent="handleSubmit"
       >
         <div class="mb-10 flex-col-center w-[90%] max-w-[300px] px-4">
-          <VbenAvatar :src="avatar" class="enter-x mb-6 size-20" />
+          <VbenAvatar
+            :alt="avatarAlt"
+            :fallback-style="avatarFallbackStyle"
+            :src="avatar"
+            class="enter-x mb-6 size-20"
+          />
           <div class="enter-x mb-2 w-full items-center">
             <Form />
           </div>

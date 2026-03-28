@@ -115,6 +115,22 @@ export async function updateRole(
   return requestClient.put<number>(`/v1/role/${id}`, data);
 }
 
+export interface UpdateRoleDataScopeData {
+  dataScope: string;
+  deptIds?: number[];
+  roleId: number;
+}
+
+/**
+ * 角色数据权限修改
+ * 对接 go-admin PUT /api/v1/roledatascope
+ */
+export async function updateRoleDataScope(
+  data: UpdateRoleDataScopeData,
+): Promise<void> {
+  return requestClient.put('/v1/roledatascope', data);
+}
+
 /**
  * 删除角色（支持批量）
  * 对接 go-admin DELETE /api/v1/role，body { ids }

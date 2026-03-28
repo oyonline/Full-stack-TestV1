@@ -64,7 +64,7 @@ export async function getDictTypeAll(
   return Array.isArray(res) ? res : [];
 }
 
-/** 字典类型下拉选项（与 SysDictTypeItem 一致，供 sys-dict-data 等使用） */
+/** 字典类型下拉选项（与 SysDictTypeItem 一致，供字典类型详情页等使用） */
 export type DictTypeOption = SysDictTypeItem;
 
 /**
@@ -120,7 +120,7 @@ export async function deleteDictType(ids: number[]): Promise<number[]> {
   return requestClient.delete('/v1/dict/type', { data: { ids } });
 }
 
-// ========== 字典数据 ==========
+// ========== 字典数据（主要由字典类型详情页消费） ==========
 
 /** 字典数据列表项（与后端 models.SysDictData 对齐） */
 export interface SysDictDataItem {

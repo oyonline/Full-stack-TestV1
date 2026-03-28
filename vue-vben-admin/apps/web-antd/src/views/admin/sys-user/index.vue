@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 /**
  * 系统管理 - 用户管理
- * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 部门/角色/岗位关联
+ * 列表 + 搜索 + 分页 + 新增 + 编辑 + 重置密码 + 删除 + 部门/角色/岗位关联
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 
@@ -16,6 +16,7 @@ import {
   getRolePage,
   getSysUserDetail,
   getSysUserPage,
+  resetSysUserPassword,
   updateSysUser,
 } from '#/api/core';
 import type { DeptLabel, DeptTreeOption, SysUserItem } from '#/api/core';
@@ -27,6 +28,9 @@ import AdminFilterField from '#/components/admin/filter-field.vue';
 import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
 import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
+import UserAvatar from '#/components/user-avatar.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
@@ -187,10 +191,11 @@ function renderStatus(s: string): string {
   return s || '-';
 }
 
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: '用户ID', dataIndex: 'userId', key: 'userId', width: 80 },
-  { title: '用户名', dataIndex: 'username', key: 'username', width: 110 },
-  { title: '昵称', dataIndex: 'nickName', key: 'nickName', width: 110 },
+  { title: '头像', key: 'avatar', width: 88 },
+  { title: '登录账号', dataIndex: 'username', key: 'username', width: 110 },
+  { title: '姓名', dataIndex: 'nickName', key: 'nickName', width: 110 },
   {
     title: '部门',
     key: 'dept',
@@ -216,8 +221,23 @@ const columns: TableColumnType[] = [
     width: 160,
     customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
   },
-  { title: '操作', key: 'action', width: 140, fixed: 'right' },
+  { title: '操作', key: 'action', width: 220, fixed: 'right' },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-user-list',
+});
 
 // --------- 新增 ---------
 const addVisible = ref(false);
@@ -261,9 +281,9 @@ function openAddModal() {
 (window as any).openAddModalForTest = openAddModal;
 
 function validateAdd(): { ok: boolean; message?: string } {
-  if (!addForm.username?.trim()) return { ok: false, message: '请输入用户名' };
+  if (!addForm.username?.trim()) return { ok: false, message: '请输入登录账号' };
   if (!addForm.password?.trim()) return { ok: false, message: '请输入密码' };
-  if (!addForm.nickName?.trim()) return { ok: false, message: '请输入昵称' };
+  if (!addForm.nickName?.trim()) return { ok: false, message: '请输入姓名' };
   if (!addForm.phone?.trim()) return { ok: false, message: '请输入手机号' };
   if (!addForm.email?.trim()) return { ok: false, message: '请输入邮箱' };
   if (addForm.deptId == null || addForm.deptId === 0)
@@ -363,8 +383,8 @@ async function openEditModal(record: SysUserItem) {
 }
 
 function validateEdit(): { ok: boolean; message?: string } {
-  if (!editForm.username?.trim()) return { ok: false, message: '请输入用户名' };
-  if (!editForm.nickName?.trim()) return { ok: false, message: '请输入昵称' };
+  if (!editForm.username?.trim()) return { ok: false, message: '请输入登录账号' };
+  if (!editForm.nickName?.trim()) return { ok: false, message: '请输入姓名' };
   if (!editForm.phone?.trim()) return { ok: false, message: '请输入手机号' };
   if (!editForm.email?.trim()) return { ok: false, message: '请输入邮箱' };
   if (editForm.deptId == null || editForm.deptId === 0)
@@ -416,6 +436,74 @@ async function onEditOk() {
 
 function onEditCancel() {
   editVisible.value = false;
+}
+
+// --------- 重置密码 ---------
+const resetPwdVisible = ref(false);
+const resetPwdSubmitting = ref(false);
+const resetPwdUserId = ref<number | null>(null);
+const resetPwdTargetLabel = ref('');
+const resetPwdForm = reactive({
+  confirmPassword: '',
+  password: '',
+});
+
+function resetResetPwdForm() {
+  resetPwdForm.password = '';
+  resetPwdForm.confirmPassword = '';
+}
+
+function openResetPwdModal(record: SysUserItem) {
+  resetResetPwdForm();
+  resetPwdUserId.value = record.userId;
+  resetPwdTargetLabel.value =
+    record.nickName || record.username || `用户ID:${record.userId}`;
+  resetPwdVisible.value = true;
+}
+
+function validateResetPwd(): { ok: boolean; message?: string } {
+  if (!resetPwdForm.password) {
+    return { ok: false, message: '请输入新密码' };
+  }
+  if (!resetPwdForm.confirmPassword) {
+    return { ok: false, message: '请再次输入新密码' };
+  }
+  if (resetPwdForm.password !== resetPwdForm.confirmPassword) {
+    return { ok: false, message: '两次输入的密码不一致' };
+  }
+  return { ok: true };
+}
+
+async function onResetPwdOk() {
+  if (resetPwdUserId.value == null) {
+    return;
+  }
+  const validation = validateResetPwd();
+  if (!validation.ok) {
+    message.error(validation.message);
+    return;
+  }
+  resetPwdSubmitting.value = true;
+  try {
+    await resetSysUserPassword({
+      password: resetPwdForm.password,
+      userId: resetPwdUserId.value,
+    });
+    message.success('密码已重置');
+    resetPwdVisible.value = false;
+  } catch (e: unknown) {
+    const err = e as {
+      message?: string;
+      response?: { data?: { msg?: string } };
+    };
+    message.error(err?.message || err?.response?.data?.msg || '重置密码失败');
+  } finally {
+    resetPwdSubmitting.value = false;
+  }
+}
+
+function onResetPwdCancel() {
+  resetPwdVisible.value = false;
 }
 
 // --------- 删除 ---------
@@ -494,8 +582,8 @@ const userAddFormFields = computed<AdminFormFieldSchema[]>(() => [
   {
     component: 'input',
     field: 'username',
-    label: '用户名',
-    placeholder: '用户名',
+    label: '登录账号',
+    placeholder: '登录账号',
     props: { 'data-testid': 'input-username' },
     required: true,
   },
@@ -510,8 +598,8 @@ const userAddFormFields = computed<AdminFormFieldSchema[]>(() => [
   {
     component: 'input',
     field: 'nickName',
-    label: '昵称',
-    placeholder: '昵称',
+    label: '姓名',
+    placeholder: '姓名',
     props: { 'data-testid': 'input-nickname' },
     required: true,
   },
@@ -591,15 +679,15 @@ const userEditFormFields = computed<AdminFormFieldSchema[]>(() => [
   {
     component: 'input',
     field: 'username',
-    label: '用户名',
-    placeholder: '用户名',
+    label: '登录账号',
+    placeholder: '登录账号',
     required: true,
   },
   {
     component: 'input',
     field: 'nickName',
-    label: '昵称',
-    placeholder: '昵称',
+    label: '姓名',
+    placeholder: '姓名',
     required: true,
   },
   {
@@ -717,18 +805,18 @@ onMounted(() => {
     </template>
     <template #filters>
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AdminFilterField label="用户名">
+        <AdminFilterField label="登录账号">
           <Input
             v-model:value="query.username"
-            placeholder="用户名"
+            placeholder="登录账号"
             allow-clear
             @press-enter="onSearch"
           />
         </AdminFilterField>
-        <AdminFilterField label="昵称">
+        <AdminFilterField label="姓名">
           <Input
             v-model:value="query.nickName"
-            placeholder="昵称"
+            placeholder="姓名"
             allow-clear
             @press-enter="onSearch"
           />
@@ -772,21 +860,42 @@ onMounted(() => {
         <div class="text-base font-semibold text-slate-900">用户列表</div>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(r: SysUserItem) => r.userId"
-      :scroll="{ x: 1320 }"
+      :scroll="{ x: scrollX }"
       size="middle"
       @change="onTableChange"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'primaryRole'">
+        <template v-if="column.key === 'avatar'">
+          <UserAvatar
+            :avatar="(record as SysUserItem).avatar"
+            :avatar-color="(record as SysUserItem).avatarColor"
+            :avatar-type="(record as SysUserItem).avatarType"
+            :real-name="(record as SysUserItem).nickName"
+            :username="(record as SysUserItem).username"
+            class="size-9"
+          />
+        </template>
+        <template v-else-if="column.key === 'primaryRole'">
           <span>{{ getPrimaryRoleLabel(record as SysUserItem) }}</span>
         </template>
         <template v-else-if="column.key === 'roles'">
@@ -819,6 +928,14 @@ onMounted(() => {
             @click="openEditModal(record as SysUserItem)"
           >
             编辑
+          </AdminActionButton>
+          <AdminActionButton
+            type="link"
+            size="small"
+            codes="admin:sysUser:resetPwd"
+            @click="openResetPwdModal(record as SysUserItem)"
+          >
+            重置密码
           </AdminActionButton>
           <AdminActionButton
             type="link"
@@ -869,6 +986,44 @@ onMounted(() => {
       />
     </Modal>
 
+    <Modal
+      v-model:open="resetPwdVisible"
+      title="重置密码"
+      :confirm-loading="resetPwdSubmitting"
+      ok-text="确认重置"
+      cancel-text="取消"
+      @ok="onResetPwdOk"
+      @cancel="onResetPwdCancel"
+    >
+      <div class="space-y-4">
+        <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          正在为用户
+          <span class="font-medium text-slate-900">{{ resetPwdTargetLabel }}</span>
+          设置新密码。此操作不需要输入旧密码，保存后新密码立即生效。
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">
+            新密码
+          </label>
+          <Input.Password
+            v-model:value="resetPwdForm.password"
+            autocomplete="new-password"
+            placeholder="请输入新密码"
+          />
+        </div>
+        <div>
+          <label class="mb-2 block text-sm font-medium text-slate-700">
+            确认新密码
+          </label>
+          <Input.Password
+            v-model:value="resetPwdForm.confirmPassword"
+            autocomplete="new-password"
+            placeholder="请再次输入新密码"
+          />
+        </div>
+      </div>
+    </Modal>
+
     <AdminDetailDrawer
       v-model:open="detailVisible"
       title="用户详情"
@@ -876,14 +1031,35 @@ onMounted(() => {
       width="720"
     >
       <template v-if="detailRecord">
-        <AdminDetailSection title="基础信息" description="账号、昵称和当前启用状态。">
+        <AdminDetailSection title="基础信息" description="账号、姓名和当前启用状态。">
+          <div class="mb-4 flex items-center gap-4 rounded-2xl bg-slate-50 p-4">
+            <UserAvatar
+              :avatar="detailRecord.avatar"
+              :avatar-color="detailRecord.avatarColor"
+              :avatar-type="detailRecord.avatarType"
+              :real-name="detailRecord.nickName"
+              :username="detailRecord.username"
+              class="size-14"
+            />
+            <div>
+              <div class="text-sm font-medium text-slate-900">
+                {{ renderAdminEmpty(detailRecord.nickName || detailRecord.username) }}
+              </div>
+              <div class="mt-1 text-xs text-slate-500">
+                头像模式：{{ detailRecord.avatarType === 'image' ? '图片头像' : '字母头像' }}
+              </div>
+              <div class="mt-1 text-xs text-slate-500">
+                背景色：{{ renderAdminEmpty(detailRecord.avatarColor || '自动映射') }}
+              </div>
+            </div>
+          </div>
           <dl class="grid gap-4 md:grid-cols-2">
             <div>
-              <dt class="text-xs text-slate-500">用户名</dt>
+              <dt class="text-xs text-slate-500">登录账号</dt>
               <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.username) }}</dd>
             </div>
             <div>
-              <dt class="text-xs text-slate-500">昵称</dt>
+              <dt class="text-xs text-slate-500">姓名</dt>
               <dd class="mt-1 text-sm text-slate-900">{{ renderAdminEmpty(detailRecord.nickName) }}</dd>
             </div>
             <div>

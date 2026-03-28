@@ -28,6 +28,8 @@ import AdminFilterField from '#/components/admin/filter-field.vue';
 import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
 import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 
@@ -358,7 +360,7 @@ async function handleRemove(record: SysJobItem) {
   }
 }
 
-const columns: TableColumnType<SysJobItem>[] = [
+const baseColumns: TableColumnType<SysJobItem>[] = [
   {
     title: 'ID',
     dataIndex: 'jobId',
@@ -427,6 +429,21 @@ const columns: TableColumnType<SysJobItem>[] = [
   },
 ];
 
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-job-list',
+});
+
 onMounted(() => {
   void fetchList();
 });
@@ -490,18 +507,29 @@ onMounted(() => {
         <div class="text-base font-semibold text-slate-900">任务列表</div>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysJobItem) => record.jobId"
-      :scroll="{ x: 1300 }"
+      :scroll="{ x: scrollX }"
       size="middle"
       @change="handleTableChange"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record, text }">
         <template v-if="column.dataIndex === 'jobType'">

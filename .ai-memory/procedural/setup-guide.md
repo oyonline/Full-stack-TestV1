@@ -8,6 +8,6 @@
 
 当前请改看：
 
-- [根 README](/Users/linshen/Desktop/Full-stack-TestV1/README.md)
-- [脚手架使用说明](/Users/linshen/Desktop/Full-stack-TestV1/docs/scaffold-guide.md)
-- [后端配置说明](/Users/linshen/Desktop/Full-stack-TestV1/go-admin/config/README.md)
+- [根 README](/Users/linshen/Cursor/Full-stack-TestV1/README.md)
+- [脚手架使用说明](/Users/linshen/Cursor/Full-stack-TestV1/docs/scaffold-guide.md)
+- [后端配置说明](/Users/linshen/Cursor/Full-stack-TestV1/go-admin/config/README.md)

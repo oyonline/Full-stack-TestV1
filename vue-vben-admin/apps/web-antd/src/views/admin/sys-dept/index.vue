@@ -33,6 +33,8 @@ import AdminDetailSection from '#/components/admin/detail-section.vue';
 import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { useAdminTreeList } from '#/composables/use-admin-tree-list';
 import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 
@@ -84,7 +86,7 @@ onMounted(() => {
   void fetchList();
 });
 
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: '部门名称', dataIndex: 'deptName', key: 'deptName', width: 200 },
   {
     title: '负责人',
@@ -110,6 +112,21 @@ const columns: TableColumnType[] = [
   },
   { title: '操作', key: 'action', width: 180, fixed: 'right' },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-dept-list',
+});
 
 /* -------- 新增弹窗 -------- */
 const addVisible = ref(false);
@@ -366,17 +383,28 @@ function onDelete(record: SysDeptItem) {
         <div class="text-base font-semibold text-slate-900">部门树列表</div>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="treeData"
       :loading="loading"
       :pagination="false"
-      :scroll="{ x: 980 }"
+      :scroll="{ x: scrollX }"
       row-key="deptId"
       size="middle"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">

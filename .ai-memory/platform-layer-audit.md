@@ -1,5 +1,11 @@
 # 平台底座层 / 平台能力层审计
 
+说明：
+
+- 这份文档保留的是阶段审计结论，其中部分判断停留在 `workflow / attachment / module_registry` 正式进入已提交主线之前。
+- 当前项目状态请优先查看 [module-map.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/module-map.md) 和 [project-roadmap.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/project-roadmap.md)。
+- 如果本文件与当前代码冲突，以当前代码和已提交 migration 为准。
+
 ## 目的
 
 这份文档用于回答两个问题：
@@ -59,7 +65,8 @@
 ### 3. 权限体系
 
 - 菜单按主角色生效
-- 按钮权限和接口权限按多角色并集生效
+- 按钮权限按多角色并集生效
+- 接口权限当前代码按主角色 key 做 Casbin 校验
 - 数据权限当前关闭
 
 关键位置：
@@ -259,4 +266,4 @@
 
 然后再让财务预算模块成为第一个规范接入的平台业务模块。
 
-第一期最小闭环详见：[platform-capability-phase1.md](/Users/linshen/Desktop/Full-stack-TestV1/.ai-memory/platform-capability-phase1.md)
+第一期最小闭环详见：[platform-capability-phase1.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/platform-capability-phase1.md)

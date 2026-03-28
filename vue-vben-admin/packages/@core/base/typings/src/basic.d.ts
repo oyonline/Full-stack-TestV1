@@ -13,7 +13,15 @@ interface BasicUserInfo {
    */
   avatar: string;
   /**
-   * 用户昵称
+   * 头像背景色
+   */
+  avatarColor?: string;
+  /**
+   * 头像类型
+   */
+  avatarType?: string;
+  /**
+   * 姓名
    */
   realName: string;
   /**
@@ -25,7 +33,7 @@ interface BasicUserInfo {
    */
   userId: string;
   /**
-   * 用户名
+   * 登录账号
    */
   username: string;
 }

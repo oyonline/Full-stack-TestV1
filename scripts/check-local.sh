@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="/Users/linshen/Desktop/Full-stack-TestV1"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND_DIR="$ROOT_DIR/go-admin"
 FRONTEND_DIR="$ROOT_DIR/vue-vben-admin"
 WEB_DIR="$FRONTEND_DIR/apps/web-antd"

@@ -28,6 +28,8 @@ import type { SysConfigItem, SysConfigPageResult } from '#/api/core';
 import AdminActionButton from '#/components/admin/action-button.vue';
 import AdminDetailDrawer from '#/components/admin/detail-drawer.vue';
 import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 
 const protectedConfigKeys = new Set([
   'sys_app_name',
@@ -149,7 +151,7 @@ function isProtectedConfig(record: SysConfigItem) {
 }
 
 /** 表格列定义 */
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
   { title: '参数名称', dataIndex: 'configName', key: 'configName', width: 140 },
   { title: '参数键名', dataIndex: 'configKey', key: 'configKey', width: 140 },
@@ -195,6 +197,21 @@ const columns: TableColumnType[] = [
     fixed: 'right',
   },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-config-list',
+});
 
 /* -------- 新增参数配置 -------- */
 
@@ -451,6 +468,14 @@ onMounted(() => {
         <AdminActionButton type="primary" codes="admin:sysConfig:add" @click="openAddModal">
           新增参数
         </AdminActionButton>
+        <AdminTableColumnSettings
+          v-model:open="settingsOpen"
+          :columns="settingsColumns"
+          @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+          @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+          @reset="restoreDefaultColumns"
+          @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+        />
       </div>
     </div>
 
@@ -493,14 +518,16 @@ onMounted(() => {
 
     <!-- 表格区 -->
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysConfigItem) => record.id"
+      :scroll="{ x: scrollX }"
       size="small"
       bordered
       @change="onTableChange"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'configKey'">

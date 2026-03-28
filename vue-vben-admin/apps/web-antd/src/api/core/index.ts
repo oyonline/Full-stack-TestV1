@@ -1,4 +1,5 @@
 export * from './attachment';
+export * from './biz-action-log';
 export * from './auth';
 export * from './config';
 export * from './dept';

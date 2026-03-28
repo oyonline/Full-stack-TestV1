@@ -12,16 +12,16 @@ import {
   Image,
   Input,
   InputNumber,
+  message,
   Select,
   Skeleton,
-  Space,
   Switch,
   Tabs,
   Tag,
-  message,
 } from 'ant-design-vue';
 
 import { getSystemSettingsApi, updateSystemSettingsApi } from '#/api/core';
+import AdminPageShell from '#/components/admin/page-shell.vue';
 import {
   applySystemSettingsToRuntime,
   createDefaultSystemSettings,
@@ -292,49 +292,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-full bg-slate-50 p-4 md:p-6">
-    <div class="mx-auto max-w-7xl space-y-6">
-      <section
-        class="app-radius-panel border border-slate-200 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_45%,#eef5ff_100%)] p-6 shadow-sm"
+  <AdminPageShell header-mode="compact">
+    <template #title>参数设置</template>
+    <template #description>
+      这里是系统设置与界面偏好的唯一承载页。保存后会直接刷新当前运行时配置，后续登录与重进页面也会继续沿用这套全局设置。
+    </template>
+    <template #header-extra>
+      <Button :disabled="loading || saving" @click="loadSettings">刷新</Button>
+      <Button
+        :disabled="loading || saving || !hasUnsavedChanges"
+        @click="resetToLastSaved"
       >
-        <div
-          class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
-        >
-          <div class="max-w-3xl">
-            <div class="flex items-center gap-3">
-              <Tag color="blue">System Settings</Tag>
-              <Tag color="gold">Global UI Preferences</Tag>
-            </div>
-            <h1 class="mt-4 text-2xl font-semibold text-slate-900 md:text-3xl">
-              参数设置
-            </h1>
-            <p class="mt-3 text-sm leading-7 text-slate-600">
-              这里是系统设置与界面偏好的唯一承载页。保存后会直接刷新当前运行时配置，后续登录与重进页面也会继续沿用这套全局设置。
-            </p>
-          </div>
+        重置
+      </Button>
+      <Button
+        type="primary"
+        :loading="saving"
+        :disabled="loading || !hasUnsavedChanges"
+        @click="handleSave"
+      >
+        保存设置
+      </Button>
+    </template>
 
-          <Space wrap>
-            <Button :disabled="loading || saving" @click="loadSettings"
-              >刷新</Button
-            >
-            <Button
-              :disabled="loading || saving || !hasUnsavedChanges"
-              @click="resetToLastSaved"
-            >
-              重置
-            </Button>
-            <Button
-              type="primary"
-              :loading="saving"
-              :disabled="loading || !hasUnsavedChanges"
-              @click="handleSave"
-            >
-              保存设置
-            </Button>
-          </Space>
-        </div>
-      </section>
-
+    <div class="grid gap-6">
       <Alert
         show-icon
         type="info"
@@ -352,7 +333,7 @@ onMounted(() => {
 
         <Skeleton :loading="loading" active>
           <div class="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-            <div class="space-y-5">
+            <div class="space-y-6">
               <div>
                 <label class="mb-2 block text-sm font-medium text-slate-700">
                   系统名称
@@ -430,29 +411,33 @@ onMounted(() => {
             <div
               class="app-radius-panel border border-dashed border-slate-200 bg-slate-50 p-5"
             >
-              <div class="text-sm font-medium text-slate-700">Logo 预览</div>
-              <div class="mt-4 flex min-h-[180px] items-center justify-center">
-                <Image
-                  v-if="logoPreviewUrl"
-                  :src="logoPreviewUrl"
-                  :preview="false"
-                  class="max-h-[140px] max-w-full object-contain"
-                />
-                <div
-                  v-else
-                  class="app-radius-panel flex w-full max-w-[240px] flex-col items-center border border-slate-200 bg-white px-6 py-7 text-center shadow-sm"
-                >
+              <div class="space-y-5">
+                <div class="text-sm font-medium text-slate-700">Logo 预览</div>
+                <div class="flex min-h-[180px] items-center justify-center">
+                  <Image
+                    v-if="logoPreviewUrl"
+                    :src="logoPreviewUrl"
+                    :preview="false"
+                    class="max-h-[140px] max-w-full object-contain"
+                  />
                   <div
-                    :style="{ backgroundColor: logoPlaceholderColor }"
-                    class="app-radius-box flex size-20 items-center justify-center text-2xl font-semibold text-white shadow-[0_16px_36px_rgba(15,23,42,0.12)]"
+                    v-else
+                    class="app-radius-panel mx-auto flex w-full max-w-[240px] flex-col items-center justify-center border border-slate-200 bg-white px-6 py-7 text-center shadow-sm"
                   >
-                    {{ logoPlaceholderText }}
-                  </div>
-                  <div class="mt-4 text-sm font-medium text-slate-700">
-                    默认 Logo 占位
-                  </div>
-                  <div class="mt-2 text-xs leading-6 text-slate-400">
-                    当前未设置 Logo 地址，这里会先显示系统默认占位效果。
+                    <div class="flex flex-col items-center space-y-4">
+                      <div
+                        :style="{ backgroundColor: logoPlaceholderColor }"
+                        class="app-radius-box flex size-20 items-center justify-center text-2xl font-semibold text-white shadow-[0_16px_36px_rgba(15,23,42,0.12)]"
+                      >
+                        {{ logoPlaceholderText }}
+                      </div>
+                      <div class="text-sm font-medium text-slate-700">
+                        默认 Logo 占位
+                      </div>
+                      <div class="text-xs leading-6 text-slate-400">
+                        当前未设置 Logo 地址，这里会先显示系统默认占位效果。
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -462,11 +447,11 @@ onMounted(() => {
       </Card>
 
       <Card :bordered="false" class="app-radius-panel shadow-sm">
-        <Tabs v-model:active-key="activeTab">
+        <Tabs v-model:active-key="activeTab" class="settings-tabs">
           <Tabs.TabPane key="appearance" tab="外观">
             <div class="grid gap-6 xl:grid-cols-2">
               <Card title="主题模式" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">主题模式</span>
                     <Select
@@ -510,7 +495,7 @@ onMounted(() => {
               </Card>
 
               <Card title="辅助模式" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">灰色模式</span>
                     <Switch
@@ -555,7 +540,7 @@ onMounted(() => {
           <Tabs.TabPane key="layout" tab="布局">
             <div class="grid gap-6 xl:grid-cols-2">
               <Card title="整体布局" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">布局模式</span>
                     <Select
@@ -576,7 +561,7 @@ onMounted(() => {
               </Card>
 
               <Card title="侧边栏" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用侧边栏</span>
                     <Switch
@@ -646,8 +631,12 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="头部与导航" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+              <Card
+                title="头部与导航"
+                :bordered="false"
+                class="app-radius-panel"
+              >
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用头部栏</span>
                     <Switch
@@ -708,7 +697,7 @@ onMounted(() => {
                 :bordered="false"
                 class="app-radius-panel"
               >
-                <div class="space-y-4">
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用面包屑</span>
                     <Switch
@@ -817,8 +806,12 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="页脚与版权" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+              <Card
+                title="页脚与版权"
+                :bordered="false"
+                class="app-radius-panel"
+              >
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用页脚</span>
                     <Switch
@@ -901,7 +894,7 @@ onMounted(() => {
           <Tabs.TabPane key="general" tab="通用">
             <div class="grid gap-6 xl:grid-cols-2">
               <Card title="通用设置" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">语言</span>
                     <Select
@@ -946,8 +939,12 @@ onMounted(() => {
                 </div>
               </Card>
 
-              <Card title="动画与过渡" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+              <Card
+                title="动画与过渡"
+                :bordered="false"
+                class="app-radius-panel"
+              >
+                <div class="space-y-5">
                   <div class="flex items-center justify-between gap-4">
                     <span class="text-sm text-slate-700">启用过渡</span>
                     <Switch
@@ -985,8 +982,12 @@ onMounted(() => {
 
           <Tabs.TabPane key="shortcut" tab="快捷键">
             <div class="grid gap-6 xl:grid-cols-2">
-              <Card title="全局快捷键" :bordered="false" class="app-radius-panel">
-                <div class="space-y-4">
+              <Card
+                title="全局快捷键"
+                :bordered="false"
+                class="app-radius-panel"
+              >
+                <div class="space-y-5">
                   <div
                     v-for="item in shortcutItems"
                     :key="item.key"
@@ -1008,5 +1009,11 @@ onMounted(() => {
         </Tabs>
       </Card>
     </div>
-  </div>
+  </AdminPageShell>
 </template>
+
+<style scoped>
+.settings-tabs :deep(.ant-tabs-nav) {
+  margin-bottom: 24px;
+}
+</style>

@@ -31,6 +31,8 @@ import AdminDetailSection from '#/components/admin/detail-section.vue';
 import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { useAdminTreeList } from '#/composables/use-admin-tree-list';
 import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 import { requestClient } from '#/api/request';
@@ -239,8 +241,8 @@ const apiOptions = ref<{ value: number; label: string }[]>([]);
 
 const visibleOptions = [
   { value: '' as const, label: '全部' },
-  { value: '1' as const, label: '显示' },
-  { value: '0' as const, label: '隐藏' },
+  { value: '0' as const, label: '显示' },
+  { value: '1' as const, label: '隐藏' },
 ];
 
 const {
@@ -280,8 +282,8 @@ const fetchMenuList = fetchList;
 
 /** 编辑/新增弹窗共用的可见下拉（不含"全部"）*/
 const yesNoOptions = [
-  { value: '1', label: '显示' },
-  { value: '0', label: '隐藏' },
+  { value: '0', label: '显示' },
+  { value: '1', label: '隐藏' },
 ];
 
 /** 菜单类型：与 go-admin 后端 sys_menu.menu_type 一致（M=目录 C=菜单 F=按钮） */
@@ -313,7 +315,7 @@ const editForm = reactive({
   permission: '',
   apis: [] as number[],
   sort: 0,
-  visible: '1',
+  visible: '0',
 });
 
 /** 父级候选项（新增用）：根节点 + 完整菜单树，基于当前页 treeData */
@@ -354,7 +356,7 @@ async function onEdit(record: SysMenuRow) {
     editForm.permission = detail.permission ?? '';
     editForm.apis = Array.isArray(detail.apis) ? [...detail.apis] : [];
     editForm.sort = detail.sort ?? 0;
-    editForm.visible = detail.visible ?? '1';
+    editForm.visible = detail.visible ?? '0';
   } catch (error) {
     message.error(resolveAdminErrorMessage(error, '获取菜单详情失败，请重试'));
     editVisible.value = false;
@@ -470,7 +472,7 @@ const addForm = reactive({
   permission: '',
   apis: [] as number[],
   sort: 0,
-  visible: '1',
+  visible: '0',
 });
 
 function onAdd() {
@@ -484,7 +486,7 @@ function onAdd() {
   addForm.permission = '';
   addForm.apis = [];
   addForm.sort = 0;
-  addForm.visible = '1';
+  addForm.visible = '0';
   addVisible.value = true;
 }
 
@@ -597,7 +599,7 @@ onMounted(() => {
     });
 });
 
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: '菜单ID', dataIndex: 'menuId', key: 'menuId', width: 90 },
   {
     title: '菜单名称',
@@ -628,6 +630,21 @@ const columns: TableColumnType[] = [
   { title: '可见', dataIndex: 'visible', key: 'visible', width: 70 },
   { title: '操作', key: 'action', width: 190, fixed: 'right' },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-menu-list',
+});
 </script>
 
 <template>
@@ -670,17 +687,28 @@ const columns: TableColumnType[] = [
         <div class="text-base font-semibold text-slate-900">菜单树列表</div>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="treeData"
       :loading="loading"
       :pagination="false"
-      :scroll="{ x: 1180 }"
+      :scroll="{ x: scrollX }"
       row-key="menuId"
       size="middle"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'icon'">
@@ -939,7 +967,7 @@ const columns: TableColumnType[] = [
             </div>
             <div>
               <dt class="text-xs text-slate-500">可见</dt>
-              <dd class="mt-1 text-sm text-slate-900">{{ detailRecord.visible === '1' ? '显示' : '隐藏' }}</dd>
+              <dd class="mt-1 text-sm text-slate-900">{{ detailRecord.visible === '0' ? '显示' : '隐藏' }}</dd>
             </div>
             <div>
               <dt class="text-xs text-slate-500">排序</dt>

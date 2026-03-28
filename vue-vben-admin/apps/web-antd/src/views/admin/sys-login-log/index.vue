@@ -23,6 +23,8 @@ import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
 import AdminDetailSection from '#/components/admin/detail-section.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
@@ -76,9 +78,9 @@ const {
 
 const renderEmpty = renderAdminEmpty;
 
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
-  { title: '用户名', dataIndex: 'username', key: 'username', width: 100 },
+  { title: '登录账号', dataIndex: 'username', key: 'username', width: 100 },
   {
     title: '状态',
     dataIndex: 'status',
@@ -134,6 +136,21 @@ const columns: TableColumnType[] = [
   },
   { title: '操作', key: 'action', width: 120, fixed: 'right' },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-login-log-list',
+});
 
 const detailVisible = ref(false);
 const detailLoading = ref(false);
@@ -193,10 +210,10 @@ onMounted(() => {
     </template>
     <template #filters>
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AdminFilterField label="用户名">
+        <AdminFilterField label="登录账号">
           <Input
             v-model:value="query.username"
-            placeholder="请输入用户名"
+            placeholder="请输入登录账号"
             allow-clear
             @press-enter="onSearch"
           />
@@ -245,18 +262,29 @@ onMounted(() => {
         </p>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysLoginLogItem) => record.id"
-      :scroll="{ x: 1160 }"
+      :scroll="{ x: scrollX }"
       size="middle"
       @change="(pag) => onTableChange(pag)"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
@@ -296,7 +324,7 @@ onMounted(() => {
             :label-style="{ width: '120px' }"
           >
             <Descriptions.Item label="ID">{{ detailRecord.id }}</Descriptions.Item>
-            <Descriptions.Item label="用户名">{{
+            <Descriptions.Item label="登录账号">{{
               renderEmpty(detailRecord.username)
             }}</Descriptions.Item>
             <Descriptions.Item label="状态">{{

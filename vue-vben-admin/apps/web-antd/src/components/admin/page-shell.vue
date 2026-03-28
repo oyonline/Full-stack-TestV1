@@ -67,7 +67,7 @@ const mergeHeaderExtraIntoFilters = computed(() => props.headerMode === 'none');
     <div class="space-y-4 md:space-y-5">
       <section
         v-if="$slots.filters || $slots['filter-actions'] || (mergeHeaderExtraIntoFilters && $slots['header-extra'])"
-        class="app-radius-panel border border-slate-200 bg-white p-4 shadow-sm md:p-5"
+        class="app-radius-panel bg-white p-4 shadow-sm md:p-5"
       >
         <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
           <div class="min-w-0">
@@ -87,13 +87,21 @@ const mergeHeaderExtraIntoFilters = computed(() => props.headerMode === 'none');
       </section>
 
       <section
-        class="app-radius-panel border border-slate-200 bg-white p-4 shadow-sm md:p-5"
+        class="app-radius-panel bg-white p-4 shadow-sm md:p-5"
       >
         <div
-          v-if="$slots.toolbar"
+          v-if="$slots.toolbar || $slots['toolbar-extra']"
           class="mb-3 flex flex-col gap-2 border-b border-slate-100 pb-3 md:flex-row md:items-center md:justify-between"
         >
-          <slot name="toolbar"></slot>
+          <div class="min-w-0">
+            <slot name="toolbar"></slot>
+          </div>
+          <div
+            v-if="$slots['toolbar-extra']"
+            class="flex flex-wrap items-center gap-2 md:justify-end"
+          >
+            <slot name="toolbar-extra"></slot>
+          </div>
         </div>
         <slot></slot>
       </section>

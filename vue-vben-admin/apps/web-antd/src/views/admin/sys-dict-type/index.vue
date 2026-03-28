@@ -1,9 +1,6 @@
 <script lang="ts" setup>
-/**
- * 系统管理 - 字典类型
- * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 刷新
- */
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { Button, Input, Modal, Select, Table, message } from 'ant-design-vue';
 import type { TableColumnType } from 'ant-design-vue';
@@ -11,9 +8,8 @@ import type { TableColumnType } from 'ant-design-vue';
 import {
   createDictType,
   deleteDictType,
-  getDictTypeDetail,
+  getDictDataPage,
   getDictTypePage,
-  updateDictType,
 } from '#/api/core';
 import type { SysDictTypeItem, SysDictTypePageResult } from '#/api/core';
 import AdminActionButton from '#/components/admin/action-button.vue';
@@ -23,14 +19,25 @@ import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
 import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
-import { renderAdminEmpty } from '#/utils/admin-crud';
+import { formatAdminDateTime, resolveAdminErrorMessage } from '#/utils/admin-crud';
+
+const router = useRouter();
+
+const statusOptions = [
+  { value: '' as const, label: '全部' },
+  { value: 1, label: '停用' },
+  { value: 2, label: '启用' },
+];
+
+const statusEditOptions = [
+  { value: 1, label: '停用' },
+  { value: 2, label: '启用' },
+];
 
 const {
   errorMsg,
   fetchList,
   loading,
-  onReset,
-  onSearch,
   onTableChange,
   pagination,
   query,
@@ -61,62 +68,52 @@ const {
   }),
   fallbackErrorMessage: '加载字典类型列表失败',
   fetcher: async (params) => {
-    const res: SysDictTypePageResult = await getDictTypePage(params);
-    return res;
+    const result: SysDictTypePageResult = await getDictTypePage(params);
+    return result;
   },
 });
 
-/** 状态下拉选项 */
-const statusOptions = [
-  { value: '' as const, label: '全部' },
-  { value: 1, label: '停用' },
-  { value: 2, label: '启用' },
-];
-
-/** 状态渲染 */
 function renderStatus(status: number): string {
   if (status === 1) return '停用';
   if (status === 2) return '启用';
   return String(status);
 }
 
-const renderEmpty = renderAdminEmpty;
-
-/** 表格列定义 */
 const columns: TableColumnType[] = [
-  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
-  { title: '字典名称', dataIndex: 'dictName', key: 'dictName', width: 140 },
-  { title: '字典类型', dataIndex: 'dictType', key: 'dictType', width: 140 },
+  {
+    title: '字典名称',
+    dataIndex: 'dictName',
+    key: 'dictName',
+    width: 160,
+  },
+  {
+    title: '字典类型',
+    dataIndex: 'dictType',
+    key: 'dictType',
+    width: 180,
+  },
   {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: 80,
+    width: 90,
     customRender: ({ text }: { text: number }) => renderStatus(text),
-  },
-  {
-    title: '备注',
-    dataIndex: 'remark',
-    key: 'remark',
-    ellipsis: true,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
   },
   {
     title: '创建时间',
     dataIndex: 'createdAt',
     key: 'createdAt',
-    width: 160,
-    customRender: ({ text }: { text: string }) => renderEmpty(text),
+    width: 180,
+    customRender: ({ text }: { text: string }) => formatAdminDateTime(text),
   },
   {
     title: '操作',
     key: 'action',
-    width: 140,
+    width: 180,
     fixed: 'right',
   },
 ];
 
-/* -------- 新增 -------- */
 const addVisible = ref(false);
 const addSubmitting = ref(false);
 const addForm = reactive({
@@ -125,160 +122,6 @@ const addForm = reactive({
   status: 2 as number,
   remark: '',
 });
-
-function resetAddForm() {
-  addForm.dictName = '';
-  addForm.dictType = '';
-  addForm.status = 2;
-  addForm.remark = '';
-}
-
-function openAddModal() {
-  resetAddForm();
-  addVisible.value = true;
-}
-
-function validateAddForm(): { ok: boolean; message?: string } {
-  const name = addForm.dictName?.trim() ?? '';
-  const type = addForm.dictType?.trim() ?? '';
-  if (!name) return { ok: false, message: '请输入字典名称' };
-  if (!type) return { ok: false, message: '请输入字典类型' };
-  return { ok: true };
-}
-
-async function onAddOk() {
-  const v = validateAddForm();
-  if (!v.ok) {
-    message.error(v.message);
-    return;
-  }
-  addSubmitting.value = true;
-  try {
-    await createDictType({
-      dictName: addForm.dictName.trim(),
-      dictType: addForm.dictType.trim(),
-      status: addForm.status,
-      remark: addForm.remark?.trim() ?? '',
-    });
-    message.success('新增成功');
-    addVisible.value = false;
-    fetchList();
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    message.error(err?.message || err?.response?.data?.msg || '新增失败');
-  } finally {
-    addSubmitting.value = false;
-  }
-}
-
-function onAddCancel() {
-  addVisible.value = false;
-}
-
-/* -------- 编辑 -------- */
-const editVisible = ref(false);
-const editSubmitting = ref(false);
-const editLoading = ref(false);
-const editId = ref<number | null>(null);
-const editForm = reactive({
-  dictName: '',
-  dictType: '',
-  status: 2 as number,
-  remark: '',
-});
-
-async function openEditModal(record: SysDictTypeItem) {
-  editId.value = record.id;
-  editLoading.value = true;
-  editVisible.value = true;
-  try {
-    const detail = await getDictTypeDetail(record.id);
-    editForm.dictName = detail.dictName ?? '';
-    editForm.dictType = detail.dictType ?? '';
-    editForm.status = detail.status ?? 2;
-    editForm.remark = detail.remark ?? '';
-  } catch (e: unknown) {
-    const err = e as { message?: string };
-    message.error(err?.message || '获取详情失败');
-    editVisible.value = false;
-  } finally {
-    editLoading.value = false;
-  }
-}
-
-function validateEditForm(): { ok: boolean; message?: string } {
-  const name = editForm.dictName?.trim() ?? '';
-  const type = editForm.dictType?.trim() ?? '';
-  if (!name) return { ok: false, message: '请输入字典名称' };
-  if (!type) return { ok: false, message: '请输入字典类型' };
-  return { ok: true };
-}
-
-async function onEditOk() {
-  if (editId.value === null) return;
-  const v = validateEditForm();
-  if (!v.ok) {
-    message.error(v.message);
-    return;
-  }
-  editSubmitting.value = true;
-  try {
-    await updateDictType(editId.value, {
-      dictName: editForm.dictName.trim(),
-      dictType: editForm.dictType.trim(),
-      status: editForm.status,
-      remark: editForm.remark?.trim() ?? '',
-    });
-    message.success('编辑成功');
-    editVisible.value = false;
-    fetchList();
-  } catch (e: unknown) {
-    const err = e as {
-      message?: string;
-      response?: { data?: { msg?: string } };
-    };
-    message.error(err?.message || err?.response?.data?.msg || '编辑失败');
-  } finally {
-    editSubmitting.value = false;
-  }
-}
-
-function onEditCancel() {
-  editVisible.value = false;
-}
-
-/* -------- 删除 -------- */
-function onDelete(record: SysDictTypeItem) {
-  const name = record.dictName || record.dictType || `ID:${record.id}`;
-  Modal.confirm({
-    title: '确认删除',
-    content: `确定要删除字典类型「${name}」吗？删除后不可恢复。`,
-    okText: '确定',
-    okType: 'danger',
-    cancelText: '取消',
-    async onOk() {
-      try {
-        await deleteDictType([record.id]);
-        message.success('删除成功');
-        fetchList();
-      } catch (e: unknown) {
-        const err = e as {
-          message?: string;
-          response?: { data?: { msg?: string } };
-        };
-        message.error(err?.message || err?.response?.data?.msg || '删除失败');
-      }
-    },
-  });
-}
-
-const statusEditOptions = [
-  { value: 1, label: '停用' },
-  { value: 2, label: '启用' },
-];
 
 const dictTypeFormFields = computed<AdminFormFieldSchema[]>(() => [
   {
@@ -310,6 +153,143 @@ const dictTypeFormFields = computed<AdminFormFieldSchema[]>(() => [
   },
 ]);
 
+function resetAddForm() {
+  addForm.dictName = '';
+  addForm.dictType = '';
+  addForm.status = 2;
+  addForm.remark = '';
+}
+
+function openAddModal() {
+  resetAddForm();
+  addVisible.value = true;
+}
+
+function openDetail(record: SysDictTypeItem) {
+  void router.push({
+    path: '/admin/sys-dict-type/detail',
+    query: { dictId: String(record.id) },
+  });
+}
+
+function onSearch() {
+  pagination.current = 1;
+  void fetchList();
+}
+
+function onReset() {
+  Object.assign(query, {
+    dictName: '',
+    dictType: '',
+    status: '',
+  });
+  pagination.current = 1;
+  void fetchList();
+}
+
+function validateAddForm(): { message?: string; ok: boolean } {
+  const dictName = addForm.dictName.trim();
+  const dictType = addForm.dictType.trim();
+  if (!dictName) return { ok: false, message: '请输入字典名称' };
+  if (!dictType) return { ok: false, message: '请输入字典类型' };
+  return { ok: true };
+}
+
+async function resolveCreatedDictTypeId(
+  dictType: string,
+  dictName: string,
+): Promise<number> {
+  const result = await getDictTypePage({
+    dictName,
+    dictType,
+    pageIndex: 1,
+    pageSize: 10,
+  });
+
+  return (
+    result.list.find((item) => item.dictType === dictType)?.id ??
+    result.list[0]?.id ??
+    0
+  );
+}
+
+async function onAddOk() {
+  const validation = validateAddForm();
+  if (!validation.ok) {
+    message.error(validation.message);
+    return;
+  }
+
+  const payload = {
+    dictName: addForm.dictName.trim(),
+    dictType: addForm.dictType.trim(),
+    status: addForm.status,
+    remark: addForm.remark.trim(),
+  };
+
+  addSubmitting.value = true;
+  try {
+    const created = await createDictType(payload);
+    let targetId = Number(created ?? 0);
+
+    if (!targetId) {
+      targetId = await resolveCreatedDictTypeId(payload.dictType, payload.dictName);
+    }
+
+    addVisible.value = false;
+    message.success('新增成功');
+
+    if (targetId) {
+      void router.push({
+        path: '/admin/sys-dict-type/detail',
+        query: { dictId: String(targetId) },
+      });
+      return;
+    }
+
+    await fetchList();
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '新增失败'));
+  } finally {
+    addSubmitting.value = false;
+  }
+}
+
+async function handleDelete(record: SysDictTypeItem) {
+  try {
+    const result = await getDictDataPage({
+      dictType: record.dictType,
+      pageIndex: 1,
+      pageSize: 1,
+    });
+    if ((result.count || 0) > 0) {
+      message.warning('请先删除该类型下的字典数据');
+      return;
+    }
+  } catch (error) {
+    message.error(resolveAdminErrorMessage(error, '校验字典数据失败'));
+    return;
+  }
+
+  const name = record.dictName || record.dictType || `ID:${record.id}`;
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除字典类型「${name}」吗？删除后不可恢复。`,
+    okText: '确定',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await deleteDictType([record.id]);
+        message.success('删除成功');
+        await fetchList();
+      } catch (error) {
+        message.error(resolveAdminErrorMessage(error, '删除失败'));
+      }
+    },
+  });
+}
+
 onMounted(() => {
   void fetchList();
 });
@@ -318,9 +298,9 @@ onMounted(() => {
 <template>
   <AdminPageShell>
     <template #eyebrow>System Admin</template>
-    <template #title>字典类型</template>
+    <template #title>字典管理</template>
     <template #description>
-      维护系统字典类型定义，统一收口搜索区、操作区和表格区的视觉层级。
+      这里是字典类型目录页，先定位到目标类型，再进入详情页维护该类型下的字典数据。
     </template>
     <template #header-extra>
       <AdminActionButton
@@ -328,9 +308,10 @@ onMounted(() => {
         codes="admin:sysDictType:add"
         @click="openAddModal"
       >
-        新增
+        新增字典类型
       </AdminActionButton>
     </template>
+
     <template #filters>
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <AdminFilterField label="字典名称">
@@ -358,13 +339,18 @@ onMounted(() => {
         </AdminFilterField>
       </div>
     </template>
+
     <template #filter-actions>
       <Button type="primary" @click="onSearch">查询</Button>
       <Button @click="onReset">重置</Button>
     </template>
+
     <template #toolbar>
       <div>
-        <div class="text-base font-semibold text-slate-900">字典类型列表</div>
+        <div class="text-base font-semibold text-slate-900">字典类型目录</div>
+        <div class="mt-1 text-sm text-slate-500">
+          当前页只负责浏览、筛选和进入类型详情，不直接承担字典数据维护。
+        </div>
       </div>
     </template>
 
@@ -376,26 +362,26 @@ onMounted(() => {
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysDictTypeItem) => record.id"
-      :scroll="{ x: 980 }"
+      :scroll="{ x: 920 }"
       size="middle"
       @change="(pag) => onTableChange(pag)"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <AdminActionButton
+          <Button
             type="link"
             size="small"
-            codes="admin:sysDictType:edit"
-            @click="openEditModal(record as SysDictTypeItem)"
+            class="px-0"
+            @click="openDetail(record as SysDictTypeItem)"
           >
-            编辑
-          </AdminActionButton>
+            进入详情
+          </Button>
           <AdminActionButton
             type="link"
             size="small"
             danger
             codes="system:sysdicttype:remove"
-            @click="onDelete(record as SysDictTypeItem)"
+            @click="handleDelete(record as SysDictTypeItem)"
           >
             删除
           </AdminActionButton>
@@ -411,30 +397,9 @@ onMounted(() => {
       ok-text="保存"
       cancel-text="取消"
       @ok="onAddOk"
-      @cancel="onAddCancel"
+      @cancel="addVisible = false"
     >
       <AdminModalFormFields :model="addForm" :fields="dictTypeFormFields" />
-    </Modal>
-
-    <Modal
-      v-model:open="editVisible"
-      title="编辑字典类型"
-      :confirm-loading="editSubmitting"
-      :ok-button-props="{ disabled: editLoading }"
-      :width="720"
-      ok-text="保存"
-      cancel-text="取消"
-      @ok="onEditOk"
-      @cancel="onEditCancel"
-    >
-      <div v-if="editLoading" class="py-8 text-center text-gray-400">
-        加载详情中…
-      </div>
-      <AdminModalFormFields
-        v-else
-        :model="editForm"
-        :fields="dictTypeFormFields"
-      />
     </Modal>
   </AdminPageShell>
 </template>

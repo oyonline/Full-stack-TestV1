@@ -17,6 +17,10 @@ export default defineConfig(async ({ mode }) => {
             target: 'http://127.0.0.1:10082/',
             ws: true,
           },
+          '/static': {
+            changeOrigin: true,
+            target: 'http://127.0.0.1:10082/',
+          },
           '/form-generator': {
             changeOrigin: true,
             target: 'http://127.0.0.1:10082/',

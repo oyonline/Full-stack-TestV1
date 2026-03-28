@@ -6,7 +6,7 @@ import type {
   WorkbenchTrendItem,
 } from '@vben/common-ui';
 
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import {
@@ -17,13 +17,23 @@ import {
   WorkbenchTodo,
   WorkbenchTrends,
 } from '@vben/common-ui';
-import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 import { openWindow } from '@vben/utils';
+
+import { resolveUserAvatar } from '#/utils/user-avatar';
 
 import AnalyticsVisitsSource from '../analytics/analytics-visits-source.vue';
 
 const userStore = useUserStore();
+const workspaceAvatar = computed(() =>
+  resolveUserAvatar({
+    avatar: userStore.userInfo?.avatar,
+    avatarColor: userStore.userInfo?.avatarColor,
+    avatarType: userStore.userInfo?.avatarType,
+    realName: userStore.userInfo?.realName,
+    username: userStore.userInfo?.username,
+  }),
+);
 
 // 这是一个示例数据，实际项目中需要根据实际情况进行调整
 // url 也可以是内部路由，在 navTo 方法中识别处理，进行内部跳转
@@ -236,7 +246,9 @@ function navTo(nav: WorkbenchProjectItem | WorkbenchQuickNavItem) {
 <template>
   <div class="p-5">
     <WorkbenchHeader
-      :avatar="userStore.userInfo?.avatar || preferences.app.defaultAvatar"
+      :avatar="workspaceAvatar.avatar"
+      :avatar-background-color="workspaceAvatar.avatarBackgroundColor"
+      :avatar-text="workspaceAvatar.avatarText"
     >
       <template #title>
         早安, {{ userStore.userInfo?.realName }}, 开始您一天的工作吧！

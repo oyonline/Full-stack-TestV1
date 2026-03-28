@@ -78,3 +78,120 @@
 .ant-app .form-valid-error .ant-picker-focused {
   box-shadow: 0 0 0 2px rgb(255 38 5 / 6%);
 }
+
+/** 圆角面板 - 跟随偏好设置 */
+.app-radius-panel {
+  border-radius: var(--radius);
+}
+
+/* ==================== Ant Design Vue (Next) 组件圆角适配 ==================== */
+
+/** 基础圆角变量覆盖 */
+.ant-app {
+  --ant-border-radius: var(--radius);
+  --ant-border-radius-lg: calc(var(--radius) + 4px);
+  --ant-border-radius-sm: calc(var(--radius) - 2px);
+  --ant-border-radius-xs: calc(var(--radius) - 4px);
+}
+
+/** Card 卡片 */
+.ant-card {
+  --ant-card-border-radius: var(--radius);
+}
+
+/** Modal 弹窗 */
+.ant-modal-content {
+  border-radius: var(--radius) !important;
+}
+
+/** Table 表格 */
+.ant-table-wrapper {
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ant-table {
+  border-radius: var(--radius);
+}
+
+.ant-table-container {
+  border-radius: var(--radius);
+}
+
+/** Button 按钮 */
+.ant-btn {
+  --ant-btn-border-radius: var(--radius);
+}
+
+.ant-btn-circle,
+.ant-btn-round {
+  --ant-btn-border-radius: calc(var(--radius) * 2);
+}
+
+/** Input 输入框 / Select 选择器 / DatePicker 日期选择器 */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select .ant-select-selector,
+.ant-picker {
+  border-radius: var(--radius) !important;
+}
+
+/** Tag 标签 */
+.ant-tag {
+  --ant-tag-border-radius: calc(var(--radius) - 2px);
+  border-radius: calc(var(--radius) - 2px);
+}
+
+/** Badge 徽标 */
+.ant-badge-count {
+  border-radius: calc(var(--radius) * 2);
+}
+
+/** Alert 警告提示 */
+.ant-alert {
+  border-radius: var(--radius);
+}
+
+/** Message 消息提示 / Notification 通知 */
+.ant-message-notice-content,
+.ant-notification-notice {
+  border-radius: var(--radius);
+}
+
+/** Popover 气泡卡片 / Tooltip 文字提示 */
+.ant-popover-inner,
+.ant-tooltip-inner {
+  border-radius: var(--radius);
+}
+
+/** Dropdown 下拉菜单 */
+.ant-dropdown-menu {
+  border-radius: var(--radius);
+}
+
+/** Menu 菜单 */
+.ant-menu {
+  border-radius: var(--radius);
+}
+
+/** Pagination 分页 */
+.ant-pagination-item {
+  border-radius: calc(var(--radius) - 2px);
+}
+
+/** Steps 步骤条 */
+.ant-steps .ant-steps-item-icon {
+  border-radius: var(--radius);
+}
+
+/** Tabs 标签页 */
+.ant-tabs-tab {
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
+}
+
+/** Form 表单项 */
+.ant-form-item-control-input-content > .ant-input,
+.ant-form-item-control-input-content > .ant-select .ant-select-selector,
+.ant-form-item-control-input-content > .ant-picker {
+  border-radius: var(--radius) !important;
+}

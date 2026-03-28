@@ -22,6 +22,8 @@ import AdminFilterField from '#/components/admin/filter-field.vue';
 import type { AdminFormFieldSchema } from '#/components/admin/modal-form';
 import AdminModalFormFields from '#/components/admin/modal-form-fields.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { useAdminTable } from '#/composables/use-admin-table';
 import {
   formatAdminDateTime,
@@ -84,7 +86,7 @@ const renderEmpty = renderAdminEmpty;
 const formatDateTime = formatAdminDateTime;
 
 /** 表格列定义 */
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: '岗位ID', dataIndex: 'postId', key: 'postId', width: 90 },
   { title: '岗位名称', dataIndex: 'postName', key: 'postName', width: 140 },
   { title: '岗位编码', dataIndex: 'postCode', key: 'postCode', width: 140 },
@@ -118,6 +120,21 @@ const columns: TableColumnType[] = [
     fixed: 'right',
   },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['action'],
+  tableId: 'sys-post-list',
+});
 
 /* -------- 新增岗位 -------- */
 
@@ -389,18 +406,29 @@ onMounted(() => {
         <div class="text-base font-semibold text-slate-900">岗位列表</div>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysPostItem) => record.postId"
-      :scroll="{ x: 920 }"
+      :scroll="{ x: scrollX }"
       size="middle"
       @change="(pag) => onTableChange(pag)"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">

@@ -24,6 +24,8 @@ import AdminDetailSection from '#/components/admin/detail-section.vue';
 import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
+import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { renderAdminEmpty } from '#/utils/admin-crud';
 
@@ -77,7 +79,7 @@ const {
   },
 });
 
-const columns: TableColumnType[] = [
+const baseColumns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
   {
     title: '标题',
@@ -126,6 +128,21 @@ const columns: TableColumnType[] = [
   },
   { title: '操作', key: 'actions', width: 90, fixed: 'right' },
 ];
+
+const {
+  handleResizeColumn,
+  reorderColumns,
+  restoreDefaultColumns,
+  scrollX,
+  setColumnFixed,
+  setColumnVisible,
+  settingsColumns,
+  settingsOpen,
+  tableColumns,
+} = useAdminTableColumns(baseColumns, {
+  systemColumnKeys: ['actions'],
+  tableId: 'sys-api-list',
+});
 
 const editVisible = ref(false);
 const editSubmitting = ref(false);
@@ -277,18 +294,29 @@ onMounted(() => {
         <div class="text-base font-semibold text-slate-900">接口列表</div>
       </div>
     </template>
+    <template #toolbar-extra>
+      <AdminTableColumnSettings
+        v-model:open="settingsOpen"
+        :columns="settingsColumns"
+        @change-fixed="({ key, fixed }) => setColumnFixed(key, fixed)"
+        @reorder="({ oldIndex, newIndex }) => reorderColumns(oldIndex, newIndex)"
+        @reset="restoreDefaultColumns"
+        @toggle-visible="({ key, visible }) => setColumnVisible(key, visible)"
+      />
+    </template>
 
     <AdminErrorAlert :message="errorMsg" />
 
     <Table
-      :columns="columns"
+      :columns="tableColumns"
       :data-source="tableData"
       :loading="loading"
       :pagination="pagination"
       :row-key="(record: SysApiItem) => record.id"
-      :scroll="{ x: 1080 }"
+      :scroll="{ x: scrollX }"
       size="middle"
       @change="(pag) => onTableChange(pag)"
+      @resizeColumn="handleResizeColumn"
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'actions'">

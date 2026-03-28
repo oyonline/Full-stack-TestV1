@@ -8,6 +8,8 @@ import { getApiRaw } from '#/api/request';
 /** go-admin GET /api/v1/getinfo 原始 data 结构 */
 interface GoAdminGetInfoData {
   avatar?: string;
+  avatarColor?: string;
+  avatarType?: string;
   buttons?: string[];
   code?: number;
   deptId?: number;
@@ -44,6 +46,8 @@ export async function getUserInfoApi(): Promise<UserInfo> {
     username: d.userName ?? '',
     realName: d.name ?? '',
     avatar: d.avatar ?? '',
+    avatarColor: d.avatarColor ?? '',
+    avatarType: d.avatarType ?? '',
     userId: d.userId != null ? String(d.userId) : '',
     roles: d.primaryRoleName ? [d.primaryRoleName] : (d.roles ?? []),
     desc: d.introduction ?? '',
@@ -60,12 +64,32 @@ export async function getUserInfoApi(): Promise<UserInfo> {
 
 export interface UpdateUserProfileData {
   introduction: string;
+  avatarColor?: string;
+  avatarType?: string;
 }
 
 export async function updateUserProfile(
   data: UpdateUserProfileData,
 ): Promise<void> {
   return requestClient.put('/v1/user/profile', data);
+}
+
+export interface UploadUserAvatarResult {
+  avatar: string;
+  avatarType: string;
+}
+
+export async function uploadUserAvatar(
+  file: Blob | File,
+  filename = 'avatar.jpg',
+): Promise<UploadUserAvatarResult> {
+  const formData = new FormData();
+  formData.append('file', file, filename);
+  return requestClient.post('/v1/user/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 export interface UpdateUserPasswordData {
@@ -77,6 +101,21 @@ export async function updateUserPassword(
   data: UpdateUserPasswordData,
 ): Promise<void> {
   return requestClient.put('/v1/user/pwd/set', data);
+}
+
+export interface ResetSysUserPasswordData {
+  password: string;
+  userId: number;
+}
+
+/**
+ * 管理员重置用户密码
+ * 对接 go-admin PUT /api/v1/user/pwd/reset
+ */
+export async function resetSysUserPassword(
+  data: ResetSysUserPasswordData,
+): Promise<number> {
+  return requestClient.put('/v1/user/pwd/reset', data);
 }
 
 // --------------- 用户管理 CRUD（/v1/sys-user） ---------------
@@ -104,6 +143,8 @@ export interface SysUserItem {
   roleIds?: number[];
   roles?: SysUserRoleRef[];
   avatar?: string;
+  avatarColor?: string;
+  avatarType?: string;
   sex?: string;
   email?: string;
   deptId: number;

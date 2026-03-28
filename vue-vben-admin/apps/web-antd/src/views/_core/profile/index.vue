@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import { Profile } from '@vben/common-ui';
 import { useUserStore } from '@vben/stores';
@@ -8,10 +8,20 @@ import ProfileBase from './base-setting.vue';
 import ProfileNotificationSetting from './notification-setting.vue';
 import ProfilePasswordSetting from './password-setting.vue';
 import ProfileSecuritySetting from './security-setting.vue';
+import { resolveUserAvatar } from '#/utils/user-avatar';
 
 const userStore = useUserStore();
 
 const tabsValue = ref<string>('basic');
+const profileAvatar = computed(() =>
+  resolveUserAvatar({
+    avatar: userStore.userInfo?.avatar,
+    avatarColor: userStore.userInfo?.avatarColor,
+    avatarType: userStore.userInfo?.avatarType,
+    realName: userStore.userInfo?.realName,
+    username: userStore.userInfo?.username,
+  }),
+);
 
 const tabs = ref([
   {
@@ -35,6 +45,8 @@ const tabs = ref([
 <template>
   <Profile
     v-model:model-value="tabsValue"
+    :avatar-background-color="profileAvatar.avatarBackgroundColor"
+    :avatar-text="profileAvatar.avatarText"
     title="个人中心"
     :user-info="userStore.userInfo"
     :tabs="tabs"

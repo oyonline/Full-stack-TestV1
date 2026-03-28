@@ -10,6 +10,8 @@ import { Slot, VbenAvatar } from '@vben-core/shadcn-ui';
 
 interface Props extends AuthenticationProps {
   avatar?: string;
+  avatarBackgroundColor?: string;
+  avatarText?: string;
   zIndex?: number;
 }
 
@@ -19,6 +21,8 @@ defineOptions({
 
 const props = withDefaults(defineProps<Props>(), {
   avatar: '',
+  avatarBackgroundColor: '',
+  avatarText: '',
   zIndex: 0,
 });
 
@@ -35,6 +39,17 @@ watch(
 
 const getZIndex = computed(() => {
   return props.zIndex || calcZIndex();
+});
+
+const avatarAlt = computed(() => props.avatarText || 'U');
+const avatarFallbackStyle = computed(() => {
+  if (!props.avatarBackgroundColor || props.avatar) {
+    return undefined;
+  }
+  return {
+    backgroundColor: props.avatarBackgroundColor,
+    color: '#ffffff',
+  };
 });
 
 /**
@@ -80,7 +95,12 @@ function calcZIndex() {
       :z-index="getZIndex"
       class="app-radius-box border-none px-10 py-6 text-center shadow-xl sm:w-[600px] md:h-[unset]"
     >
-      <VbenAvatar :src="avatar" class="mx-auto mb-6 size-20" />
+      <VbenAvatar
+        :alt="avatarAlt"
+        :fallback-style="avatarFallbackStyle"
+        :src="avatar"
+        class="mx-auto mb-6 size-20"
+      />
       <Slot
         :show-forget-password="false"
         :show-register="false"

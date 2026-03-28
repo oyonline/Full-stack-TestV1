@@ -202,7 +202,7 @@ export async function loginByUI(
   await page.goto('/auth/login');
   await fillFirstVisible(
     page,
-    ['input[placeholder="请输入用户名"]'],
+    ['input[placeholder="请输入登录账号"]'],
     account.username,
   );
   await fillFirstVisible(

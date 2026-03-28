@@ -1,5 +1,10 @@
 # 平台能力层第一期最小闭环
 
+说明：
+
+- 这份文档更偏“第一期范围定义 + 阶段记录”。
+- 当前哪些步骤已经进入已提交主线、哪些仍是本地待收口状态，请以 [module-map.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/module-map.md) 和 [project-roadmap.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/project-roadmap.md) 为准。
+
 ## 目的
 
 这份文档定义“平台能力层第一期”的最小落地范围，用于在不做大而全平台的前提下，先补出足以支撑首个真实业务模块接入的公共能力。

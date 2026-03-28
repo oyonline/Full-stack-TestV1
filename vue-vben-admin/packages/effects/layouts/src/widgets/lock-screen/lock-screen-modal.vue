@@ -11,6 +11,8 @@ import { VbenAvatar, VbenButton } from '@vben-core/shadcn-ui';
 
 interface Props {
   avatar?: string;
+  avatarBackgroundColor?: string;
+  avatarText?: string;
   text?: string;
 }
 
@@ -18,8 +20,10 @@ defineOptions({
   name: 'LockScreenModal',
 });
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   avatar: '',
+  avatarBackgroundColor: '',
+  avatarText: '',
   text: '',
 });
 
@@ -70,6 +74,17 @@ const [Modal] = useVbenModal({
   },
 });
 
+const avatarAlt = computed(() => props.avatarText || props.text || 'U');
+const avatarFallbackStyle = computed(() => {
+  if (!props.avatarBackgroundColor || props.avatar) {
+    return undefined;
+  }
+  return {
+    backgroundColor: props.avatarBackgroundColor,
+    color: '#ffffff',
+  };
+});
+
 async function handleSubmit() {
   const { valid } = await validate();
   const values = await getValues();
@@ -92,6 +107,8 @@ async function handleSubmit() {
       <div class="w-full">
         <div class="ml-2 flex w-full flex-col items-center">
           <VbenAvatar
+            :alt="avatarAlt"
+            :fallback-style="avatarFallbackStyle"
             :src="avatar"
             class="size-20"
             dot-class="bottom-0 right-1 border-2 size-4 bg-green-500"
