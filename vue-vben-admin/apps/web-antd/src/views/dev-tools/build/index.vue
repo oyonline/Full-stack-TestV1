@@ -229,13 +229,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <AdminPageShell header-mode="compact">
-    <template #eyebrow>DEV TOOLS</template>
-    <template #title>表单构建</template>
-    <template #description>
-      当前页通过同域 iframe 承接后端 form-generator，并额外提供 schema 导出、复制和导入能力。第一版不做数据库持久化，只围绕本地 schema 交付。
-    </template>
-
+  <AdminPageShell>
     <template #toolbar>
       <div class="flex flex-wrap items-center gap-2">
         <Tag color="blue">Schema Bridge</Tag>
@@ -243,6 +237,9 @@ onBeforeUnmount(() => {
           直接读写构建器草稿：`drawingItems`、`formConf`、`idGlobal`、`treeNodeId`。
         </span>
       </div>
+    </template>
+
+    <template #toolbar-extra>
       <Space wrap>
         <Button @click="refreshBuilder">刷新构建器</Button>
         <Button :disabled="!bridgeAvailable" @click="downloadSchema">

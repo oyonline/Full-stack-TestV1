@@ -535,28 +535,7 @@ function handleDeleteData(record: SysDictDataItem) {
 </script>
 
 <template>
-  <AdminPageShell header-mode="compact">
-    <template #eyebrow>System Admin</template>
-    <template #title>{{ pageTitle }}</template>
-    <template #description>{{ pageDescription }}</template>
-    <template #header-extra>
-      <Button @click="goBackToDirectory">返回目录</Button>
-      <AdminActionButton
-        type="default"
-        codes="admin:sysDictType:edit"
-        @click="openTypeDrawer"
-      >
-        编辑类型
-      </AdminActionButton>
-      <AdminActionButton
-        type="primary"
-        codes="admin:sysDictData:add"
-        @click="openCreateDataModal"
-      >
-        新增字典数据
-      </AdminActionButton>
-    </template>
-
+  <AdminPageShell>
     <div v-if="detailLoading" class="py-16 text-center text-sm text-slate-400">
       加载字典类型详情中…
     </div>
@@ -600,6 +579,23 @@ function handleDeleteData(record: SysDictDataItem) {
             <div class="mt-1 text-sm text-slate-500">
               当前类型下共 {{ totalDataCount }} 条字典数据
             </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <Button @click="goBackToDirectory">返回目录</Button>
+            <AdminActionButton
+              type="default"
+              codes="admin:sysDictType:edit"
+              @click="openTypeDrawer"
+            >
+              编辑类型
+            </AdminActionButton>
+            <AdminActionButton
+              type="primary"
+              codes="admin:sysDictData:add"
+              @click="openCreateDataModal"
+            >
+              新增字典数据
+            </AdminActionButton>
           </div>
         </div>
 
