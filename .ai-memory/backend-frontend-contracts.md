@@ -128,32 +128,106 @@
   - path: `/dev-tools/editTable`
   - component: `/dev-tools/gen/edit`
 
-## 审计分类
+## 业务操作日志最小契约
 
-当前统一分类包括：
+业务操作日志通过 `sys_opera_log` 表落库，写入路径是
+`AuditLog/AuditLogCreate/...` → `audit.Set` → `LoggerToFile` 中间件 → `SaveOperaLog`。
+**不修改 `sys_opera_log` schema**；契约通过对现有列的固定语义约定 + JSON 编码的 `oper_param` 来实现。
 
-- `system-settings`
-- `generator`
-- `role`
-- `menu`
-- `user`
-- `dept`
-- `post`
-- `api`
-- `dict-type`
-- `dict-data`
-- `job`
+每条日志必须能回答 6 个问题（最小契约）：
 
-动作类型统一为：
+| 契约字段     | 含义               | 写入路径                                                                                       |
+| ------------ | ------------------ | ---------------------------------------------------------------------------------------------- |
+| `actor`      | 谁操作的           | 中间件从 gin Context 自动填充：`oper_name`、`create_by`（`dept_name` 由后续中间件补齐）        |
+| `action`     | 做了什么           | `Entry.Action`（`audit.Action*` 常量）→ `business_type`                                         |
+| `target`     | 操作了哪个实体     | `Entry.Target.{Type,ID,Label}` → `business_types`（type）+ `oper_param.target`（id/label）      |
+| `before`     | 变更前的快照       | `Entry.Before` → `oper_param.before`（update/delete 必填，create 留空）                         |
+| `after`      | 变更后的快照       | `Entry.After` → `oper_param.after`（create/update 必填，delete 留空）                           |
+| `timestamp`  | 什么时候           | 中间件 `SetDBOperLog` 写入 `oper_time`、GORM 写入 `created_at`                                  |
 
-- `create`
-- `update`
-- `delete`
-- `status`
-- `password`
-- `start`
-- `stop`
-- `run`
+`oper_param` 完整结构（机器可读真相源）：
+
+```json
+{
+  "target": { "type": "post", "id": 42, "label": "运维" },
+  "before": { "status": 2 },
+  "after":  { "status": 1 },
+  "extra":  { "reason": "下线" }
+}
+```
+
+`remark` 由 helper 自动从 `target.label` / `target.id` 摘要生成（人类可读，但不是真相源）。
+
+### Action 常量
+
+`audit.Action*`（同时也以 `middleware.AuditAction*` 别名导出）：
+
+- `create` / `update` / `delete`
+- `status`（启用/停用切换）
+- `password`（密码相关）
+- `start` / `stop` / `run`
+- `approve` / `reject` / `withdraw`（审批流）
+
+### Target.Type 常量（业务实体分类）
+
+`audit.Category*`（同时也以 `middleware.AuditCategory*` 别名导出）：
+
+- 系统：`system-settings` / `generator`
+- 权限：`role` / `menu` / `user` / `dept` / `post` / `api`
+- 字典：`dict-type` / `dict-data`
+- 平台：`job` / `workflow` / `module`
+
+### 业务模块写日志（推荐入口）
+
+业务模块**默认通过 helper 写日志**，不要直接拼 `AuditMeta`：
+
+```go
+// create
+middleware.AuditLogCreate(c,
+    "岗位管理",                                        // 中文模块标题
+    middleware.AuditTarget{                            // 目标实体
+        Type:  middleware.AuditCategoryPost,
+        ID:    req.PostId,
+        Label: req.PostName,
+    },
+    map[string]interface{}{                            // after：新建后的快照
+        "postName": req.PostName,
+        "status":   req.Status,
+    },
+    "admin.sysPost.insert",                            // method 路径
+)
+
+// update：before/after 都给
+middleware.AuditLogUpdate(c, "岗位管理", target, before, after, "admin.sysPost.update")
+
+// delete：只给 before
+middleware.AuditLogDelete(c, "岗位管理", target, before, "admin.sysPost.delete")
+
+// 通用入口（带 Extra/自定义 Operator 时使用）
+middleware.AuditLog(c, middleware.AuditEntry{
+    Title:    "审批流",
+    Action:   middleware.AuditActionApprove,
+    Target:   middleware.AuditTarget{Type: middleware.AuditCategoryWorkflow, ID: instanceID},
+    Operator: "USER",
+    Method:   "platform.workflow.approve",
+    Extra:    map[string]interface{}{"comment": req.Comment},
+})
+```
+
+helper 会负责：
+
+1. 把 `before/after/target/extra` 编进 `oper_param` JSON。
+2. 用 `target.label`/`target.id` 生成 `remark`。
+3. `OperatorType` 默认 `OperatorManage`（除非显式覆盖）。
+
+`SetAuditMeta` / `AuditMeta` 仍然保留，但不应在新代码里直接用。
+存量调用点会按需逐步迁移到 helper 上，不强制一次性切换。
+
+### 既有限制
+
+- `dept_name` 当前在 `SetDBOperLog` 中未自动从登录态填充；helper 不试图填它，由后续中间件改造统一补齐。
+- `oper_param` 总长上限 2048（由 `audit.LimitText` 在 `Set` 阶段截断）；如果业务 before/after 体量很大，应该只取必要字段。
+- create 场景下 `target.id` 通常是 0（DTO 在 Insert 前 ID=0），这是既有 sys_opera_log 行为；如需真实 ID，调用方可在 service 用 `BaseService.InsertReturn` 后再写日志。
 
 ## 标准列表列配置
 

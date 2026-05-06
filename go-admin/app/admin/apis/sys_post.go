@@ -117,18 +117,20 @@ func (e SysPost) Insert(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("新建岗位失败！错误详情：%s", err.Error()))
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "岗位管理",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryPost,
-		Method:        "admin.sysPost.insert",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("岗位名称", req.PostName),
-			middleware.AuditKV("岗位编码", req.PostCode),
-			middleware.AuditKV("状态", req.Status),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"岗位管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryPost,
+			ID:    req.PostId,
+			Label: req.PostName,
+		},
+		map[string]interface{}{
+			"postName": req.PostName,
+			"postCode": req.PostCode,
+			"status":   req.Status,
+		},
+		"admin.sysPost.insert",
+	)
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -163,19 +165,21 @@ func (e SysPost) Update(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("岗位更新失败！错误详情：%s", err.Error()))
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "岗位管理",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryPost,
-		Method:        "admin.sysPost.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("岗位ID", req.PostId),
-			middleware.AuditKV("岗位名称", req.PostName),
-			middleware.AuditKV("岗位编码", req.PostCode),
-			middleware.AuditKV("状态", req.Status),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"岗位管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryPost,
+			ID:    req.PostId,
+			Label: req.PostName,
+		},
+		nil, // before：岗位场景没有易得的快照来源，留空，after 仍能描述变更后的状态
+		map[string]interface{}{
+			"postName": req.PostName,
+			"postCode": req.PostCode,
+			"status":   req.Status,
+		},
+		"admin.sysPost.update",
+	)
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -206,16 +210,14 @@ func (e SysPost) Delete(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("岗位删除失败！错误详情：%s", err.Error()))
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "岗位管理",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryPost,
-		Method:        "admin.sysPost.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditCount("删除岗位数量", len(req.Ids)),
-			middleware.AuditKV("岗位ID", req.Ids),
-		),
-	})
+	middleware.AuditLogDelete(c,
+		"岗位管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryPost,
+			ID:   req.Ids,
+		},
+		map[string]interface{}{"ids": req.Ids, "count": len(req.Ids)},
+		"admin.sysPost.delete",
+	)
 	e.OK(req.GetId(), "删除成功")
 }

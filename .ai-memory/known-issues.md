@@ -64,7 +64,7 @@
 ## 平台能力层已部分落地，但仍有待收口项
 
 - `workflow / module_registry / attachment` 及对应最小前端验收层已经进入已提交历史。
-- 但 `统一业务操作日志最小规范` 仍未形成完整已提交真相源。
+- `统一业务操作日志最小规范` 已收口为已提交真相源：`go-admin/common/audit`（`Entry`/`Target` 契约 + `Log/LogCreate/LogUpdate/LogDelete` helper），文档见 `.ai-memory/backend-frontend-contracts.md` 的"业务操作日志最小契约"段。新业务模块应直接使用 `middleware.AuditLog*` helper，不再手拼 `AuditMeta`。
 - 继续推进时应优先补齐真相源和承接层，不再把平台能力重新塞回单个业务模块内部。
 
 ## 阶段口径可能滞后
