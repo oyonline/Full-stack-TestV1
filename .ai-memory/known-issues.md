@@ -57,9 +57,11 @@
 
 ## 头像配置依赖新字段
 
-- 当前 working tree 中的头像方案依赖 `sys_user.avatar_type` 和 `sys_user.avatar_color`。
-- 但相关 migration `1775000000000_user_avatar_profile.go` 仍未进入已提交历史。
-- 这意味着：头像这条线目前仍是本地待收口状态，不能当作所有环境默认可用的正式主线能力。
+- 当前头像方案依赖 `sys_user.avatar_type` 和 `sys_user.avatar_color` 两列。
+- migration `1775000000000_user_avatar_profile.go` 已进入已提交历史（fs-2ie），含老数据回填
+  `avatar_type='image'`；Go model（`adminModels.SysUser` 与 migration 私有副本）同步含两字段。
+- 后端 API / DTO 数据回路仍未把这两列写入 / 读出，前端通过 working tree 自有逻辑兜底；
+  详见 `docs/avatar-system.md` 的"仍未收口的部分"段。这部分是后续工作，不属于 schema 收口任务。
 
 ## 平台能力层已部分落地，但仍有待收口项
 

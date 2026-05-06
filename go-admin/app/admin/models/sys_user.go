@@ -61,6 +61,8 @@ type SysUser struct {
 	PrimaryRoleId     int       `json:"primaryRoleId" gorm:"-"`
 	Salt              string    `json:"-" gorm:"size:255;comment:加盐"`
 	Avatar            string    `json:"avatar" gorm:"size:255;comment:头像"`
+	AvatarType        string    `json:"avatarType" gorm:"size:16;comment:头像类型(image|letter)"`
+	AvatarColor       string    `json:"avatarColor" gorm:"size:16;comment:头像背景色(hex)"`
 	Sex               string    `json:"sex" gorm:"size:255;comment:性别"`
 	Email             string    `json:"email" gorm:"size:128;comment:邮箱"`
 	DeptId            int       `json:"deptId" gorm:"size:20;comment:部门"`

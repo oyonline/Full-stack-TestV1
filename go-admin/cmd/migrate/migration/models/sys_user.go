@@ -13,7 +13,9 @@ type SysUser struct {
 	Phone    string `json:"phone" gorm:"type:varchar(11);comment:手机号"`
 	RoleId   int    `json:"roleId" gorm:"type:bigint;comment:角色ID"`
 	Salt     string `json:"-" gorm:"type:varchar(255);comment:加盐"`
-	Avatar   string `json:"avatar" gorm:"type:varchar(255);comment:头像"`
+	Avatar      string `json:"avatar" gorm:"type:varchar(255);comment:头像"`
+	AvatarType  string `json:"avatarType" gorm:"type:varchar(16);comment:头像类型(image|letter)"`
+	AvatarColor string `json:"avatarColor" gorm:"type:varchar(16);comment:头像背景色(hex)"`
 	Sex      string `json:"sex" gorm:"type:varchar(255);comment:性别"`
 	Email    string `json:"email" gorm:"type:varchar(128);comment:邮箱"`
 	DeptId   int    `json:"deptId" gorm:"type:bigint;comment:部门"`
