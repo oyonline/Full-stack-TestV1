@@ -19,7 +19,6 @@ func registerFeishuRouter(v1 *gin.RouterGroup) {
 		r.POST("/orgList", api.OrgList)
 		r.POST("/departtment", api.DepartmentList)
 		r.POST("/platform", api.PlatformList)
-		r.POST("/feeType", api.FeeCode)
 		r.GET("/subscript", api.Subscript)
 	}
 }

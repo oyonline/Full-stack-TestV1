@@ -59,3 +59,6 @@ vite.config.ts.*
 .claude
 .codex
 skills-lock.json
+
+# jiti runtime cache (absolute paths, not portable)
+**/packages/@core/base/design/src/css/index.mjs

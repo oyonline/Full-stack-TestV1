@@ -1,10 +1,7 @@
 package service
 
 import (
-	"errors"
-	"fmt"
 	emod "go-admin/app/admin/models"
-	esvc "go-admin/app/admin/service"
 	"go-admin/app/other/service/dto"
 	"go-admin/common/utils"
 	"go-admin/common/utils/structsUtils"
@@ -80,38 +77,6 @@ func (e *FeishuRequest) ProcessCallback(c *dto.FeishuApiResponse) error {
 		}
 		// 如果已经存在审批实例数据，说明是有状态变更
 		if !isNewReq {
-			var logs []emod.FeeRequestLog
-			db.Model(&emod.FeeRequestLog{}).Where("instance_code = ?", appRecord.InstanceCode).Find(&logs)
-			if len(logs) > 0 {
-				budgets := make([]emod.CostBudgetVersionDetail, 0)
-				// 更新费用申请日志状态
-				for i, l := range logs {
-					l.Status = appRecord.Status
-					// 实例状态为 APPROVE 扣除对应的费用预算
-					if appRecord.Status == "APPROVED" {
-						var budget emod.CostBudgetVersionDetail
-						e.Orm.Model(&budget).First(&budget, "id = ?", l.Id)
-						if budget.Id > 0 {
-							l.BudgetUsed += l.RequestAmount
-							budget.BudgetUsed += l.RequestAmount
-							budgets = append(budgets, budget)
-						}
-					}
-					logs[i] = l
-				}
-				if len(budgets) > 0 {
-					err = db.Save(&logs).Error
-					if err != nil {
-						db.Rollback()
-						return err
-					}
-					err = db.Save(&budgets).Error
-					if err != nil {
-						db.Rollback()
-						return err
-					}
-				}
-			}
 			db.Commit()
 			return nil
 		}
@@ -260,65 +225,6 @@ func (e *FeishuRequest) ProcessCallback(c *dto.FeishuApiResponse) error {
 			appRecord.Form = approvalForm
 		}
 		db.Commit()
-		// 根据费用明细 平台，费用类型 查找当前生效的预算数据
-		ym := time.Now().Format("2006-01")
-		if len(details) > 0 {
-			var user emod.CurrentUser
-			e.Orm.Model(&user).Preload("MainDept").Where("open_id = ?", appRecord.OpenId).First(&user)
-			logs := make([]emod.FeeRequestLog, 0)
-			feishuSvc := esvc.FeishuService{}
-			feishuSvc.Orm = e.Orm
-			var department emod.CurrentDept
-			for _, d := range details {
-				var budgetData emod.FeeRequestLog
-				err = e.Orm.Table("budget_fee_category_details bd").
-					Joins("INNER JOIN budget_fee_category bc ON bc.id=bd.budget_fee_category_id and bc.view_type=1 and  bc.deleted_at is null").
-					Joins("INNER JOIN cost_budget_version_detail cd ON cd.budget_fee_category_id = bc.id and cd.deleted_at is null").
-					Joins("INNER JOIN cost_budget_version bv ON cd.cost_budget_version_id = bv.id AND bv.status=2 AND effective_date <= CURDATE() AND bv.deleted_at  is null").
-					Joins("INNER JOIN cost_center_info ci ON ci.id = bv.cost_center_info_id").
-					Joins("INNER JOIN cost_center_related_customer cr ON cr.cost_center_info_id = ci.id").
-					Joins("INNER JOIN kingdee_customer_group kcg ON kcg.group_id =cr.group_id").
-					Select("bv.id as budget_version_id,cd.id as budget_detail_id, bd.fee_code,bd.fee_name,bv.cost_center_info_id,"+
-						"ci.cost_center_name,ci.dept_id,cd.budget_amount,cd.budget_used, cd.years_month as budget_years_month,kcg.group_name,kcg.group_number").
-					Where("bd.fee_code = ? AND cd.years_month = ? AND kcg.group_number = ?", d.FeeCode, ym, appRecord.Form.Platform).First(&budgetData).Error
-				if err == nil && budgetData.CostCenterName != "" {
-					budgetData.RequestAmount = d.FeeAmount
-					budgetData.CreateBy = user.UserId
-					budgetData.InstanceCode = appRecord.InstanceCode
-					budgetData.UserDeptId = user.DeptId
-					budgetData.Currency = approvalForm.Currency
-					budgetData.OrgCode = approvalForm.OrgCode
-					budgetData.ReqUserOpenid = appRecord.OpenId
-					logs = append(logs, budgetData)
-					if department.DeptId == 0 {
-						e.Orm.Model(&department).Preload("LeaderUser").First(&department, "dept_id=?", budgetData.DepartmentId)
-					}
-				} else {
-					return errors.New("未找到完整的成本中心预算信息")
-				}
-			}
-			if len(logs) > 0 {
-				e.Orm.Create(&logs)
-				userName := fmt.Sprintf("%s(%s)", user.CnName, user.MainDept.DeptName)
-				for _, l := range logs {
-					// 如果 已使用预算 + 当前申请费用 >= 预算的80% 则给部门负责人报警
-					if l.BudgetUsed+l.RequestAmount >= l.BudgetAmount*0.8 {
-						params := map[string]string{
-							"amount":         fmt.Sprintf("%s %v", l.Currency, l.RequestAmount),
-							"deptartment":    department.DeptName,
-							"budget_amount":  fmt.Sprintf("%s %v", l.Currency, l.BudgetAmount),
-							"budget_balance": fmt.Sprintf("%s %v", l.Currency, l.BudgetAmount-l.BudgetUsed),
-							"real_name":      userName,
-							"date_str":       appRecord.StartDate,
-							"instance_code":  appRecord.InstanceCode,
-						}
-						err = feishuSvc.SendMessage(user.MainDept.LeaderUser.OpenId, "budgetInsufficient ", params)
-					}
-				}
-			}
-
-		}
-
 	}
 	return nil
 }

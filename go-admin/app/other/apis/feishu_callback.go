@@ -87,23 +87,6 @@ func (e FeishuCallback) PlatformList(c *gin.Context) {
 	return
 }
 
-func (e FeishuCallback) FeeCode(c *gin.Context) {
-	req := dto.FeishuRequest{}
-	s := service.FeishuOptions{}
-	err := e.MakeContext(c).
-		MakeOrm().
-		Bind(&req).
-		MakeService(&s.Service).
-		Errors
-	if err != nil {
-		c.String(http.StatusOK, "ok")
-		return
-	}
-	response := s.FeeCodeList(req.LinkageParams.Platform)
-	c.JSON(http.StatusOK, response)
-	return
-}
-
 func (e FeishuCallback) Callback(c *gin.Context) {
 	body, err := c.GetRawData()
 	if err != nil {

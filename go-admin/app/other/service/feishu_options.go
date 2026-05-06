@@ -135,35 +135,3 @@ func (e *FeishuOptions) PlatformList(departmentName string) dto.FeishuResponseDa
 	return response
 }
 
-func (e *FeishuOptions) FeeCodeList(platformName string) dto.FeishuResponseData {
-	type feeEnt struct {
-		FeeCode string `gorm:"column:fee_code"`
-		FeeName string `gorm:"column:fee_name"`
-	}
-	response := dto.FeishuResponseData{}
-	var feeCodes []feeEnt
-	e.Orm.Table("budget_fee_category_details").Where("platform like ?", fmt.Sprintf("/%s/", platformName)).Select("fee_code,fee_name").Find(&feeCodes)
-	if len(feeCodes) > 0 {
-		textMap := make(map[string]string)
-		options := []dto.Option{}
-		for _, o := range feeCodes {
-			key := fmt.Sprintf("@i18n@%s", o.FeeCode)
-			textMap[key] = o.FeeName
-			option := dto.Option{
-				Id:        o.FeeCode,
-				Value:     key,
-				IsDefault: false,
-			}
-			options = append(options, option)
-		}
-		i18ns := []dto.I18nResource{
-			{
-				Location:  "zh_cn",
-				IsDefault: true,
-				Texts:     textMap,
-			},
-		}
-		response.SetData(i18ns, options)
-	}
-	return response
-}

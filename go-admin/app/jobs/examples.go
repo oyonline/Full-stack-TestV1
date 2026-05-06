@@ -15,10 +15,9 @@ import (
 // 字典 key 可以配置到 自动任务 调用目标 中；
 func InitJob() {
 	jobList = map[string]JobExec{
-		"ExamplesOne":        ExamplesOne{},
-		"CostCenterTimeTask": CostCenterTimeTask{},
-		"PullDeptTask":       PullDeptTask{},
-		"PullCustomerTask":   PullCustomerTask{},
+		"ExamplesOne":      ExamplesOne{},
+		"PullDeptTask":     PullDeptTask{},
+		"PullCustomerTask": PullCustomerTask{},
 		// ...
 	}
 }
@@ -44,28 +43,6 @@ func (t ExamplesOne) Exec(arg interface{}) error {
 		break
 	}
 
-	return nil
-}
-
-type CostCenterTimeTask struct {
-}
-
-func (t CostCenterTimeTask) Exec(arg interface{}) error {
-	startTime := time.Now()
-	logPrefix := startTime.Format(timeFormat) + " [CostCenterTimeTask]"
-	fmt.Println(logPrefix, "=== 任务开始执行 ===")
-	// 2. 创建 Service 实例
-	costCenterService := &service.CostCenterInfo{}
-	costCenterService.Orm = utils.GetDb()
-	costCenterService.Log = logger.NewHelper(logger.DefaultLogger)
-
-	err := costCenterService.CostCenterTimeTask()
-	execTime := time.Since(startTime)
-	if err != nil {
-		fmt.Printf("%s [ERROR] 执行失败：%v, 耗时：%v\n", logPrefix, err, execTime)
-		return err
-	}
-	fmt.Printf("%s [SUCCESS] 成功启用, 耗时：%v\n", logPrefix, execTime)
 	return nil
 }
 
