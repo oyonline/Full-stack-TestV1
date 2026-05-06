@@ -1,83 +1,22 @@
 package service
 
 import (
-	"errors"
-
 	"go-admin/app/admin/models"
-	"go-admin/app/admin/service/dto"
-	cDto "go-admin/common/dto"
-
-	"github.com/go-admin-team/go-admin-core/sdk/service"
-	"gorm.io/gorm"
+	"go-admin/common/baseservice"
 )
 
+// SysOperaLog 嵌入 BaseService 拿到 GetPage/Get/Remove 默认实现。
+// Insert 与 BaseService 的签名不同（直接吃 *models 而非 DTO），保留自定义实现以兼容调用方。
 type SysOperaLog struct {
-	service.Service
+	baseservice.BaseService[models.SysOperaLog]
 }
 
-// GetPage 获取SysOperaLog列表
-func (e *SysOperaLog) GetPage(c *dto.SysOperaLogGetPageReq, list *[]models.SysOperaLog, count *int64) error {
-	var err error
-	var data models.SysOperaLog
-
-	err = e.Orm.Model(&data).
-		Scopes(
-			cDto.MakeCondition(c.GetNeedSearch()),
-			cDto.Paginate(c.GetPageSize(), c.GetPageIndex()),
-		).
-		Find(list).Limit(-1).Offset(-1).
-		Count(count).Error
-	if err != nil {
-		e.Log.Errorf("Service GetSysOperaLogPage error:%s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// Get 获取SysOperaLog对象
-func (e *SysOperaLog) Get(d *dto.SysOperaLogGetReq, model *models.SysOperaLog) error {
-	var data models.SysOperaLog
-
-	err := e.Orm.Model(&data).
-		First(model, d.GetId()).Error
-	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		err = errors.New("查看对象不存在或无权查看")
-		e.Log.Errorf("Service GetSysOperaLog error:%s", err.Error())
-		return err
-	}
-	if err != nil {
-		e.Log.Errorf("Service GetSysOperaLog error:%s", err.Error())
-		return err
-	}
-	return nil
-}
-
-// Insert 创建SysOperaLog对象
+// Insert 创建 SysOperaLog 对象。
+// 中间件 SetDBOperLog 会把 map[string]interface{} 转 model 后调用此方法，签名与 BaseService.Insert 不同。
 func (e *SysOperaLog) Insert(model *models.SysOperaLog) error {
-	var err error
-	var data models.SysOperaLog
-
-	err = e.Orm.Model(&data).
-		Create(model).Error
-	if err != nil {
+	if err := e.Orm.Create(model).Error; err != nil {
 		e.Log.Errorf("Service InsertSysOperaLog error:%s", err.Error())
 		return err
-	}
-	return nil
-}
-
-// Remove 删除SysOperaLog
-func (e *SysOperaLog) Remove(d *dto.SysOperaLogDeleteReq) error {
-	var err error
-	var data models.SysOperaLog
-
-	db := e.Orm.Model(&data).Delete(&data, d.GetId())
-	if err = db.Error; err != nil {
-		e.Log.Errorf("Service RemoveSysOperaLog error:%s", err.Error())
-		return err
-	}
-	if db.RowsAffected == 0 {
-		return errors.New("无权删除该数据")
 	}
 	return nil
 }

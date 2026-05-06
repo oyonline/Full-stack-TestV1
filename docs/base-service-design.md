@@ -203,3 +203,53 @@ API 层（`apis/sys_post.go`）零改动。
   含自定义逻辑的 service（如 `sys_role`、`sys_user`、`sys_dept`）单独评估。
 - **fs-2m0.3**：更新 `cmd/api/template`（如有）/ 代码生成模板，让新模块默认产出嵌入
   `BaseService[T]` 的 service 文件。
+
+## 8. 批量迁移进展（fs-2m0.2 实测）
+
+**实际盘点**：bead 描述里的"44 个 service"是 finance 子系统未删除时的旧口径；当前
+`grep -rln "service.Service$"` 列出 22 个嵌入 SDK Service 的业务 struct。
+
+**已完成迁移（6 个）**：
+
+| service                | 原行数 | 新行数 | 含的非模板自定义方法                                          |
+| ---------------------- | ------ | ------ | ------------------------------------------------------------- |
+| `sys_post`             | 104    | 14     | 无（spike，fs-2m0.1 完成）                                    |
+| `sys_login_log`        | 69     | 11     | 无                                                            |
+| `sys_opera_log`        | 83     | 22     | `Insert(*models.SysOperaLog)`（中间件直接吃 model）           |
+| `sys_dict_data`        | 120    | 26     | `GetAll`（不分页）                                            |
+| `sys_dict_type`        | 124    | 43     | `Insert`（dict_type 唯一性校验）+ `GetAll`                    |
+| `kingdee_customer`     | 244    | 121    | `DownloadTemplate` / `ImportData` / `Export` / `PullKingdeeCustomers` |
+
+净减少：约 **400+ 行**模板五件套代码。
+
+**未迁移（保留原状）的 16 个 service 及理由**：
+
+| service                                            | 理由                                                                                |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `sys_api`                                          | CRUD 签名带 `*actions.DataPermission` 数据权限参数，与 BaseService 模板不兼容        |
+| `sys_user`                                         | 同上 + 大量 hydrate / 角色同步 / 密码重置等业务逻辑                                  |
+| `sys_role`                                         | GetPage 含 `Preload("SysMenu")`；Insert/Update/Remove 带 `*casbin.SyncedEnforcer`     |
+| `sys_dept`                                         | 含 `Su *SysUser` 字段；Get 用 `FirstOrInit`；树结构方法独有                          |
+| `sys_menu`                                         | 方法返回 `*SysMenu` 链式 builder；签名与模板不兼容                                   |
+| `sys_config` / `sys_config_settings`               | Insert/Update 含 isProtectedConfigKey 校验；批量保存逻辑特殊                         |
+| `sys_role_menu`                                    | 已是空 struct（历史已注释，标注弃用）                                                |
+| `sys_job`                                          | 仅 RemoveJob / StartJob 两个非模板方法；嵌入额外字段 `Cron *cron.Cron`               |
+| `module_registry`                                  | 自定义 WHERE/排序/分页；Get 接 int；Insert/Update 带组合唯一性                       |
+| `attachment`                                       | 完全自定义（文件上传、权限校验、事务清理）                                           |
+| `workflow`                                         | 871 行，方法体系与 BaseService 完全不同                                              |
+| `feishu_service` / `feishu_options` / `feishu_request` | 第三方集成，无标准 CRUD                                                              |
+| `kingdee_dept` / `kingdee_organize_info` / `kingdee_customer_group` | 仅拉取 / 列表查询，无标准 CRUD                                                       |
+
+这些 service **没有"五件套模板"可以删**，强行套 BaseService 反而增加复杂度。
+对它们的优化属于另外的工作（重构数据权限层、casbin 装饰器、tree 工具等），不在本批次范围。
+
+**烟雾测试**（`app/admin/service/migration_smoke_test.go`）：
+
+- `TestSysLoginLog_BaseServiceMethodsReachable`：embed BaseService 后 GetPage/Get/Remove 走通。
+- `TestSysOperaLog_KeepsCustomInsertSignature`：自定义 `Insert(*model)` 与 BaseService.GetPage 共存。
+- `TestSysDictType_CustomInsertEnforcesUniqueness`：自定义 Insert 唯一性校验保留。
+- `TestSysDictData_BaseServiceCRUD`：BaseService 默认 Insert + 自定义 GetAll 共存。
+
+加上 fs-2m0.1 的 SysPost 全链路测试，共 7 个测试用例，全部通过。
+
+**API 兼容性**：所有迁移后的 service 公开方法签名未变，API 层零改动。前端无感。
