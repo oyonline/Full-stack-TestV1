@@ -95,7 +95,8 @@ func (s *UpdateSysUserAvatarReq) Generate(model *models.SysUser) {
 }
 
 type UpdateSysUserProfileReq struct {
-	UserId       int    `json:"userId" comment:"用户ID" vd:"$>0"`
+	// UserId 由 handler 从 JWT context 权威填充，body 不应携带也不参与校验
+	UserId       int    `json:"userId" comment:"用户ID"`
 	Introduction string `json:"introduction" comment:"个人简介"`
 	common.ControlBy
 }
