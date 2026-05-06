@@ -11,7 +11,6 @@ import (
 	"go-admin/app/{{.PackageName}}/models"
 	"go-admin/app/{{.PackageName}}/service"
 	"go-admin/app/{{.PackageName}}/service/dto"
-	"go-admin/common/actions"
 )
 
 type {{.ClassName}} struct {
@@ -48,11 +47,10 @@ func (e {{.ClassName}}) GetPage(c *gin.Context) {
    		return
    	}
 
-	p := actions.GetPermissionFromContext(c)
 	list := make([]models.{{.ClassName}}, 0)
 	var count int64
 
-	err = s.GetPage(&req, p, &list, &count)
+	err = s.GetPage(&req, &list, &count)
 	if err != nil {
 		e.Error(500, err, fmt.Sprintf("获取{{.TableComment}}失败，\r\n失败信息 %s", err.Error()))
         return
@@ -84,8 +82,7 @@ func (e {{.ClassName}}) Get(c *gin.Context) {
 	}
 	var object models.{{.ClassName}}
 
-	p := actions.GetPermissionFromContext(c)
-	err = s.Get(&req, p, &object)
+	err = s.Get(&req, &object)
 	if err != nil {
 		e.Error(500, err, fmt.Sprintf("获取{{.TableComment}}失败，\r\n失败信息 %s", err.Error()))
         return
@@ -154,9 +151,8 @@ func (e {{.ClassName}}) Update(c *gin.Context) {
         return
     }
 	req.SetUpdateBy(user.GetUserId(c))
-	p := actions.GetPermissionFromContext(c)
 
-	err = s.Update(&req, p)
+	err = s.Update(&req)
 	if err != nil {
 		e.Error(500, err, fmt.Sprintf("修改{{.TableComment}}失败，\r\n失败信息 %s", err.Error()))
         return
@@ -187,9 +183,8 @@ func (e {{.ClassName}}) Delete(c *gin.Context) {
     }
 
 	// req.SetUpdateBy(user.GetUserId(c))
-	p := actions.GetPermissionFromContext(c)
 
-	err = s.Remove(&req, p)
+	err = s.Remove(&req)
 	if err != nil {
 		e.Error(500, err, fmt.Sprintf("删除{{.TableComment}}失败，\r\n失败信息 %s", err.Error()))
         return
