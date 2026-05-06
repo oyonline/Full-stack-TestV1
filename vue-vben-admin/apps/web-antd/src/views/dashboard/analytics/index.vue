@@ -14,6 +14,8 @@ import {
   SvgDownloadIcon,
 } from '@vben/icons';
 
+import { Alert } from 'ant-design-vue';
+
 import AnalyticsTrends from './analytics-trends.vue';
 import AnalyticsVisitsData from './analytics-visits-data.vue';
 import AnalyticsVisitsSales from './analytics-visits-sales.vue';
@@ -65,6 +67,13 @@ const chartTabs: TabOption[] = [
 
 <template>
   <div class="p-5">
+    <Alert
+      class="mb-4"
+      message="演示数据"
+      description="本页所有指标与图表均为演示数据，待后端统计接口接入后将替换为真实数据。"
+      type="warning"
+      show-icon
+    />
     <AnalysisOverview :items="overviewItems" />
     <AnalysisChartsTabs :tabs="chartTabs" class="mt-5">
       <template #trends>
