@@ -146,6 +146,8 @@ type SysUserInsertReq struct {
 	PrimaryRoleId int    `json:"primaryRoleId" comment:"主角色ID"`
 	RoleIds       []int  `json:"roleIds" comment:"角色ID数组"`
 	Avatar        string `json:"avatar" comment:"头像"`
+	AvatarType    string `json:"avatarType" comment:"头像类型(image|letter)"`
+	AvatarColor   string `json:"avatarColor" comment:"头像背景色(hex)"`
 	Sex           string `json:"sex" comment:"性别"`
 	Email         string `json:"email" comment:"邮箱" vd:"len($)>0,email"`
 	DeptId        int    `json:"deptId" comment:"部门" vd:"$>0"`
@@ -168,6 +170,8 @@ func (s *SysUserInsertReq) Generate(model *models.SysUser) {
 	model.PrimaryRoleId = primaryRoleID
 	model.RoleIds = roleIDs
 	model.Avatar = s.Avatar
+	model.AvatarType = strings.TrimSpace(s.AvatarType)
+	model.AvatarColor = strings.TrimSpace(s.AvatarColor)
 	model.Sex = s.Sex
 	model.Email = s.Email
 	model.DeptId = s.DeptId
@@ -194,6 +198,8 @@ type SysUserUpdateReq struct {
 	PrimaryRoleId int    `json:"primaryRoleId" comment:"主角色ID"`
 	RoleIds       []int  `json:"roleIds" comment:"角色ID数组"`
 	Avatar        string `json:"avatar" comment:"头像"`
+	AvatarType    string `json:"avatarType" comment:"头像类型(image|letter)"`
+	AvatarColor   string `json:"avatarColor" comment:"头像背景色(hex)"`
 	Sex           string `json:"sex" comment:"性别"`
 	Email         string `json:"email" comment:"邮箱" vd:"len($)>0,email"`
 	DeptId        int    `json:"deptId" comment:"部门" vd:"$>0"`
@@ -215,6 +221,8 @@ func (s *SysUserUpdateReq) Generate(model *models.SysUser) {
 	model.PrimaryRoleId = primaryRoleID
 	model.RoleIds = roleIDs
 	model.Avatar = s.Avatar
+	model.AvatarType = strings.TrimSpace(s.AvatarType)
+	model.AvatarColor = strings.TrimSpace(s.AvatarColor)
 	model.Sex = s.Sex
 	model.Email = s.Email
 	model.DeptId = s.DeptId

@@ -283,17 +283,19 @@ func (e SysUser) InsetAvatar(c *gin.Context) {
 	req.UserId = p.UserId
 	req.Avatar = "/" + filPath
 
-	err = s.UpdateAvatar(&req, p)
+	updated, err := s.UpdateAvatar(&req, p)
 	if err != nil {
 		e.Logger.Error(err)
 		return
 	}
-	// 响应 shape 必须匹配前端 UploadUserAvatarResult { avatar, avatarType }
+	// 响应 shape 必须匹配前端 UploadUserAvatarResult { avatar, avatarType, avatarColor }
 	// (vue-vben-admin/apps/web-antd/src/api/core/user.ts)；avatar 必须与 DB
-	// 持久化值一致（带前导 /），否则刷新后渲染地址错乱。
+	// 持久化值一致（带前导 /），否则刷新后渲染地址错乱。avatarColor 回传上传前的
+	// 原值，便于前端 store 在切换回 letter 模式时仍能复用用户配置过的背景色。
 	e.OK(map[string]string{
-		"avatar":     req.Avatar,
-		"avatarType": "image",
+		"avatar":      updated.Avatar,
+		"avatarType":  updated.AvatarType,
+		"avatarColor": updated.AvatarColor,
 	}, "修改成功")
 }
 

@@ -159,27 +159,32 @@ func (e *SysUser) Update(c *dto.SysUserUpdateReq, p *actions.DataPermission) err
 	})
 }
 
-// UpdateAvatar 更新用户头像
-func (e *SysUser) UpdateAvatar(c *dto.UpdateSysUserAvatarReq, p *actions.DataPermission) error {
-	var err error
+// UpdateAvatar 更新用户头像。上传图片头像只覆盖 avatar / avatar_type='image'，
+// avatar_color 必须保留——letter 模式下用户配置的背景色不能因切换为 image 模式而丢失。
+// 返回更新后的模型，调用方据此回传完整三元组（avatar / avatar_type / avatar_color）。
+func (e *SysUser) UpdateAvatar(c *dto.UpdateSysUserAvatarReq, p *actions.DataPermission) (*models.SysUser, error) {
 	var model models.SysUser
 	db := e.Orm.Scopes(
 		actions.Permission(model.TableName(), p),
 	).First(&model, c.GetId())
-	if err = db.Error; err != nil {
+	if err := db.Error; err != nil {
 		e.Log.Errorf("Service UpdateSysUser error: %s", err)
-		return err
+		return nil, err
 	}
 	if db.RowsAffected == 0 {
-		return errors.New("无权更新该数据")
-
+		return nil, errors.New("无权更新该数据")
 	}
-	err = e.Orm.Table(model.TableName()).Where("user_id =? ", c.UserId).Updates(c).Error
+	err := e.Orm.Table(model.TableName()).Where("user_id = ?", c.UserId).Updates(map[string]interface{}{
+		"avatar":      c.Avatar,
+		"avatar_type": "image",
+	}).Error
 	if err != nil {
 		e.Log.Errorf("Service UpdateSysUser error: %s", err)
-		return err
+		return nil, err
 	}
-	return nil
+	model.Avatar = c.Avatar
+	model.AvatarType = "image"
+	return &model, nil
 }
 
 // UpdateProfile 更新个人资料
