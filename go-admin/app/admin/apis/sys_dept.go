@@ -239,7 +239,19 @@ func (e SysDept) Get2Tree(c *gin.Context) {
 	e.OK(list, "")
 }
 
-// GetDeptTreeRoleSelect TODO: 此接口需要调整不应该将list和选中放在一起
+// roleDeptTreeResp 锁定 GetDeptTreeRoleSelect 的响应 shape，避免误拆。
+// 字段命名与前端 vue-vben-admin/apps/web-antd/src/api/core/role.ts
+// RoleDeptTreeResult 一一对应。
+type roleDeptTreeResp struct {
+	Depts       []dto.DeptLabel `json:"depts"`
+	CheckedKeys []int           `json:"checkedKeys"`
+}
+
+// GetDeptTreeRoleSelect 一次返回"全部部门树 + 该角色已勾 dept ids"。
+// 设计有意：唯一调用方是角色编辑页（workspace.vue），创建/编辑两种模式
+// 都同时需要 depts 和 checkedKeys 才能渲染勾选状态。拆成两个接口会多 1
+// 次 RTT 或前端 Promise.all，对单一场景无收益。如果将来出现"只想要其中
+// 一半数据"的第二处调用方，再讨论拆分；在此之前请保持成对返回。
 func (e SysDept) GetDeptTreeRoleSelect(c *gin.Context) {
 	s := service.SysDept{}
 	err := e.MakeContext(c).
@@ -266,8 +278,5 @@ func (e SysDept) GetDeptTreeRoleSelect(c *gin.Context) {
 			return
 		}
 	}
-	e.OK(gin.H{
-		"depts":       result,
-		"checkedKeys": menuIds,
-	}, "")
+	e.OK(roleDeptTreeResp{Depts: result, CheckedKeys: menuIds}, "")
 }
