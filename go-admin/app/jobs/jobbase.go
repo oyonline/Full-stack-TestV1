@@ -56,9 +56,7 @@ func (e *ExecJob) Run() {
 
 	// 执行时间
 	latencyTime := endTime.Sub(startTime)
-	//TODO: 待完善部分
-	//str := time.Now().Format(timeFormat) + " [INFO] JobCore " + string(e.EntryId) + "exec success , spend :" + latencyTime.String()
-	//ws.SendAll(str)
+	// 实时广播暂不需要：前端无 ws 消费者，job 状态查 sys_job 表或日志即可。
 	log.Infof("[Job] JobCore %s exec success , spend :%v", e.Name, latencyTime)
 	return
 }
@@ -89,8 +87,6 @@ LOOP:
 
 	// 执行时间
 	latencyTime := endTime.Sub(startTime)
-	//TODO: 待完善部分
-
 	log.Infof("[Job] JobCore %s exec success , spend :%v", h.Name, latencyTime)
 	return
 }
