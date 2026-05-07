@@ -34,6 +34,7 @@ const (
 	AuditCategoryJob            = audit.CategoryJob
 	AuditCategoryWorkflow       = audit.CategoryWorkflow
 	AuditCategoryModule         = audit.CategoryModule
+	AuditCategoryAnnouncement   = audit.CategoryAnnouncement
 )
 
 const (

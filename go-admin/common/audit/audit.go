@@ -47,6 +47,7 @@ const (
 	CategoryJob            = "job"
 	CategoryWorkflow       = "workflow"
 	CategoryModule         = "module"
+	CategoryAnnouncement   = "announcement"
 )
 
 const (
