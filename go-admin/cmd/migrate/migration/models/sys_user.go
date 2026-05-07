@@ -22,6 +22,11 @@ type SysUser struct {
 	PostId   int    `json:"postId" gorm:"type:bigint;comment:岗位"`
 	Remark   string `json:"remark" gorm:"type:varchar(255);comment:备注"`
 	Status   string `json:"status" gorm:"type:varchar(4);comment:状态"`
+	OpenId            string `json:"openId" gorm:"type:varchar(55);comment:飞书用户应用ID"`
+	JobTitle          string `json:"jobTitle" gorm:"type:varchar(55);comment:飞书用户职务"`
+	OpenDepartmentId  string `json:"openDepartmentId" gorm:"type:varchar(55);comment:飞书系统部门ID"`
+	OpenDepartmentIds string `json:"openDepartmentIds" gorm:"type:varchar(255);comment:飞书系统多部门ID"`
+	CnName            string `json:"cnName" gorm:"type:varchar(25);comment:飞书中文名"`
 	ControlBy
 	ModelTime
 }
