@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
 
 import {
   Alert,
@@ -33,8 +32,6 @@ import AdminPageShell from '#/components/admin/page-shell.vue';
 import GenPreviewModal from '#/views/dev-tools/gen/components/preview-modal.vue';
 
 type GeneratorTabKey = 'db' | 'sys';
-
-const router = useRouter();
 
 const activeTab = ref<GeneratorTabKey>('db');
 
@@ -177,11 +174,8 @@ async function adoptDbTable(record: DbTableItem) {
   }
 }
 
-function openEdit(record: SysTableItem) {
-  router.push({
-    path: '/dev-tools/editTable',
-    query: { tableId: String(record.tableId) },
-  });
+function openEdit(_record: SysTableItem) {
+  message.warning('编辑表功能暂未实现，请到数据库直接修改');
 }
 
 async function openPreview(record: SysTableItem) {
