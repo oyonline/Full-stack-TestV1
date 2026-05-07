@@ -8,7 +8,7 @@ go-admin
 go-admin.exe
 temp/
 !temp
-vendor
+/vendor
 config/settings.dev.yml
 config/settings.dev.*.yml
 config/settings.dev.*.yml.log

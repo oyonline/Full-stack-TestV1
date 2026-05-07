@@ -2,9 +2,11 @@
 
 ## 表单构建依赖外部资源
 
-- 表单构建当前承接的是后端静态页。
-- 静态页依赖外部 CDN 资源。
-- 若浏览器网络环境或拦截策略导致外链资源失败，页面可能白屏或不完整。
+- 表单构建当前承接的是后端静态页（`go-admin/static/form-generator/`）。
+- 资源已 vendor 化到 `go-admin/static/form-generator/vendor/`：vue、vue-router、element-ui（含 `theme-chalk/fonts/`）、monaco-editor（`min/vs/` 完整目录，AMD basePath）、tinymce 5.3.2 完整包、jquery、js-beautify。
+- `index.html`、`preview.html`、`js/index.*.js`、`js/preview.*.js` 中所有原 `https://lib.baomitu.com/...` 已改写为 `/form-generator/vendor/...`，与 gin `r.Static("/form-generator", "./static/form-generator")` 路由匹配。
+- 验收：`grep -rn 'baomitu' go-admin/static/` 必须为 0；表单构建页在屏蔽 baomitu 域名 / 断网情况下仍能渲染。
+- 重新升级 vue/element-ui/monaco/tinymce 版本时，需要同步刷新 vendor/ 内的对应资源，并确认 HTML 与 JS bundle 的引用路径仍然正确。
 
 ## 数据库日志开关默认不在主配置启用
 
