@@ -266,7 +266,7 @@ func extractSubDatas[T MutiStruct](fieldName, id string, item *T, fieldIndex int
 			}
 			subDatas[subTableName] = append(subDatas[subTableName], subEnt)
 		} else {
-			return fmt.Errorf("field %s is not a slice not SubStruct", val.Type().Field(fieldIndex))
+			return fmt.Errorf("field %s is not a slice not SubStruct", val.Type().Field(fieldIndex).Name)
 		}
 	}
 	return nil

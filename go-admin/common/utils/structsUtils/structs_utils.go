@@ -80,7 +80,7 @@ func CopyBeanProp(dest, src interface{}) {
 		if destField.Type != srcField.Type {
 			destValue, isOk := ConvertValue(srcFieldValue, destField.Type)
 			if !isOk {
-				fmt.Sprintln("src:%s TO target:%s FROM %s TO %s Failed", srcField.Name, destField.Name, srcField.Type, destField.Type)
+				fmt.Printf("src:%s TO target:%s FROM %s TO %s Failed\n", srcField.Name, destField.Name, srcField.Type, destField.Type)
 				continue
 			}
 			if destFieldValue.CanSet() {

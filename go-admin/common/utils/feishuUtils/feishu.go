@@ -98,7 +98,7 @@ func (c *FeishuClient) GetAppAccessToken() (string, error) {
 				Build()).
 			Build())
 	if err != nil {
-		return "", fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return "", fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	var appResp AccessTokenRawResp
 	err = json.Unmarshal(resp.RawBody, &appResp)
@@ -118,7 +118,7 @@ func (c *FeishuClient) GetTenantAccessToken() (string, error) {
 				Build()).
 			Build())
 	if err != nil {
-		return "", fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return "", fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	var tenantResp AccessTokenRawResp
 	err = json.Unmarshal(resp.RawBody, &tenantResp)
@@ -140,7 +140,7 @@ func (c *FeishuClient) GetUserInfoByMobileORMail(args []string) ([]*larkcontact.
 
 	resp, err := c.feishuClient.Contact.User.BatchGetId(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	if resp.Data == nil {
 		return nil, fmt.Errorf("无数据")
@@ -153,7 +153,7 @@ func (c *FeishuClient) GetUserByDepartments(openDepartmentId string) ([]*larkcon
 	req := larkcontact.NewFindByDepartmentUserReqBuilder().DepartmentId(openDepartmentId).PageSize(50).Build()
 	resp, err := c.feishuClient.Contact.V3.User.FindByDepartment(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp.Data.Items, nil
 }
@@ -163,7 +163,7 @@ func (c *FeishuClient) GetUserBatchs(openIds []string) ([]*larkcontact.User, err
 	req := larkcontact.NewBatchUserReqBuilder().UserIds(openIds).Build()
 	resp, err := c.feishuClient.Contact.V3.User.Batch(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp.Data.Items, nil
 }
@@ -173,7 +173,7 @@ func (c *FeishuClient) GetDepartmentChildrens(parentDepartmentID string) ([]*lar
 	req := larkcontact.NewChildrenDepartmentReqBuilder().DepartmentId(parentDepartmentID).PageSize(50).Build()
 	resp, err := c.feishuClient.Contact.V3.Department.Children(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp.Data.Items, nil
 }
@@ -183,7 +183,7 @@ func (c *FeishuClient) GetDepartmentBatchs(openDepartmentIds []string) ([]*larkc
 	req := larkcontact.NewBatchDepartmentReqBuilder().DepartmentIds(openDepartmentIds).Build()
 	resp, err := c.feishuClient.Contact.V3.Department.Batch(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp.Data.Items, nil
 }
@@ -192,7 +192,7 @@ func (c *FeishuClient) GetDepartmentList() (*larkcontact.ListDepartmentRespData,
 	req := larkcontact.NewListDepartmentReqBuilder().Build()
 	resp, err := c.feishuClient.Contact.Department.List(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp.Data, nil
 }
@@ -208,7 +208,7 @@ func (c *FeishuClient) CreateMessage(messageInfo map[string]string) (*larkim.Cre
 		Build()
 	resp, err := c.feishuClient.Im.V1.Message.Create(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp.Data, nil
 }
@@ -223,7 +223,7 @@ func (c *FeishuClient) UpdateMessage(messageInfo map[string]string) (*larkim.Upd
 		Build()
 	resp, err := c.feishuClient.Im.V1.Message.Update(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp, nil
 }
@@ -233,7 +233,7 @@ func (c *FeishuClient) DeleteMessage(messageId string) (*larkim.DeleteMessageRes
 	req := larkim.NewDeleteMessageReqBuilder().MessageId(messageId).Build()
 	resp, err := c.feishuClient.Im.V1.Message.Delete(c.CTX, req)
 	if err != nil {
-		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+		return nil, fmt.Errorf("code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 	}
 	return resp, nil
 }
@@ -285,7 +285,7 @@ func (c *FeishuClient) SendMessage(userOpenid, msgType, jsonStr string) (*larkim
 	resp, err := c.feishuClient.Im.V1.Message.Create(context.Background(), req)
 	if err != nil {
 		if resp != nil {
-			return nil, fmt.Errorf("feishu Send Message Code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+			return nil, fmt.Errorf("feishu Send Message Code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 		} else {
 			return nil, fmt.Errorf("feishu Send Message error, err:%s", err.Error())
 		}
@@ -325,7 +325,7 @@ func (c *FeishuClient) TimeLineNodes(instanceCode, feishuUid, taskId string) err
 	resp, err := c.feishuClient.Approval.V4.Instance.Preview(context.Background(), req)
 	if err != nil {
 		if resp != nil {
-			return fmt.Errorf("feishu Approval Nodes Code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error)
+			return fmt.Errorf("feishu Approval Nodes Code:%d, msg:%s, err:%v", resp.Code, resp.Msg, resp.Error())
 		} else {
 			return fmt.Errorf("feishu Approval Nodes error, err:%s", err.Error())
 		}

@@ -197,17 +197,6 @@ const summaryItems = computed(() => {
   ];
 });
 
-const pageTitle = computed(
-  () => detailRecord.value?.dictName || '字典类型详情',
-);
-
-const pageDescription = computed(() => {
-  if (!detailRecord.value) {
-    return '查看字典类型详情，并在当前详情页下维护该类型对应的字典数据。';
-  }
-  return `${detailRecord.value.dictType} · 当前类型下共 ${totalDataCount.value} 条字典数据`;
-});
-
 function resetDataQuery() {
   Object.assign(dataQuery, {
     dictLabel: '',
