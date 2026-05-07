@@ -76,19 +76,20 @@ func (e ModuleRegistry) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "模块注册",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryModule,
-		Method:        "platform.module.insert",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("模块编码", req.ModuleKey),
-			middleware.AuditKV("模块名称", req.ModuleName),
-			middleware.AuditKV("路由前缀", req.RouteBase),
-			middleware.AuditKV("根菜单编码", req.MenuRootCode),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"模块注册",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryModule,
+			Label: req.ModuleName,
+		},
+		map[string]interface{}{
+			"moduleKey":    req.ModuleKey,
+			"moduleName":   req.ModuleName,
+			"routeBase":    req.RouteBase,
+			"menuRootCode": req.MenuRootCode,
+		},
+		"platform.module.insert",
+	)
 	e.OK(nil, "创建成功")
 }
 
@@ -109,20 +110,22 @@ func (e ModuleRegistry) Update(c *gin.Context) {
 		e.Error(500, err, "更新失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "模块注册",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryModule,
-		Method:        "platform.module.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("模块ID", req.ModuleId),
-			middleware.AuditKV("模块编码", req.ModuleKey),
-			middleware.AuditKV("模块名称", req.ModuleName),
-			middleware.AuditKV("路由前缀", req.RouteBase),
-			middleware.AuditKV("根菜单编码", req.MenuRootCode),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"模块注册",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryModule,
+			ID:    req.ModuleId,
+			Label: req.ModuleName,
+		},
+		nil,
+		map[string]interface{}{
+			"moduleKey":    req.ModuleKey,
+			"moduleName":   req.ModuleName,
+			"routeBase":    req.RouteBase,
+			"menuRootCode": req.MenuRootCode,
+		},
+		"platform.module.update",
+	)
 	e.OK(nil, "更新成功")
 }
 
