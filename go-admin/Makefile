@@ -4,6 +4,21 @@ PROJECT:=go-admin
 build:
 	CGO_ENABLED=0 go build -ldflags="-w -s" -a -installsuffix "" -o go-admin .
 
+# 强制 go build 然后跑迁移，避免使用旧二进制漏跑迁移（known-issues.md 已记录此坑）
+# go mod download 保证 fresh checkout 下 go.sum 完整（go.sum 已 .gitignore）
+.PHONY: migrate
+migrate:
+	@if [ ! -f config/settings.yml ]; then \
+		echo "ERROR: config/settings.yml 不存在。请基于 config/settings.local.yml.example 创建 config/settings.yml 后再试。"; \
+		exit 1; \
+	fi
+	go mod download
+	go build -o ./go-admin .
+	./go-admin migrate -c config/settings.yml
+
+.PHONY: build-and-migrate
+build-and-migrate: build migrate
+
 # make build-linux
 build-linux:
 	@docker build -t go-admin:latest .

@@ -108,6 +108,20 @@ cd /Users/linshen/Cursor/Full-stack-TestV1
 ./scripts/check-local.sh
 ```
 
+## 本地启动迁移规范
+
+**本地启动永远走 `make migrate`（或 `make build-and-migrate`），不要直接 `./go-admin migrate`（会用旧二进制漏跑迁移）。**
+
+- `make migrate` 会强制 `go build` 后再跑迁移，保证迁移源码与二进制同步
+- `make build-and-migrate` 串联 `build` + `migrate`，restart.sh 已切换到此目标
+- 直接调用 `./go-admin migrate` 容易因为忘记重 build 导致新 migration 没被注册（known-issues.md 已记录此坑）
+
+```bash
+cd /Users/linshen/Cursor/Full-stack-TestV1/go-admin
+make migrate              # 仅迁移（强制重 build）
+make build-and-migrate    # 全量重 build + 迁移
+```
+
 ## 后续变更约束
 
 - 新增 migration 后，必须先重新编译 `./go-admin`，再执行迁移。
