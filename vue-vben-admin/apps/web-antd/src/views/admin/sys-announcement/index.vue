@@ -48,6 +48,7 @@ import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
 import AnnouncementAttachmentSection from './attachment-section.vue';
 import AnnouncementCoverUpload from './cover-upload.vue';
+import AnnouncementRichTextEditor from './rich-text-editor.vue';
 
 const {
   errorMsg,
@@ -510,12 +511,8 @@ onMounted(() => {
           <AnnouncementCoverUpload v-model="addForm.coverImageUrl" />
         </div>
         <div class="md:col-span-2">
-          <div class="mb-1 text-sm">正文（HTML，入库自动 XSS 过滤）</div>
-          <Input.TextArea
-            v-model:value="addForm.content"
-            :rows="8"
-            placeholder="支持富文本 HTML：<p>、<h2>、<ul>、<img src=...> 等"
-          />
+          <div class="mb-1 text-sm">正文（入库自动 XSS 过滤）</div>
+          <AnnouncementRichTextEditor v-model="addForm.content" />
         </div>
         <div>
           <div class="mb-1 text-sm">状态</div>
@@ -601,7 +598,7 @@ onMounted(() => {
         </div>
         <div class="md:col-span-2">
           <div class="mb-1 text-sm">正文</div>
-          <Input.TextArea v-model:value="editForm.content" :rows="8" />
+          <AnnouncementRichTextEditor v-model="editForm.content" />
         </div>
         <div>
           <div class="mb-1 text-sm">状态</div>
