@@ -64,19 +64,20 @@ func (e Attachment) Upload(c *gin.Context) {
 		return
 	}
 
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "平台附件",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.attachment.upload",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("模块编码", req.ModuleKey),
-			middleware.AuditKV("业务类型", req.BusinessType),
-			middleware.AuditKV("业务ID", req.BusinessId),
-			middleware.AuditKV("文件名", fileHeader.Filename),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"平台附件",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryAttachment,
+			Label: fileHeader.Filename,
+		},
+		map[string]interface{}{
+			"moduleKey":    req.ModuleKey,
+			"businessType": req.BusinessType,
+			"businessId":   req.BusinessId,
+			"fileName":     fileHeader.Filename,
+		},
+		"platform.attachment.upload",
+	)
 	e.OK(data, "上传成功")
 }
 
@@ -128,19 +129,20 @@ func (e Attachment) Delete(c *gin.Context) {
 		return
 	}
 
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "平台附件",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.attachment.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("附件ID", req.Id),
-			middleware.AuditKV("模块编码", item.ModuleKey),
-			middleware.AuditKV("业务类型", item.BusinessType),
-			middleware.AuditKV("业务ID", item.BusinessId),
-			middleware.AuditKV("文件名", item.FileName),
-		),
-	})
+	middleware.AuditLogDelete(c,
+		"平台附件",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryAttachment,
+			ID:    req.Id,
+			Label: item.FileName,
+		},
+		map[string]interface{}{
+			"moduleKey":    item.ModuleKey,
+			"businessType": item.BusinessType,
+			"businessId":   item.BusinessId,
+			"fileName":     item.FileName,
+		},
+		"platform.attachment.delete",
+	)
 	e.OK(nil, "删除成功")
 }

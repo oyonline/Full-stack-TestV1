@@ -35,6 +35,7 @@ const (
 	AuditCategoryWorkflow       = audit.CategoryWorkflow
 	AuditCategoryModule         = audit.CategoryModule
 	AuditCategoryAnnouncement   = audit.CategoryAnnouncement
+	AuditCategoryAttachment     = audit.CategoryAttachment
 )
 
 const (
