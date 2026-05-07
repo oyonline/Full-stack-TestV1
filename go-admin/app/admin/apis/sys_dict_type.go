@@ -113,18 +113,20 @@ func (e SysDictType) Insert(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf(" 创建字典类型失败，详情：%s", err.Error()))
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "字典类型",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryDictType,
-		Method:        "admin.sysDictType.insert",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("字典名称", req.DictName),
-			middleware.AuditKV("字典编码", req.DictType),
-			middleware.AuditKV("状态", req.Status),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"字典类型",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryDictType,
+			ID:    req.GetId(),
+			Label: req.DictName,
+		},
+		map[string]interface{}{
+			"dictName": req.DictName,
+			"dictType": req.DictType,
+			"status":   req.Status,
+		},
+		"admin.sysDictType.insert",
+	)
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -157,19 +159,21 @@ func (e SysDictType) Update(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "字典类型",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryDictType,
-		Method:        "admin.sysDictType.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("字典ID", req.Id),
-			middleware.AuditKV("字典名称", req.DictName),
-			middleware.AuditKV("字典编码", req.DictType),
-			middleware.AuditKV("状态", req.Status),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"字典类型",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryDictType,
+			ID:    req.Id,
+			Label: req.DictName,
+		},
+		nil,
+		map[string]interface{}{
+			"dictName": req.DictName,
+			"dictType": req.DictType,
+			"status":   req.Status,
+		},
+		"admin.sysDictType.update",
+	)
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -200,17 +204,15 @@ func (e SysDictType) Delete(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "字典类型",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryDictType,
-		Method:        "admin.sysDictType.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditCount("删除字典类型数量", len(req.Ids)),
-			middleware.AuditKV("字典ID", req.Ids),
-		),
-	})
+	middleware.AuditLogDelete(c,
+		"字典类型",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryDictType,
+			ID:   req.Ids,
+		},
+		map[string]interface{}{"ids": req.Ids, "count": len(req.Ids)},
+		"admin.sysDictType.delete",
+	)
 	e.OK(req.GetId(), "删除成功")
 }
 
