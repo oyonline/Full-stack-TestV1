@@ -116,19 +116,21 @@ func (e SysApi) Update(c *gin.Context) {
 		e.Error(500, err, "更新失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "接口管理",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryAPI,
-		Method:        "admin.sysApi.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("接口ID", req.Id),
-			middleware.AuditKV("接口标题", req.Title),
-			middleware.AuditKV("接口地址", req.Path),
-			middleware.AuditKV("请求方式", req.Action),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"接口管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryAPI,
+			ID:    req.Id,
+			Label: req.Title,
+		},
+		nil,
+		map[string]interface{}{
+			"title":  req.Title,
+			"path":   req.Path,
+			"action": req.Action,
+		},
+		"admin.sysApi.update",
+	)
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -158,16 +160,14 @@ func (e SysApi) DeleteSysApi(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "接口管理",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryAPI,
-		Method:        "admin.sysApi.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditCount("删除接口数量", len(req.Ids)),
-			middleware.AuditKV("接口ID", req.Ids),
-		),
-	})
+	middleware.AuditLogDelete(c,
+		"接口管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryAPI,
+			ID:   req.Ids,
+		},
+		map[string]interface{}{"ids": req.Ids, "count": len(req.Ids)},
+		"admin.sysApi.delete",
+	)
 	e.OK(req.GetId(), "删除成功")
 }
