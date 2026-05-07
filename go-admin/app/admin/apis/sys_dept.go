@@ -115,18 +115,20 @@ func (e SysDept) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "部门管理",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryDept,
-		Method:        "admin.sysDept.insert",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("部门名称", req.DeptName),
-			middleware.AuditKV("上级部门", req.ParentId),
-			middleware.AuditKV("负责人", req.Leader),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"部门管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryDept,
+			ID:    req.DeptId,
+			Label: req.DeptName,
+		},
+		map[string]interface{}{
+			"deptName": req.DeptName,
+			"parentId": req.ParentId,
+			"leader":   req.Leader,
+		},
+		"admin.sysDept.insert",
+	)
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -161,16 +163,20 @@ func (e SysDept) Update(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "部门管理",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryDept,
-		Method:        "admin.sysDept.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("部门ID", req.DeptId),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"部门管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryDept,
+			ID:   req.DeptId,
+		},
+		nil,
+		map[string]interface{}{
+			"deptCode": req.DeptCode,
+			"status":   req.Status,
+			"deptType": req.DeptType,
+		},
+		"admin.sysDept.update",
+	)
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -202,17 +208,15 @@ func (e SysDept) Delete(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "部门管理",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryDept,
-		Method:        "admin.sysDept.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditCount("删除部门数量", len(req.Ids)),
-			middleware.AuditKV("部门ID", req.Ids),
-		),
-	})
+	middleware.AuditLogDelete(c,
+		"部门管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryDept,
+			ID:   req.Ids,
+		},
+		map[string]interface{}{"ids": req.Ids, "count": len(req.Ids)},
+		"admin.sysDept.delete",
+	)
 	e.OK(req.GetId(), "删除成功")
 }
 
