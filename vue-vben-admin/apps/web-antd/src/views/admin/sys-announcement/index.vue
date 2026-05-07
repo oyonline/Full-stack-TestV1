@@ -1,4 +1,13 @@
 <script lang="ts" setup>
+import type { TableColumnType } from 'ant-design-vue';
+import type { Dayjs } from 'dayjs';
+
+import type {
+  AnnouncementItem,
+  AnnouncementPageResult,
+  SysDeptItem,
+} from '#/api/core';
+
 /**
  * 系统管理 - 公告管理
  * 列表 + 搜索 + 分页 + 新增 + 编辑 + 删除 + 详情查看（自动 mark-read）
@@ -11,28 +20,23 @@ import {
   Drawer,
   Input,
   InputNumber,
+  message,
   Modal,
   Select,
   Switch,
   Table,
   Tag,
   TreeSelect,
-  message,
 } from 'ant-design-vue';
-import type { TableColumnType } from 'ant-design-vue';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 
 import {
-  type AnnouncementItem,
-  type AnnouncementPageResult,
   createAnnouncement,
   deleteAnnouncement,
   getAnnouncementDetail,
   getAnnouncementPage,
   getDeptListApi,
   markAnnouncementRead,
-  type SysDeptItem,
   updateAnnouncement,
 } from '#/api/core';
 import AdminActionButton from '#/components/admin/action-button.vue';
@@ -41,6 +45,9 @@ import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
+
+import AnnouncementAttachmentSection from './attachment-section.vue';
+import AnnouncementCoverUpload from './cover-upload.vue';
 
 const {
   errorMsg,
@@ -55,14 +62,14 @@ const {
 } = useAdminTable<
   AnnouncementItem,
   {
-    title: string;
-    status: '' | number;
     isTop: '' | number;
+    status: '' | number;
+    title: string;
   },
   {
-    title?: string;
-    status?: number;
     isTop?: number;
+    status?: number;
+    title?: string;
   }
 >({
   createParams: (q) => ({
@@ -116,7 +123,13 @@ const columns: TableColumnType[] = [
           })
         : renderAdminEmpty(''),
   },
-  { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true, width: 240 },
+  {
+    title: '标题',
+    dataIndex: 'title',
+    key: 'title',
+    ellipsis: true,
+    width: 240,
+  },
   {
     title: '状态',
     dataIndex: 'status',
@@ -130,7 +143,9 @@ const columns: TableColumnType[] = [
     key: 'isTop',
     width: 80,
     customRender: ({ text }: { text: number }) =>
-      text === 1 ? h(Tag, { color: 'gold' }, () => '置顶') : renderAdminEmpty(''),
+      text === 1
+        ? h(Tag, { color: 'gold' }, () => '置顶')
+        : renderAdminEmpty(''),
   },
   {
     title: '生效起始',
@@ -177,24 +192,24 @@ async function loadDeptTree() {
   try {
     const list = await getDeptListApi();
     deptTreeData.value = deptListToTree(list);
-  } catch (e) {
+  } catch (error) {
     // 部门接口失败不阻塞列表，仅 console
-    console.warn('load dept tree failed', e);
+    console.warn('load dept tree failed', error);
   }
 }
 
 /* -------- 表单：新增/编辑共用 -------- */
 type FormState = {
-  title: string;
   content: string;
   coverImageUrl: string;
-  status: number;
-  isTop: boolean;
-  topSort: number;
-  publishAt: Dayjs | undefined;
-  expireAt: Dayjs | undefined;
   deptIds: number[];
+  expireAt: Dayjs | undefined;
+  isTop: boolean;
+  publishAt: Dayjs | undefined;
   remark: string;
+  status: number;
+  title: string;
+  topSort: number;
 };
 
 function emptyForm(): FormState {
@@ -249,8 +264,8 @@ async function onAddOk() {
     message.success('新增成功');
     addVisible.value = false;
     void fetchList();
-  } catch (e: any) {
-    message.error(e?.message || '新增失败');
+  } catch (error: any) {
+    message.error(error?.message || '新增失败');
   } finally {
     addSubmitting.value = false;
   }
@@ -280,8 +295,8 @@ async function openEditModal(record: AnnouncementItem) {
     editForm.expireAt = d.expireAt ? dayjs(d.expireAt) : undefined;
     editForm.deptIds = d.deptIds ?? [];
     editForm.remark = d.remark ?? '';
-  } catch (e: any) {
-    message.error(e?.message || '获取公告详情失败');
+  } catch (error: any) {
+    message.error(error?.message || '获取公告详情失败');
     editVisible.value = false;
   } finally {
     editLoading.value = false;
@@ -312,8 +327,8 @@ async function onEditOk() {
     message.success('保存成功');
     editVisible.value = false;
     void fetchList();
-  } catch (e: any) {
-    message.error(e?.message || '保存失败');
+  } catch (error: any) {
+    message.error(error?.message || '保存失败');
   } finally {
     editSubmitting.value = false;
   }
@@ -332,8 +347,8 @@ function onDelete(record: AnnouncementItem) {
         await deleteAnnouncement([record.announcementId]);
         message.success('删除成功');
         void fetchList();
-      } catch (e: any) {
-        message.error(e?.message || '删除失败');
+      } catch (error: any) {
+        message.error(error?.message || '删除失败');
       }
     },
   });
@@ -358,8 +373,8 @@ async function openDetail(record: AnnouncementItem) {
       // mark-read 失败不阻塞展示
     }
     void fetchList();
-  } catch (e: any) {
-    message.error(e?.message || '获取公告详情失败');
+  } catch (error: any) {
+    message.error(error?.message || '获取公告详情失败');
     detailVisible.value = false;
   } finally {
     detailLoading.value = false;
@@ -385,7 +400,8 @@ onMounted(() => {
     <template #eyebrow>System Admin</template>
     <template #title>公告管理</template>
     <template #description>
-      统一维护公告内容、可见部门、生效时间窗口与已读追踪。富文本入库前自动做 XSS 过滤。
+      统一维护公告内容、可见部门、生效时间窗口与已读追踪。富文本入库前自动做 XSS
+      过滤。
     </template>
     <template #header-extra>
       <AdminActionButton
@@ -484,16 +500,14 @@ onMounted(() => {
     >
       <div class="grid gap-4 md:grid-cols-2">
         <div class="md:col-span-2">
-          <div class="mb-1 text-sm">标题<span class="text-red-500"> *</span></div>
+          <div class="mb-1 text-sm">
+            标题<span class="text-red-500"> *</span>
+          </div>
           <Input v-model:value="addForm.title" placeholder="请输入公告标题" />
         </div>
         <div class="md:col-span-2">
-          <div class="mb-1 text-sm">封面图 URL</div>
-          <Input
-            v-model:value="addForm.coverImageUrl"
-            placeholder="请输入封面图 URL（可走附件上传后填入）"
-            allow-clear
-          />
+          <div class="mb-1 text-sm">封面图</div>
+          <AnnouncementCoverUpload v-model="addForm.coverImageUrl" />
         </div>
         <div class="md:col-span-2">
           <div class="mb-1 text-sm">正文（HTML，入库自动 XSS 过滤）</div>
@@ -505,17 +519,18 @@ onMounted(() => {
         </div>
         <div>
           <div class="mb-1 text-sm">状态</div>
-          <Select
-            v-model:value="addForm.status"
-            :options="editStatusOptions"
-          />
+          <Select v-model:value="addForm.status" :options="editStatusOptions" />
         </div>
         <div>
           <div class="mb-1 text-sm">是否置顶</div>
           <Switch v-model:checked="addForm.isTop" />
           <span class="ml-3 text-sm">
             排序值
-            <InputNumber v-model:value="addForm.topSort" :min="0" class="ml-2" />
+            <InputNumber
+              v-model:value="addForm.topSort"
+              :min="0"
+              class="ml-2"
+            />
           </span>
         </div>
         <div>
@@ -572,12 +587,17 @@ onMounted(() => {
       </div>
       <div v-else class="grid gap-4 md:grid-cols-2">
         <div class="md:col-span-2">
-          <div class="mb-1 text-sm">标题<span class="text-red-500"> *</span></div>
+          <div class="mb-1 text-sm">
+            标题<span class="text-red-500"> *</span>
+          </div>
           <Input v-model:value="editForm.title" />
         </div>
         <div class="md:col-span-2">
-          <div class="mb-1 text-sm">封面图 URL</div>
-          <Input v-model:value="editForm.coverImageUrl" allow-clear />
+          <div class="mb-1 text-sm">封面图</div>
+          <AnnouncementCoverUpload
+            v-model="editForm.coverImageUrl"
+            :business-id="editId ?? undefined"
+          />
         </div>
         <div class="md:col-span-2">
           <div class="mb-1 text-sm">正文</div>
@@ -595,7 +615,11 @@ onMounted(() => {
           <Switch v-model:checked="editForm.isTop" />
           <span class="ml-3 text-sm">
             排序值
-            <InputNumber v-model:value="editForm.topSort" :min="0" class="ml-2" />
+            <InputNumber
+              v-model:value="editForm.topSort"
+              :min="0"
+              class="ml-2"
+            />
           </span>
         </div>
         <div>
@@ -647,7 +671,7 @@ onMounted(() => {
         <div v-if="detailItem.coverImageUrl">
           <img
             :src="detailItem.coverImageUrl"
-            class="w-full max-h-64 object-cover rounded"
+            class="max-h-64 w-full rounded-sm object-cover"
             alt="cover"
           />
         </div>
@@ -665,7 +689,12 @@ onMounted(() => {
         <div
           class="prose max-w-none"
           v-html="detailItem.content || '<p class=\'text-gray-400\'>无正文</p>'"
-        />
+        ></div>
+        <div class="border-t border-slate-200 pt-4">
+          <AnnouncementAttachmentSection
+            :announcement-id="detailItem.announcementId"
+          />
+        </div>
       </div>
     </Drawer>
   </AdminPageShell>
