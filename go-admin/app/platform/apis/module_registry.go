@@ -145,13 +145,14 @@ func (e ModuleRegistry) Delete(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("删除失败,%s", err.Error()))
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "模块注册",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryModule,
-		Method:        "platform.module.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark:        middleware.AuditKV("模块ID", req.Id),
-	})
+	middleware.AuditLogDelete(c,
+		"模块注册",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryModule,
+			ID:   req.Id,
+		},
+		nil,
+		"platform.module.delete",
+	)
 	e.OK(nil, "删除成功")
 }
