@@ -120,19 +120,21 @@ func (e Workflow) InsertDefinition(c *gin.Context) {
 		e.Error(500, err, "创建失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流管理",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.definition.insert",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("流程编码", req.DefinitionKey),
-			middleware.AuditKV("流程名称", req.DefinitionName),
-			middleware.AuditKV("模块编码", req.ModuleKey),
-			middleware.AuditKV("业务类型", req.BusinessType),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"审批流管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryWorkflow,
+			ID:    data.DefinitionId,
+			Label: req.DefinitionName,
+		},
+		map[string]interface{}{
+			"definitionKey":  req.DefinitionKey,
+			"definitionName": req.DefinitionName,
+			"moduleKey":      req.ModuleKey,
+			"businessType":   req.BusinessType,
+		},
+		"platform.workflow.definition.insert",
+	)
 	e.OK(data, "创建成功")
 }
 
@@ -154,18 +156,20 @@ func (e Workflow) UpdateDefinition(c *gin.Context) {
 		e.Error(500, err, "更新失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流管理",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.definition.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("流程ID", req.DefinitionId),
-			middleware.AuditKV("流程编码", req.DefinitionKey),
-			middleware.AuditKV("流程名称", req.DefinitionName),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"审批流管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryWorkflow,
+			ID:    req.DefinitionId,
+			Label: req.DefinitionName,
+		},
+		nil,
+		map[string]interface{}{
+			"definitionKey":  req.DefinitionKey,
+			"definitionName": req.DefinitionName,
+		},
+		"platform.workflow.definition.update",
+	)
 	e.OK(data, "更新成功")
 }
 
@@ -185,14 +189,15 @@ func (e Workflow) DeleteDefinition(c *gin.Context) {
 		e.Error(500, err, fmt.Sprintf("删除失败,%s", err.Error()))
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流管理",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.definition.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark:        middleware.AuditKV("流程ID", req.Id),
-	})
+	middleware.AuditLogDelete(c,
+		"审批流管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryWorkflow,
+			ID:   req.Id,
+		},
+		nil,
+		"platform.workflow.definition.delete",
+	)
 	e.OK(nil, "删除成功")
 }
 
@@ -241,17 +246,16 @@ func (e Workflow) SaveDefinitionNodes(c *gin.Context) {
 		e.Error(500, err, "保存失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流管理",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.definition.nodes.save",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("流程ID", req.DefinitionId),
-			middleware.AuditCount("节点数量", len(req.Nodes)),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"审批流管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryWorkflow,
+			ID:   req.DefinitionId,
+		},
+		nil,
+		map[string]interface{}{"nodeCount": len(req.Nodes)},
+		"platform.workflow.definition.nodes.save",
+	)
 	e.OK(nil, "保存成功")
 }
 
@@ -272,19 +276,22 @@ func (e Workflow) StartInstance(c *gin.Context) {
 		e.Error(500, err, "发起失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流实例",
-		BusinessType:  middleware.AuditActionStart,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.instance.start",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("流程定义ID", req.DefinitionId),
-			middleware.AuditKV("模块编码", req.ModuleKey),
-			middleware.AuditKV("业务类型", req.BusinessType),
-			middleware.AuditKV("业务ID", req.BusinessId),
-			middleware.AuditKV("标题", req.Title),
-		),
+	middleware.AuditLog(c, middleware.AuditEntry{
+		Title:  "审批流实例",
+		Action: middleware.AuditActionStart,
+		Target: middleware.AuditTarget{
+			Type:  middleware.AuditCategoryWorkflow,
+			ID:    req.DefinitionId,
+			Label: req.Title,
+		},
+		After: map[string]interface{}{
+			"definitionId": req.DefinitionId,
+			"moduleKey":    req.ModuleKey,
+			"businessType": req.BusinessType,
+			"businessId":   req.BusinessId,
+			"title":        req.Title,
+		},
+		Method: "platform.workflow.instance.start",
 	})
 	e.OK(detail, "发起成功")
 }
@@ -330,16 +337,15 @@ func (e Workflow) ApproveTask(c *gin.Context) {
 		e.Error(500, err, "审批失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流实例",
-		BusinessType:  middleware.AuditActionApprove,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.task.approve",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("任务ID", req.Id),
-			middleware.AuditKV("审批意见", req.Comment),
-		),
+	middleware.AuditLog(c, middleware.AuditEntry{
+		Title:  "审批流实例",
+		Action: middleware.AuditActionApprove,
+		Target: middleware.AuditTarget{
+			Type: middleware.AuditCategoryWorkflow,
+			ID:   req.Id,
+		},
+		After:  map[string]interface{}{"comment": req.Comment},
+		Method: "platform.workflow.task.approve",
 	})
 	e.OK(detail, "审批成功")
 }
@@ -365,16 +371,15 @@ func (e Workflow) RejectTask(c *gin.Context) {
 		e.Error(500, err, "驳回失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流实例",
-		BusinessType:  middleware.AuditActionReject,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.task.reject",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("任务ID", req.Id),
-			middleware.AuditKV("驳回意见", req.Comment),
-		),
+	middleware.AuditLog(c, middleware.AuditEntry{
+		Title:  "审批流实例",
+		Action: middleware.AuditActionReject,
+		Target: middleware.AuditTarget{
+			Type: middleware.AuditCategoryWorkflow,
+			ID:   req.Id,
+		},
+		After:  map[string]interface{}{"comment": req.Comment},
+		Method: "platform.workflow.task.reject",
 	})
 	e.OK(detail, "驳回成功")
 }
@@ -400,16 +405,15 @@ func (e Workflow) WithdrawInstance(c *gin.Context) {
 		e.Error(500, err, "撤回失败,"+err.Error())
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "审批流实例",
-		BusinessType:  middleware.AuditActionWithdraw,
-		BusinessTypes: middleware.AuditCategoryWorkflow,
-		Method:        "platform.workflow.instance.withdraw",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("流程实例ID", req.Id),
-			middleware.AuditKV("撤回说明", req.Comment),
-		),
+	middleware.AuditLog(c, middleware.AuditEntry{
+		Title:  "审批流实例",
+		Action: middleware.AuditActionWithdraw,
+		Target: middleware.AuditTarget{
+			Type: middleware.AuditCategoryWorkflow,
+			ID:   req.Id,
+		},
+		After:  map[string]interface{}{"comment": req.Comment},
+		Method: "platform.workflow.instance.withdraw",
 	})
 	e.OK(detail, "撤回成功")
 }
