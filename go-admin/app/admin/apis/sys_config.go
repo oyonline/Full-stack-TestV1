@@ -280,19 +280,20 @@ func (e SysConfig) Update2Set(c *gin.Context) {
 		return
 	}
 
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "参数设置",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategorySystemSettings,
-		Method:        "admin.sysConfig.set",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("系统名称", req.Branding.AppName),
-			middleware.AuditKV("登录标题", req.UIPreferences.App.LoginTitle),
-			middleware.AuditKV("页脚公司", req.UIPreferences.Copyright.CompanyName),
-			middleware.AuditKV("主题模式", req.UIPreferences.Theme.Mode),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"参数设置",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategorySystemSettings,
+		},
+		nil,
+		map[string]interface{}{
+			"appName":     req.Branding.AppName,
+			"loginTitle":  req.UIPreferences.App.LoginTitle,
+			"companyName": req.UIPreferences.Copyright.CompanyName,
+			"themeMode":   req.UIPreferences.Theme.Mode,
+		},
+		"admin.sysConfig.set",
+	)
 
 	e.OK("", "更新成功")
 }
