@@ -108,20 +108,22 @@ func (e SysMenu) Insert(c *gin.Context) {
 		e.Error(500, err, "创建失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "菜单管理",
-		BusinessType:  middleware.AuditActionCreate,
-		BusinessTypes: middleware.AuditCategoryMenu,
-		Method:        "admin.sysMenu.insert",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("菜单标题", req.Title),
-			middleware.AuditKV("路由路径", req.Path),
-			middleware.AuditKV("权限标识", req.Permission),
-			middleware.AuditKV("上级菜单", req.ParentId),
-			middleware.AuditCount("关联接口数", len(req.Apis)),
-		),
-	})
+	middleware.AuditLogCreate(c,
+		"菜单管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryMenu,
+			ID:    req.MenuId,
+			Label: req.Title,
+		},
+		map[string]interface{}{
+			"title":      req.Title,
+			"path":       req.Path,
+			"permission": req.Permission,
+			"parentId":   req.ParentId,
+			"apiCount":   len(req.Apis),
+		},
+		"admin.sysMenu.insert",
+	)
 	e.OK(req.GetId(), "创建成功")
 }
 
@@ -156,20 +158,22 @@ func (e SysMenu) Update(c *gin.Context) {
 		e.Error(500, err, "更新失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "菜单管理",
-		BusinessType:  middleware.AuditActionUpdate,
-		BusinessTypes: middleware.AuditCategoryMenu,
-		Method:        "admin.sysMenu.update",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditKV("菜单ID", req.MenuId),
-			middleware.AuditKV("菜单标题", req.Title),
-			middleware.AuditKV("路由路径", req.Path),
-			middleware.AuditKV("权限标识", req.Permission),
-			middleware.AuditCount("关联接口数", len(req.Apis)),
-		),
-	})
+	middleware.AuditLogUpdate(c,
+		"菜单管理",
+		middleware.AuditTarget{
+			Type:  middleware.AuditCategoryMenu,
+			ID:    req.MenuId,
+			Label: req.Title,
+		},
+		nil,
+		map[string]interface{}{
+			"title":      req.Title,
+			"path":       req.Path,
+			"permission": req.Permission,
+			"apiCount":   len(req.Apis),
+		},
+		"admin.sysMenu.update",
+	)
 	e.OK(req.GetId(), "更新成功")
 }
 
@@ -200,17 +204,15 @@ func (e SysMenu) Delete(c *gin.Context) {
 		e.Error(500, err, "删除失败")
 		return
 	}
-	middleware.SetAuditMeta(c, middleware.AuditMeta{
-		Title:         "菜单管理",
-		BusinessType:  middleware.AuditActionDelete,
-		BusinessTypes: middleware.AuditCategoryMenu,
-		Method:        "admin.sysMenu.delete",
-		OperatorType:  middleware.AuditOperatorManage,
-		Remark: middleware.AuditSummary(
-			middleware.AuditCount("删除菜单数量", len(control.Ids)),
-			middleware.AuditKV("菜单ID", control.Ids),
-		),
-	})
+	middleware.AuditLogDelete(c,
+		"菜单管理",
+		middleware.AuditTarget{
+			Type: middleware.AuditCategoryMenu,
+			ID:   control.Ids,
+		},
+		map[string]interface{}{"ids": control.Ids, "count": len(control.Ids)},
+		"admin.sysMenu.delete",
+	)
 	e.OK(control.GetId(), "删除成功")
 }
 
