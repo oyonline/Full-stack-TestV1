@@ -288,7 +288,13 @@ func (e SysUser) InsetAvatar(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
-	e.OK(filPath, "修改成功")
+	// 响应 shape 必须匹配前端 UploadUserAvatarResult { avatar, avatarType }
+	// (vue-vben-admin/apps/web-antd/src/api/core/user.ts)；avatar 必须与 DB
+	// 持久化值一致（带前导 /），否则刷新后渲染地址错乱。
+	e.OK(map[string]string{
+		"avatar":     req.Avatar,
+		"avatarType": "image",
+	}, "修改成功")
 }
 
 // UpdateProfile
@@ -571,6 +577,10 @@ func (e SysUser) GetInfo(c *gin.Context) {
 	if sysUser.Avatar != "" {
 		mp["avatar"] = sysUser.Avatar
 	}
+	// 头像扩展字段：letter 头像（首字母+背景色）模式下，前端 store 需要这两个
+	// 字段才能正确渲染；image 模式下也带上，便于回显当前类型。
+	mp["avatarType"] = sysUser.AvatarType
+	mp["avatarColor"] = sysUser.AvatarColor
 	mp["userName"] = sysUser.Username
 	mp["userId"] = sysUser.UserId
 	mp["deptId"] = sysUser.DeptId

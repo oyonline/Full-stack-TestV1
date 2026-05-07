@@ -199,7 +199,11 @@ func (e *SysUser) UpdateProfile(c *dto.UpdateSysUserProfileReq, p *actions.DataP
 	c.Generate(&model)
 	err = e.Orm.Table(model.TableName()).
 		Where("user_id = ?", c.UserId).
-		Updates(map[string]interface{}{"introduction": model.Introduction}).Error
+		Updates(map[string]interface{}{
+			"introduction": model.Introduction,
+			"avatar_type":  model.AvatarType,
+			"avatar_color": model.AvatarColor,
+		}).Error
 	if err != nil {
 		e.Log.Errorf("Service UpdateProfile error: %s", err)
 		return err

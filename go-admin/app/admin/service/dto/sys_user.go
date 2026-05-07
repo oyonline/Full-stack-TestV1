@@ -98,6 +98,11 @@ type UpdateSysUserProfileReq struct {
 	// UserId 由 handler 从 JWT context 权威填充，body 不应携带也不参与校验
 	UserId       int    `json:"userId" comment:"用户ID"`
 	Introduction string `json:"introduction" comment:"个人简介"`
+	// AvatarType / AvatarColor 是 letter 头像（首字母+背景色）的展示参数。
+	// 前端 base-setting.vue 始终随保存请求一起发送当前值，故服务端无条件以
+	// 请求体为准；空字符串就是空（落到 DB 的空串），由前端兜底默认值。
+	AvatarType  string `json:"avatarType" comment:"头像类型(image|letter)"`
+	AvatarColor string `json:"avatarColor" comment:"头像背景色(hex)"`
 	common.ControlBy
 }
 
@@ -110,6 +115,8 @@ func (s *UpdateSysUserProfileReq) Generate(model *models.SysUser) {
 		model.UserId = s.UserId
 	}
 	model.Introduction = strings.TrimSpace(s.Introduction)
+	model.AvatarType = strings.TrimSpace(s.AvatarType)
+	model.AvatarColor = strings.TrimSpace(s.AvatarColor)
 }
 
 type UpdateSysUserStatusReq struct {
