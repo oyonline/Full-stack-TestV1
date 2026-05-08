@@ -553,6 +553,9 @@ func (e *Workflow) Withdraw(c *gin.Context, instanceID int, comment string) (*Wo
 		if err := e.updateBusinessBinding(tx, &instance, dto.WorkflowStatusCanceled, dto.WorkflowStatusCanceled, dto.WorkflowActionWithdraw, comment, currentUserID); err != nil {
 			return err
 		}
+		if err := dispatchTerminalHandler(tx, &instance, dto.WorkflowStatusCanceled); err != nil {
+			return err
+		}
 		actionLog := platformModels.WorkflowActionLog{
 			InstanceId:   instance.InstanceId,
 			Action:       dto.WorkflowActionWithdraw,
@@ -688,6 +691,9 @@ func (e *Workflow) processTask(c *gin.Context, taskID int, action string, commen
 				if err := e.updateBusinessBinding(tx, &instance, dto.WorkflowStatusApproved, dto.WorkflowStatusApproved, action, comment, currentUserID); err != nil {
 					return err
 				}
+				if err := dispatchTerminalHandler(tx, &instance, dto.WorkflowStatusApproved); err != nil {
+					return err
+				}
 				actionLog := platformModels.WorkflowActionLog{
 					InstanceId:   instance.InstanceId,
 					TaskId:       task.TaskId,
@@ -767,6 +773,9 @@ func (e *Workflow) processTask(c *gin.Context, taskID int, action string, commen
 			return err
 		}
 		if err := e.updateBusinessBinding(tx, &instance, dto.WorkflowStatusRejected, dto.WorkflowStatusRejected, action, comment, currentUserID); err != nil {
+			return err
+		}
+		if err := dispatchTerminalHandler(tx, &instance, dto.WorkflowStatusRejected); err != nil {
 			return err
 		}
 		actionLog := platformModels.WorkflowActionLog{

@@ -345,6 +345,60 @@ dataScope 与业务侧自带的"展示规则"是**两套独立机制，并存且
 - **不要**在登录态轮询/推送变更——这是产品默认行为，文档化即可，不需要改代码。
 - 角色"绑定部门集合"（dataScope=`"2"` 用）改了同样需要重新登录生效，理由同上。
 
+### 1.6.2 业务模块接入 workflow 平台规约
+
+> phase2 提供的轻量回调机制（C4-pre / my-c9x）。业务模块（C4 SKU、公告等）通过该机制在 workflow 终态时自动回写自身 status。
+
+**核心机制：terminal callback registry**
+
+- 文件：`go-admin/app/platform/service/workflow_callbacks.go`
+- 平台暴露两个 API：
+  - `service.RegisterTerminalHandler(businessType string, h WorkflowTerminalHandler)`：业务模块在 `init()` 注册。
+  - `WorkflowTerminalHandler = func(tx *gorm.DB, binding *models.WorkflowBusinessBinding, terminalStatus string) error`：handler 签名。
+- 内部 `dispatchTerminalHandler` 在 `workflow.Approve / Reject / Withdraw` 三个终态分支的 `updateBusinessBinding` 之后、`actionLog` 写入之前调用，**与 workflow 状态变更同事务**。
+
+**业务模块接入步骤：**
+
+1. 在业务 service 包内新增 `init()`，注册 handler：
+   ```go
+   func init() {
+       platformSvc.RegisterTerminalHandler("c4-spu", func(tx *gorm.DB, binding *platformModels.WorkflowBusinessBinding, terminalStatus string) error {
+           // 用 tx（当前 workflow 事务）更新业务 status
+           return tx.Model(&SPU{}).Where("spu_id = ?", binding.BusinessId).
+               Update("status", mapTerminalToBusinessStatus(terminalStatus)).Error
+       })
+   }
+   ```
+2. handler 内部**只用传入的 `tx`**，不要新开 session；返回 `error` 即触发整个 workflow 事务回滚。
+3. `binding.BusinessType` 必须与 `wf_business_binding.business_type` 一致，是注册键也是分发键。
+
+**业务字段命名约定：**
+
+- 业务表用 `workflow_status`（同步 wf 状态）+ `business_status`（业务自身状态机），与 `wf_business_binding` 的双字段语义保持一致。
+- 单字段方案（仅 `status`）也可，但 handler 内必须自行映射 wf terminal → 业务状态值。
+
+**终态判定：**
+
+- 终态由 `isTerminalWorkflowStatus` 统一判定：`approved` / `rejected` / `cancelled`。
+- 非终态（`in_review` 中间节点流转）**不会**触发 handler。
+
+**旁路约定：**
+
+- 没注册 handler 的 `business_type`：dispatch 静默跳过，不报错。
+- 没有 `wf_business_binding` 记录的 workflow（旁路使用）：dispatch 静默跳过。
+- 业务模块完全自由选择是否接入；接入后才在终态自动回写。
+
+**测试规范：**
+
+- 业务模块接入回调时，必须补 handler 单测，覆盖 `approved / rejected / cancelled` 三路至少各一例。
+- 平台 callback registry 自身测试见 `workflow_callbacks_test.go`，**业务模块不要重复测注册分发本身**，只测自己 handler 的业务语义。
+
+**禁止：**
+
+- handler 不要做长事务、外部 IO（HTTP / 文件 / 锁）：会拖住 workflow 主事务。
+- handler 不要静默吞 error；返回 nil 会让 workflow 状态写入但业务状态不一致。
+- 不要绕过 registry 直接在 `workflow.go` 里塞业务分支判断；那是 platform / 业务边界回归。
+
 ### 1.7 migration、seed、手工数据修复的边界
 
 - 当前正式迁移入口是 `go-admin migrate -c ...`。
