@@ -122,6 +122,14 @@ make migrate              # 仅迁移（强制重 build）
 make build-and-migrate    # 全量重 build + 迁移
 ```
 
+## 数据权限（phase2 已启用）
+
+- `settings.application.enabledp` 自 C7-7 起在 `settings.yml` / `settings.full.yml` / `settings.sqlite.yml` / `settings.local.yml.example` 全部置为 `true`，`settings.demo.yml` 一直为 `true`。
+- 本地启动后，默认 `admin` 用户挂的角色 `dataScope=1`（全部数据），观察到的公告 / 业务列表行为与 phase1 完全一致。
+- 想验证数据范围真实生效，新建一个 `dataScope=5`（仅本人）的测试角色，分配给一个非 admin 测试用户登录，应仅能看到该用户 `create_by` 的行（C7-5 已端到端覆盖，本地 smoke 一次即可）。
+- 启动前必须先跑迁移：`make build-and-migrate`，`1778200000000_data_permission_default` 会兜底已有 `sys_role.data_scope` 空值。
+- 接入业务模块时遵循 `PROJECT_CONVENTIONS.md` 的数据权限规约，不要在新模块里再写 raw SQL 绕过 `dataScope`。
+
 ## 后续变更约束
 
 - 新增 migration 后，必须先重新编译 `./go-admin`，再执行迁移。

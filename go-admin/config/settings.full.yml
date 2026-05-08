@@ -10,10 +10,10 @@ settings:
     port: 8000 # 服务端口号
     readtimeout: 1
     writertimeout: 2
-    # 数据权限功能开关；true 时 sys_role.data_scope 真生效（UI '数据范围' 下拉），
-    # phase2 决策：建议生产置 true。打开前请先跑迁移
-    # 1778200000000_data_permission_default 兜底存量空值。
-    enabledp: false
+    # 数据权限功能开关；true 时 sys_role.data_scope 真生效（UI '数据范围' 下拉）。
+    # phase2 已全量启用（C7-7）。迁移 1778200000000_data_permission_default
+    # 已对存量空值做兜底；如需关闭回滚到 phase1 行为，置 false 即可。
+    enabledp: true
   ssl:
     # https对应的域名
     domain: localhost:8000

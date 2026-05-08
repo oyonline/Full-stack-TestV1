@@ -10,8 +10,8 @@ settings:
     port: 8000 # 服务端口号
     readtimeout: 3000
     writertimeout: 2000
-    # 数据权限功能开关
-    enabledp: false
+    # 数据权限功能开关；phase2 全量启用（C7-7）
+    enabledp: true
   logger:
     # 日志存放路径
     path: temp/logs

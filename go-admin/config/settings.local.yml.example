@@ -4,9 +4,9 @@ settings:
     host: 0.0.0.0
     name: productManager
     port: 10082
-    # 数据权限开关；true 时 sys_role.data_scope 真生效（UI '数据范围' 下拉）。
-    # 本地联调建议保持 false；上线/复现数据权限相关 bug 时打开。
-    # enabledp: true
+    # 数据权限开关；phase2 已全量启用（C7-7），默认随 settings.yml = true。
+    # 仅当本地需要复现 phase1 行为或排查 dataScope 相关 bug 时显式覆盖为 false。
+    enabledp: true
   logger:
     enableddb: true
   jwt:
