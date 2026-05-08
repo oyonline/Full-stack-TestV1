@@ -102,3 +102,25 @@
 
 - `go-admin/README.md` 和 `go-admin/README.Zh-cn.md` 主要是上游项目说明，不代表当前工作区的真实运行方式。
 - 当前仓库以根 README、`docs/` 和 `.ai-memory/` 为准。
+
+## SKU 模块（C4）的运营落地需要手工补节点
+
+- 迁移 `1779000000001_spu_workflow_seed.go` 在 `product_admin` 角色不存在时跳过节点种子。
+- fresh install 场景下，迁移先于角色种子执行，需要后续手工进 `流程中心` → `定义管理` →
+  'SPU 创建审核' 给定义补一个 `approver_type=role`、`approver_value=<product_admin role_id>` 的审批节点。
+- 没有审批节点时 `Spu.SubmitForReview` 直接返回 "流程定义未配置审批节点"。
+- 完整模块使用指南：[docs/sku-module-guide.md](/Users/linshen/Cursor/Full-stack-TestV1/docs/sku-module-guide.md)。
+
+## SKU 模块审计 method 名稳定契约
+
+- 审计日志的 `Method` 字段是历史日志、告警、大盘的稳定 key——一旦改名查询失效。
+- SKU 模块当前的 method 契约（钉死在 `TestE2E_Spu_AuditMethod_Contract`）：
+  - `admin.spu.insert` / `admin.spu.update` / `admin.spu.delete` / `admin.spu.submit`（apis/spu.go）
+  - `platform.workflow.task.approve` / `platform.workflow.task.reject` / `platform.workflow.instance.withdraw`（platform/apis/workflow.go）
+- 改 method 名前必须同步改测试和 `docs/sku-module-guide.md` 第 3.2 节，否则历史日志排查会断链。
+
+## SKU dataScope 端到端覆盖暂不完整
+
+- 当前 `TestE2E_Spu_DataScope_DeptOnly` 只覆盖 dataScope=1（全部）和 dataScope=3（本部门）。
+- dataScope=2（自定义）/ 4（本部门及以下）/ 5（仅本人）在 SPU 上未做端到端冒烟，
+  口径与 announcement C7-5 一致（`announcement_data_scope_test.go`），可参考样板补全。

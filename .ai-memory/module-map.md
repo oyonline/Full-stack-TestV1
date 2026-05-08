@@ -167,3 +167,19 @@
 正式实施顺序见：
 
 - [platform-capability-phase1.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/platform-capability-phase1.md)
+
+## 平台能力的业务使用者
+
+平台能力（审批流 / 数据权限 / 审计日志 / 附件中心）当前已被以下业务模块串起来跑通，
+做后续平台层改动时这些模块是回归测试的最小集合：
+
+1. **announcement**（公告）—— 首个 dataScope 5 路样板（C7-3）。
+   - 用平台能力：dataScope（actions.Permission）、审计日志（middleware.AuditLog）。
+2. **SKU 模块**（C4，包括 spu / sku / sku_category / sku_brand）—— 平台能力的第二个使用者。
+   - 用平台能力：审批流（platform.workflow，spu_create_review 流程）、dataScope、审计日志。
+   - 终态回写通过 `platformService.RegisterTerminalHandler("spu", ...)` 注册（见 `app/admin/service/spu_workflow_handler.go`）。
+   - 模块使用指南：[docs/sku-module-guide.md](/Users/linshen/Cursor/Full-stack-TestV1/docs/sku-module-guide.md)。
+
+新业务接入审批流的最小契约：实现 `WorkflowTerminalHandler`，在 init() 中
+`platformService.RegisterTerminalHandler(<businessType>, fn)` 注册；流程定义通过
+`bd formula list` 之外的迁移种子（参考 `1779000000001_spu_workflow_seed.go`）落库。
