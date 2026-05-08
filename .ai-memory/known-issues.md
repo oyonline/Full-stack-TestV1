@@ -66,6 +66,20 @@
   `getinfo` / `user/profile` / `user/avatar` / admin `SysUserInsert` / `SysUserUpdate`
   全链路读写 `avatar_type` 与 `avatar_color`，且图片上传分支保留原 `avatar_color`。
 
+## 数据权限（dataScope）已启用，未接入的业务模块视为缺陷
+
+- phase2 起 `config.ApplicationConfig.EnableDP=true` 已默认开启（C7-1 ~ C7-7 收口）。
+- **新增业务模块若未按 `PROJECT_CONVENTIONS.md` §1.6.1 接入 dataScope（路由挂 `actions.PermissionAction()` + service 调 `actions.Permission(table, p)`），视为缺陷**。
+- 检查清单：
+  - 路由组上有 `.Use(actions.PermissionAction())`（**整组挂**，不是 per-handler）
+  - apis 通过 `actions.GetPermissionFromContext(c)` 取 `*DataPermission`，传给 service（**严禁传 `*gin.Context`**）
+  - service `GetPage / GetList / Get / Update 写前查 / MarkRead` 全部加 `Scopes(actions.Permission(table, p))`
+  - `Remove` 先按 scope 过滤 `Ids` 再级联删
+  - 主模型嵌入 `common/models.ControlBy`（提供 `create_by`），或文档化自定义 owner 扩展
+  - 5 路 dataScope（`"1"` ~ `"5"`）+ 跨用户越权 + `EnableDP=false` 短路 单/集成测试齐全
+- 平台底座路由（用户/角色/部门/菜单/字典/日志/配置/sys-api/sysjob/module_registry/workflow 等）**豁免**，**不要**反向给底座挂中间件——会导致超管按部门切片，跨部门治理失效。完整豁免清单见 `PROJECT_CONVENTIONS.md` §1.6.1 D 节。
+- 落地样板：`go-admin/app/admin/{router,service}/announcement.go`。C4 业务模块（`kingdee_customer` 等）按此样板照搬。
+
 ## 平台能力层已部分落地，但仍有待收口项
 
 - `workflow / module_registry / attachment` 及对应最小前端验收层已经进入已提交历史。

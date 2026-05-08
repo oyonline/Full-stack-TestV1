@@ -218,44 +218,132 @@
 
 ### 1.6.1 数据权限（dataScope）规约
 
-> phase2 已接入并通过端到端验收（C7-1 ~ C7-5）。详细参考：
-> - 接入手册：`.ai-memory/procedural/data-permission-wiring.md`
-> - 路由策略：`.ai-memory/audits/data-permission-routing.md`
-> - C7-6 进一步细化时，本节按代码行为同步更新。
+> phase2 已接入并通过端到端验收（C7-1 ~ C7-5），本节是业务模块开发者接入数据权限的**真相源**。
+> 配套文档：
+> - 接入手册（含代码片段与落地清单）：`.ai-memory/procedural/data-permission-wiring.md`
+> - 路由策略审计（每条路由"接入/豁免"判定）：`.ai-memory/audits/data-permission-routing.md`
+> - 落地样板：`go-admin/app/admin/{router,service}/announcement.go` + 测试 `announcement_data_scope_test.go` / `announcement_permission_test.go`
+> 代码核心：`go-admin/common/actions/permission.go`
 
-**三件套必须同时齐备，缺一即失效：**
+#### A. EnableDP 全局开关状态
 
-1. 全局开关 `config.ApplicationConfig.EnableDP`：关掉则 `actions.Permission` 短路放行（过渡期保护，phase2 默认开启）。
-2. 路由层中间件 `actions.PermissionAction()`：业务路由组级挂载，从 JWT 用户查 `data_scope/dept_id/role_id` 写入 `c.Set(PermissionKey, *DataPermission)`。**只注入上下文，不过滤数据。**
-3. service 层 GORM scope `actions.Permission(tableName, p)`：service 函数签名接收 `*actions.DataPermission`（**不接 `*gin.Context`**，保持 service 不依赖 gin），在查询链路上调 `Scopes(actions.Permission(table, p))` 真正按 `create_by` 拼接 `WHERE`。
+- `config.ApplicationConfig.EnableDP`（`settings*.yml` 配置项）控制整套 dataScope 是否生效。
+- **phase2 起默认开启**（C7-7 切换完成）。关掉后 `actions.Permission` 走短路分支返回原 `*gorm.DB`，**不加任何 SQL 过滤**——仅作过渡期保护，**不应作为长期关闭手段**。
+- 关掉 EnableDP **不**会卸掉 `PermissionAction()` 中间件，仅让 service 端的 scope 成为空操作。
 
-**dataScope 取值与 SQL：**
+#### B. 业务模块接入步骤（开发者必读）
 
-| 值 | 含义 | SQL 片段 |
-|----|------|---------|
-| `"1"` 或空 | 全部 | 不加过滤 |
-| `"2"` | 自定义（按角色绑定的部门集合） | `create_by IN (sys_role_dept ⋈ sys_user where role_id=?)` |
-| `"3"` | 本部门 | `create_by IN (SELECT user_id FROM sys_user WHERE dept_id=?)` |
-| `"4"` | 本部门及以下 | `create_by IN (SELECT user_id FROM sys_user WHERE dept_id IN (SELECT dept_id FROM sys_dept WHERE dept_path LIKE '%/${dept}/%'))` |
-| `"5"` | 仅本人 | `create_by = ?` |
+落地一个新业务模块时按下列顺序完成 4 步，**任何一步缺失即视为未接入**：
 
-**接入边界：**
+1. **router**：在业务路由组上 `.Use(actions.PermissionAction())`（**整组挂载**，不要 per-handler 挂）：
 
-- **业务模块**（announcement / 后续 C4 业务）：必须接入，路由挂中间件 + service 调 scope。业务模型主表必须嵌入 `common/models.ControlBy` 提供 `create_by`。
-- **平台底座**（attachment / module_registry / workflow / sys_user / sys_api / sysjob）：豁免，**不挂中间件，service 也不调 scope**。C7-3.5 已清理"中间件挂了但 service 没 wire"或"service 调了但中间件没挂"的 half-wired 残留。
-- **业务自带可见性**（如 `announcement_scope` 部门可见性）与 dataScope 是**正交叠加 AND**，不是子集替代。
+   ```go
+   r := v1.Group("/<resource>").
+       Use(authMiddleware.MiddlewareFunc()).
+       Use(middleware.AuthCheckRole()).
+       Use(actions.PermissionAction())
+   ```
 
-**写操作约束：**
+2. **apis**：handler 内通过 `actions.GetPermissionFromContext(c)` 取出 `*DataPermission`，传给 service。**严禁把 `*gin.Context` 传到 service 层**（保持 service 不依赖 gin，便于单测）：
 
-- `Get / Update / MarkRead`：在主表读出实体时同样套 `Scopes(actions.Permission(...))`，scope 外返回"不存在"，避免越权读 / 越权改。
-- `Remove`：先按 scope 过滤 `Ids` 拿到 allowed 子集，再级联删，否则 dataScope=5 用户传一组 ID 会把别人的也带删（announcement 的实现已防住，C4 模块照搬）。
+   ```go
+   p := actions.GetPermissionFromContext(c)
+   if err := s.GetPage(&req, p, &list, &count, user.GetUserId(c)); err != nil { ... }
+   ```
 
-**测试规范：**
+3. **service**：`GetPage / GetList / Get / Update 写前查 / MarkRead` 等所有"读侧"路径调 `.Scopes(actions.Permission(tableName, p))`：
 
-- 5 路 dataScope（`"1"` ~ `"5"`）必须各一个 case，断言返回行集合（参考 `announcement_data_scope_test.go`）。
-- 必加 `EnableDP=false` 短路用例（参考 `announcement_permission_test.go`）。
-- 必加跨用户越权用例覆盖 `Get / Update / Remove / MarkRead`。
-- 业务自带可见性 × dataScope 的正交叠加用例。
+   ```go
+   q := e.Orm.Model(&data).Scopes(
+       cDto.MakeCondition(c.GetNeedSearch()),
+       actions.Permission(data.TableName(), p),  // ← scope 必加
+   )
+   ```
+
+   **`Remove` 必须先按 scope 过滤 `Ids` 拿到 allowed 子集再级联删**，否则 dataScope=5 用户传一组 ID 会把别人的也带删（参考 announcement 的 `Remove` 实现）。
+
+4. **tableName 与 model TableName 一致**：`actions.Permission(table, p)` 拼出来的是 `<table>.create_by`。table 必须是该业务主模型 `TableName()` 返回的物理表名（用 `(&MyModel{}).TableName()` 取，不要写字符串字面量），否则在 join / alias 场景下 SQL 会拼错。
+
+> 写操作（`POST /xxx`）按按钮权限控制，**不调 scope**——scope 是读侧概念。
+
+#### C. 5 个 dataScope 语义对照表
+
+下表 SQL 片段与 `common/actions/permission.go` 实现一致；UI tooltip（角色管理页 `vue-vben-admin/apps/web-antd/src/views/admin/sys-role/data/data-scope-options.ts`）必须保持同步：
+
+| 值 | 含义 | SQL 片段 | UI 文案 |
+|----|------|---------|--------|
+| `"1"` 或空 | 全部数据权限 | 不加过滤 | "全部数据权限" |
+| `"2"` | 自定义数据权限 | `create_by IN (sys_role_dept ⋈ sys_user where role_id=?)` | "自定义数据权限"（按当前角色绑定的部门集合） |
+| `"3"` | 本部门数据权限 | `create_by IN (SELECT user_id FROM sys_user WHERE dept_id=?)` | "本部门数据权限" |
+| `"4"` | 本部门及以下数据权限 | `create_by IN (SELECT user_id FROM sys_user WHERE dept_id IN (SELECT dept_id FROM sys_dept WHERE dept_path LIKE '%/${dept}/%'))` | "本部门及以下数据权限" |
+| `"5"` | 仅本人数据权限 | `create_by = ?` | "仅本人数据权限" |
+
+#### D. 平台底座豁免清单（不挂中间件、service 不调 scope）
+
+下面这些模块**整体豁免**——它们是跨业务的全局配置/治理资源，由超管/系统管理员维护全量。**修改时请同步检查**，不要因为"业务模块都接入了"就反过来给底座加 scope：
+
+1. 用户管理 `/sys-user/*`、`/user/*`、`/getinfo`
+2. 角色管理 `/role/*`、`/role-status`、`/roledatascope`
+3. 部门 `/dept/*`、`/deptTree`
+4. 菜单 `/menu/*`、`/menurole`、`/roleMenuTreeselect/*`、`/roleDeptTreeselect/*`
+5. API 注册表 `/sys-api/*`
+6. 系统参数 `/config/*`、`/configKey/*`、`/app-config`、`/set-config`
+7. 字典 `/dict/*`、`/dict-data/*`
+8. 登录日志 `/sys-login-log/*`
+9. 操作日志 `/sys-opera-log/*`
+10. 岗位 `/post/*`
+11. 平台模块注册 `/platform/modules/*`
+12. 平台附件元数据上传写路径 `POST /platform/attachments/upload`（读路径需接入，见下文"接入清单"）
+13. 流程定义与实例 `/platform/workflow/*`（**整个 workflow 不走通用 scope**，由业务侧按 starter / assignee 自行建模）
+14. 调度任务 `/sysjob/*`、`/job/*`
+15. 代码生成器 `/gen/*`、`/db/*`、`/sys/tables/*`
+16. 服务器监控 `/server-monitor`、`/metrics`、`/health`
+17. 登录、刷新 token、登出、验证码、健康检查、ws、静态资源、飞书回调等公开/认证特殊路由（与 dataScope 无关）
+
+> 完整的逐路由判定与理由见 `.ai-memory/audits/data-permission-routing.md` §3。C7-3.5 已清理上述底座的"半接入"残留（中间件挂了但 service 没 wire，或反之）。
+
+**当前已接入的业务路由：**
+
+| 模块 | 接入路由 |
+|------|---------|
+| 公告 announcement | `GET /announcement`、`GET /announcement/:id`、`PUT /announcement/:id`、`DELETE /announcement`、`POST /announcement/:id/read` |
+| 平台附件读路径 platform/attachments | `GET /platform/attachments`、`GET /platform/attachments/:id/download`、`DELETE /platform/attachments/:id` |
+| 金蝶客户 kingdee_customer | `GET /kingdee-customer`、`GET /kingdee-customer/:id`、`PUT /kingdee-customer/:id`、`DELETE /kingdee-customer`、`GET /kingdee-customer/export`（C4 实施时按本规约接入） |
+
+#### E. 测试要求（每个新业务模块上线前必须有）
+
+参考 `go-admin/app/admin/service/announcement_data_scope_test.go` + `announcement_permission_test.go`：
+
+1. **5 路 dataScope 单元/集成测试**：scope=`"1"`/`"2"`/`"3"`/`"4"`/`"5"` 各一个 case，构造跨部门用户 + 公告 fixture，断言 `GetPage` 返回的行集合与期望一致。
+2. **`EnableDP=false` 短路用例**：测试开头/结尾用 `defer` 还原 `config.ApplicationConfig.EnableDP`，避免污染其他测试。
+3. **跨用户越权用例**：覆盖 `Get / Update / Remove / MarkRead` 等"基于 ID"的写前查路径，dataScope=5 用户访问他人记录应返回"不存在"。
+4. **`Remove` 越权批量用例**：dataScope=5 用户传 `[mine.Id, others.Id]`，断言只删 `mine`，`others` 仍存在。
+5. **业务自带可见性 × dataScope 正交叠加用例**（如业务有自带可见性，见 G 节）。
+6. 测试栈：in-memory sqlite + `db.AutoMigrate` 装业务模型 + `SysUser / SysDept`，many2many 关联表（如 `sys_role_dept`）手建。
+
+#### F. 业务字段约定
+
+- **默认所有者字段是 `create_by`**：`actions.Permission` 拼的过滤条件就是 `<table>.create_by`。业务主表必须嵌入 `common/models.ControlBy`（提供 `CreateBy/UpdateBy`），否则 scope SQL 会引用不存在的列。
+- **自定义所有者字段（如 `owner_id` / `assignee_user_id`）**：当前 `actions.Permission` 不支持参数化所有者字段。如业务的"所有者"语义不是"创建者"（典型例子：CRM 客户负责人 owner_id、工单受理人 assignee_user_id），有两种扩展模式：
+  1. **业务侧手动拼条件**：保持 `PermissionAction()` 中间件挂载，service 内不用 `actions.Permission(table, p)` 而是手动按 `p.DataScope` 拼 `WHERE owner_id IN (...)`。当前 workflow 模块（按 starter / assignee）走的就是这条路。
+  2. **冗余 `create_by` 与 owner 同步**：每次创建/转交都同步 `create_by = 新 owner`。**不推荐**，与"创建者"语义混淆。
+- 跨表/跨 join 场景下，调 `actions.Permission(<物理主表名>, p)`，不要传 alias；如必须用 alias，需在调用前手动重写 SQL 片段。
+
+#### G. 正交语义：dataScope 与业务自带可见性
+
+dataScope 与业务侧自带的"展示规则"是**两套独立机制，并存且 AND 叠加**，不是子集替代：
+
+- **业务自带可见性**：业务记录创建者主动指定"我希望让谁看到"（典型：announcement 的 `announcement_scope` 表 + `OnlyVisible` 参数按部门可见）。
+- **dataScope（数据权限）**：当前用户角色被允许读"哪些 `create_by` 创建的记录"——读侧权限规则，与创建者意图无关。
+
+**先后顺序**：service 层先走业务可见性（如 `OnlyVisible` 拼 `JOIN announcement_scope`），再叠加 `Scopes(actions.Permission(table, p))`。一条记录要出现在结果中，必须**同时**满足两边。新模块**不要把 dataScope 等价替换业务自带可见性**，反之亦然。
+
+#### H. 变更 dataScope 的实时性
+
+- **管理员改了角色 `data_scope` 后，该角色用户必须重新登录才生效。**
+- 原因：`PermissionAction()` 中间件按 JWT 中的 `roleId` 在每次请求时查 `sys_role.data_scope`，但用户的"主角色 roleId"是登录时写入 JWT 的，登录态期间不会自动刷新。
+- **不要**在登录态轮询/推送变更——这是产品默认行为，文档化即可，不需要改代码。
+- 角色"绑定部门集合"（dataScope=`"2"` 用）改了同样需要重新登录生效，理由同上。
 
 ### 1.7 migration、seed、手工数据修复的边界
 
