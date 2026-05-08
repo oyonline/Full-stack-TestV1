@@ -1,18 +1,26 @@
 <script lang="ts" setup>
+import type { TableColumnType } from 'ant-design-vue';
+import type { Key } from 'ant-design-vue/es/_util/type';
+
+import type {
+  DbTableItem,
+  PageResult,
+  PreviewResult,
+  SysTableItem,
+} from '#/api/core';
+
 import { onMounted, ref } from 'vue';
 
 import {
   Alert,
   Button,
   Input,
+  message,
   Popconfirm,
   Table,
   Tabs,
   Tag,
-  message,
 } from 'ant-design-vue';
-import type { Key } from 'ant-design-vue/es/_util/type';
-import type { TableColumnType } from 'ant-design-vue';
 
 import {
   createSysTables,
@@ -20,12 +28,6 @@ import {
   getDbTablePage,
   getSysTablePage,
   previewGeneratedCode,
-} from '#/api/core';
-import type {
-  DbTableItem,
-  PageResult,
-  PreviewResult,
-  SysTableItem,
 } from '#/api/core';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
@@ -81,7 +83,8 @@ async function fetchDbTables() {
       message?: string;
       response?: { data?: { msg?: string } };
     };
-    dbErrorMsg.value = err?.message || err?.response?.data?.msg || '加载数据库表失败';
+    dbErrorMsg.value =
+      err?.message || err?.response?.data?.msg || '加载数据库表失败';
     dbTableData.value = [];
     dbPagination.value.total = 0;
   } finally {
@@ -106,7 +109,8 @@ async function fetchSysTables() {
       message?: string;
       response?: { data?: { msg?: string } };
     };
-    sysErrorMsg.value = err?.message || err?.response?.data?.msg || '加载生成配置失败';
+    sysErrorMsg.value =
+      err?.message || err?.response?.data?.msg || '加载生成配置失败';
     sysTableData.value = [];
     sysPagination.value.total = 0;
   } finally {
@@ -151,10 +155,18 @@ function onSysTableChange(pag: { current?: number; pageSize?: number }) {
 
 function onTabChange(key: Key) {
   activeTab.value = String(key) as GeneratorTabKey;
-  if (activeTab.value === 'db' && !dbTableData.value.length && !dbLoading.value) {
+  if (
+    activeTab.value === 'db' &&
+    dbTableData.value.length === 0 &&
+    !dbLoading.value
+  ) {
     fetchDbTables();
   }
-  if (activeTab.value === 'sys' && !sysTableData.value.length && !sysLoading.value) {
+  if (
+    activeTab.value === 'sys' &&
+    sysTableData.value.length === 0 &&
+    !sysLoading.value
+  ) {
     fetchSysTables();
   }
 }
@@ -292,7 +304,7 @@ onMounted(() => {
             v-model:value="dbTableName"
             allow-clear
             placeholder="请输入数据库表名"
-            @pressEnter="onSearch"
+            @press-enter="onSearch"
           />
         </AdminFilterField>
         <template v-else>
@@ -301,7 +313,7 @@ onMounted(() => {
               v-model:value="sysTableName"
               allow-clear
               placeholder="请输入生成表名"
-              @pressEnter="onSearch"
+              @press-enter="onSearch"
             />
           </AdminFilterField>
           <AdminFilterField label="功能备注">
@@ -309,7 +321,7 @@ onMounted(() => {
               v-model:value="sysTableComment"
               allow-clear
               placeholder="请输入表备注"
-              @pressEnter="onSearch"
+              @press-enter="onSearch"
             />
           </AdminFilterField>
         </template>
@@ -323,9 +335,15 @@ onMounted(() => {
 
     <template #toolbar>
       <div class="flex flex-wrap items-center gap-2">
-        <Tag color="blue">{{ activeTab === 'db' ? '数据库表' : '生成配置' }}</Tag>
+        <Tag color="blue">
+          {{ activeTab === 'db' ? '数据库表' : '生成配置' }}
+        </Tag>
         <span class="text-sm text-slate-500">
-          {{ activeTab === 'db' ? '先把数据库表纳入生成器，之后进入独立编辑页维护详细配置。' : '当前仅开放配置维护与模板预览，危险写入动作已隐藏。' }}
+          {{
+            activeTab === 'db'
+              ? '先把数据库表纳入生成器，之后进入独立编辑页维护详细配置。'
+              : '当前仅开放配置维护与模板预览，危险写入动作已隐藏。'
+          }}
         </span>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -334,7 +352,7 @@ onMounted(() => {
       </div>
     </template>
 
-    <Tabs v-model:activeKey="activeTab" @change="onTabChange">
+    <Tabs v-model:active-key="activeTab" @change="onTabChange">
       <Tabs.TabPane key="db" tab="数据库表">
         <Alert
           show-icon
@@ -361,7 +379,11 @@ onMounted(() => {
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'actions'">
-              <Button type="link" class="px-0" @click="adoptDbTable(record as DbTableItem)">
+              <Button
+                type="link"
+                class="px-0"
+                @click="adoptDbTable(record as DbTableItem)"
+              >
                 导入到生成器
               </Button>
             </template>
@@ -395,13 +417,23 @@ onMounted(() => {
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'tplCategory'">
-              <Tag color="purple">{{ (record as SysTableItem).tplCategory || '-' }}</Tag>
+              <Tag color="purple">
+                {{ (record as SysTableItem).tplCategory || '-' }}
+              </Tag>
             </template>
             <template v-if="column.key === 'actions'">
-              <Button type="link" class="px-0" @click="openEdit(record as SysTableItem)">
+              <Button
+                type="link"
+                class="px-0"
+                @click="openEdit(record as SysTableItem)"
+              >
                 编辑配置
               </Button>
-              <Button type="link" class="px-2" @click="openPreview(record as SysTableItem)">
+              <Button
+                type="link"
+                class="px-2"
+                @click="openPreview(record as SysTableItem)"
+              >
                 模板预览
               </Button>
               <Popconfirm
