@@ -10,7 +10,6 @@ import (
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
-	"go-admin/common/actions"
 	"go-admin/common/middleware"
 )
 
@@ -44,11 +43,9 @@ func (e SysApi) GetPage(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	//数据权限检查
-	p := actions.GetPermissionFromContext(c)
 	list := make([]models.SysApi, 0)
 	var count int64
-	err = s.GetPage(&req, p, &list, &count)
+	err = s.GetPage(&req, &list, &count)
 	if err != nil {
 		e.Error(500, err, "查询失败")
 		return
@@ -77,9 +74,8 @@ func (e SysApi) Get(c *gin.Context) {
 		e.Error(500, err, err.Error())
 		return
 	}
-	p := actions.GetPermissionFromContext(c)
 	var object models.SysApi
-	err = s.Get(&req, p, &object).Error
+	err = s.Get(&req, &object).Error
 	if err != nil {
 		e.Error(500, err, "查询失败")
 		return
@@ -110,8 +106,7 @@ func (e SysApi) Update(c *gin.Context) {
 		return
 	}
 	req.SetUpdateBy(user.GetUserId(c))
-	p := actions.GetPermissionFromContext(c)
-	err = s.Update(&req, p)
+	err = s.Update(&req)
 	if err != nil {
 		e.Error(500, err, "更新失败")
 		return
@@ -154,8 +149,7 @@ func (e SysApi) DeleteSysApi(c *gin.Context) {
 		e.Logger.Error(err)
 		return
 	}
-	p := actions.GetPermissionFromContext(c)
-	err = s.Remove(&req, p)
+	err = s.Remove(&req)
 	if err != nil {
 		e.Error(500, err, "删除失败")
 		return

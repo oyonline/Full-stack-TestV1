@@ -33,23 +33,23 @@
 
 ## 2. 当前挂载情况盘点（grep `PermissionAction()`）
 
-代码现状（2026-05-08，分支 `polecat/fury/my-t68`）：
+代码现状（2026-05-08，分支 `polecat/fury/my-t68`，**C7-3.5 已清理**）：
 
 | 文件 | 路由组 | 中间件 | service 是否 wire `actions.Permission` |
 |------|-------|--------|----------------------------------------|
-| `app/admin/router/sys_user.go:18` | `/sys-user/**` | ✅ `PermissionAction()` | ✅ 已接入（`service/sys_user.go` 多处） |
-| `app/admin/router/sys_user.go:27` | `/user/**` | ✅ `PermissionAction()` | ✅ 已接入 |
-| `app/admin/apis/sys_api.go` (route 在 router/sys_api.go 未挂中间件) | `/sys-api/**` | ❌ 未挂 | ✅ 已接入（`service/sys_api.go` 三处） |
-| `app/platform/router/attachment.go:20` | `/platform/attachments/**` | ✅ | ❌ service 未 wire |
-| `app/platform/router/module_registry.go:20` | `/platform/modules/**` | ✅ | ❌ service 未 wire |
-| `app/platform/router/workflow.go:17` | `/platform/workflow/**` | ✅ | ❌ service 未 wire |
-| `app/jobs/router/sys_job.go:23-32` | `/sysjob/**` | ✅（逐 handler） | ❌ service 未 wire |
+| `app/admin/router/sys_user.go:16` | `/sys-user/**` | ❌ 已移除（C7-3.5） | ❌ 已移除 scope 调用（C7-3.5） |
+| `app/admin/router/sys_user.go:25` | `/user/**` | ❌ 已移除（C7-3.5） | ❌ 已移除 scope 调用（C7-3.5） |
+| `app/admin/apis/sys_api.go` (route 在 router/sys_api.go 未挂中间件) | `/sys-api/**` | ❌ 未挂 | ❌ 已移除 scope 调用 + import（C7-3.5） |
+| `app/platform/router/attachment.go` | `/platform/attachments/**` | ❌ 已移除（C7-3.5） | ❌ service 未 wire |
+| `app/platform/router/module_registry.go` | `/platform/modules/**` | ❌ 已移除（C7-3.5） | ❌ service 未 wire |
+| `app/platform/router/workflow.go` | `/platform/workflow/**` | ❌ 已移除（C7-3.5） | ❌ service 未 wire |
+| `app/jobs/router/sys_job.go` | `/sysjob/**` | ❌ 已移除（逐 handler，C7-3.5） | ❌ service 未 wire；`actions.IndexAction/ViewAction` 老框架内部 scope 因中间件未挂而成空操作（phase3 评估是否解除老框架 scope） |
 
-> **盘点观察**：
-> 1. `sys_user` 是唯一一个"中间件 + service scope"都齐的模块——但它是**平台底座**，按 C7-2 策略反而**应该解除**接入。
-> 2. `sys_api` service 调了 `actions.Permission` 但路由没挂中间件——`getPermissionFromContext` 读不到值会返回零值 `*DataPermission{}`，`Permission()` 走 default 分支不过滤，**目前是空操作**。
-> 3. `platform/{attachment,module_registry,workflow}` 中间件挂了但 service 没 wire——**目前不生效**，C7-3 才会真正接入。
-> 4. `jobs/sysjob` 用的是老 `actions.IndexAction/ViewAction` 框架内部的 scope，不是手写 service。需要单独评估。
+> **盘点观察**（**已 C7-3.5 全部清理**）：
+> 1. ~~`sys_user` 是唯一一个"中间件 + service scope"都齐的模块~~ → **已清理**：路由 2 处 `PermissionAction()` 移除；service 9 处 `actions.Permission(...)` scope 调用移除（`p *actions.DataPermission` 参数保留向下兼容）。
+> 2. ~~`sys_api` service 调了 `actions.Permission` 但路由没挂中间件~~ → **已清理**：service 3 处 scope 调用 + 参数 + `actions` import 全部移除；apis 同步去掉 `GetPermissionFromContext`。
+> 3. ~~`platform/{attachment,module_registry,workflow}` 中间件挂了但 service 没 wire~~ → **已清理（豁免类）**：3 处路由 `PermissionAction()` 全部移除（这些是平台底座，业务可见性由各业务模块在 service 层自行建模）。
+> 4. ~~`jobs/sysjob` 用的是老 `actions.IndexAction/ViewAction` 框架~~ → **已清理路由层**：5 处 `PermissionAction()` 全部移除；老框架内部 `Permission()` 因 `c.Get(PermissionKey)` 取不到值返回零值 `*DataPermission{}`，走 default 分支不过滤，**等价空操作**。彻底解除老框架 scope 涉及 `common/actions/{index,view}.go` 公共改动（影响所有调用方），**phase3 评估**。
 
 ---
 

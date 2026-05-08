@@ -8,7 +8,6 @@ import (
 	"github.com/go-admin-team/go-admin-core/sdk/service"
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service/dto"
-	"go-admin/common/actions"
 	cDto "go-admin/common/dto"
 	"go-admin/common/global"
 )
@@ -18,7 +17,7 @@ type SysApi struct {
 }
 
 // GetPage 获取SysApi列表
-func (e *SysApi) GetPage(c *dto.SysApiGetPageReq, p *actions.DataPermission, list *[]models.SysApi, count *int64) error {
+func (e *SysApi) GetPage(c *dto.SysApiGetPageReq, list *[]models.SysApi, count *int64) error {
 	var err error
 	var data models.SysApi
 
@@ -26,7 +25,6 @@ func (e *SysApi) GetPage(c *dto.SysApiGetPageReq, p *actions.DataPermission, lis
 		Scopes(
 			cDto.MakeCondition(c.GetNeedSearch()),
 			cDto.Paginate(c.GetPageSize(), c.GetPageIndex()),
-			actions.Permission(data.TableName(), p),
 		)
 	if c.Type != "" {
 		qType := c.Type
@@ -50,12 +48,9 @@ func (e *SysApi) GetPage(c *dto.SysApiGetPageReq, p *actions.DataPermission, lis
 }
 
 // Get 获取SysApi对象with id
-func (e *SysApi) Get(d *dto.SysApiGetReq, p *actions.DataPermission, model *models.SysApi) *SysApi {
+func (e *SysApi) Get(d *dto.SysApiGetReq, model *models.SysApi) *SysApi {
 	var data models.SysApi
 	err := e.Orm.Model(&data).
-		Scopes(
-			actions.Permission(data.TableName(), p),
-		).
 		FirstOrInit(model, d.GetId()).Error
 	if err != nil {
 		e.Log.Errorf("db error:%s", err)
@@ -72,7 +67,7 @@ func (e *SysApi) Get(d *dto.SysApiGetReq, p *actions.DataPermission, model *mode
 }
 
 // Update 修改SysApi对象
-func (e *SysApi) Update(c *dto.SysApiUpdateReq, p *actions.DataPermission) error {
+func (e *SysApi) Update(c *dto.SysApiUpdateReq) error {
 	var model = models.SysApi{}
 	db := e.Orm.Debug().First(&model, c.GetId())
 	if db.RowsAffected == 0 {
@@ -89,13 +84,10 @@ func (e *SysApi) Update(c *dto.SysApiUpdateReq, p *actions.DataPermission) error
 }
 
 // Remove 删除SysApi
-func (e *SysApi) Remove(d *dto.SysApiDeleteReq, p *actions.DataPermission) error {
+func (e *SysApi) Remove(d *dto.SysApiDeleteReq) error {
 	var data models.SysApi
 
-	db := e.Orm.Model(&data).
-		Scopes(
-			actions.Permission(data.TableName(), p),
-		).Delete(&data, d.GetId())
+	db := e.Orm.Model(&data).Delete(&data, d.GetId())
 	if err := db.Error; err != nil {
 		e.Log.Errorf("Service RemoveSysApi error:%s", err)
 		return err

@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	jwt "github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth"
 	"go-admin/app/platform/apis"
-	"go-admin/common/actions"
 	"go-admin/common/middleware"
 )
 
@@ -16,8 +15,7 @@ func registerAttachmentRouter(v1 *gin.RouterGroup, authMiddleware *jwt.GinJWTMid
 	api := apis.Attachment{}
 	r := v1.Group("/platform/attachments").
 		Use(authMiddleware.MiddlewareFunc()).
-		Use(middleware.AuthCheckRole()).
-		Use(actions.PermissionAction())
+		Use(middleware.AuthCheckRole())
 	{
 		r.GET("", api.GetPage)
 		r.POST("/upload", api.Upload)

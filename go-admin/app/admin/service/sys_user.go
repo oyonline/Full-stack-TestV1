@@ -31,7 +31,6 @@ func (e *SysUser) GetPage(c *dto.SysUserGetPageReq, p *actions.DataPermission, l
 		Scopes(
 			cDto.MakeCondition(c.GetNeedSearch()),
 			cDto.Paginate(c.GetPageSize(), c.GetPageIndex()),
-			actions.Permission(data.TableName(), p),
 		)
 	if roleIDs := c.GetRoleIDList(); len(roleIDs) > 0 {
 		subQuery := e.Orm.Table("sys_user_role").Select("distinct user_id").Where("role_id IN ?", roleIDs)
@@ -54,9 +53,6 @@ func (e *SysUser) Get(d *dto.SysUserById, p *actions.DataPermission, model *mode
 	var data models.SysUser
 
 	err := e.Orm.Model(&data).Debug().
-		Scopes(
-			actions.Permission(data.TableName(), p),
-		).
 		First(model, d.GetId()).Error
 	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 		err = errors.New("查看对象不存在或无权查看")
@@ -122,9 +118,7 @@ func (e *SysUser) Update(c *dto.SysUserUpdateReq, p *actions.DataPermission) err
 		return err
 	}
 	var model models.SysUser
-	db := e.Orm.Scopes(
-		actions.Permission(model.TableName(), p),
-	).First(&model, c.GetId())
+	db := e.Orm.First(&model, c.GetId())
 	if err = db.Error; err != nil {
 		e.Log.Errorf("Service UpdateSysUser error: %s", err)
 		return err
@@ -164,9 +158,7 @@ func (e *SysUser) Update(c *dto.SysUserUpdateReq, p *actions.DataPermission) err
 // 返回更新后的模型，调用方据此回传完整三元组（avatar / avatar_type / avatar_color）。
 func (e *SysUser) UpdateAvatar(c *dto.UpdateSysUserAvatarReq, p *actions.DataPermission) (*models.SysUser, error) {
 	var model models.SysUser
-	db := e.Orm.Scopes(
-		actions.Permission(model.TableName(), p),
-	).First(&model, c.GetId())
+	db := e.Orm.First(&model, c.GetId())
 	if err := db.Error; err != nil {
 		e.Log.Errorf("Service UpdateSysUser error: %s", err)
 		return nil, err
@@ -191,9 +183,7 @@ func (e *SysUser) UpdateAvatar(c *dto.UpdateSysUserAvatarReq, p *actions.DataPer
 func (e *SysUser) UpdateProfile(c *dto.UpdateSysUserProfileReq, p *actions.DataPermission) error {
 	var err error
 	var model models.SysUser
-	db := e.Orm.Scopes(
-		actions.Permission(model.TableName(), p),
-	).First(&model, c.GetId())
+	db := e.Orm.First(&model, c.GetId())
 	if err = db.Error; err != nil {
 		e.Log.Errorf("Service UpdateProfile error: %s", err)
 		return err
@@ -220,9 +210,7 @@ func (e *SysUser) UpdateProfile(c *dto.UpdateSysUserProfileReq, p *actions.DataP
 func (e *SysUser) UpdateStatus(c *dto.UpdateSysUserStatusReq, p *actions.DataPermission) error {
 	var err error
 	var model models.SysUser
-	db := e.Orm.Scopes(
-		actions.Permission(model.TableName(), p),
-	).First(&model, c.GetId())
+	db := e.Orm.First(&model, c.GetId())
 	if err = db.Error; err != nil {
 		e.Log.Errorf("Service UpdateSysUser error: %s", err)
 		return err
@@ -243,9 +231,7 @@ func (e *SysUser) UpdateStatus(c *dto.UpdateSysUserStatusReq, p *actions.DataPer
 func (e *SysUser) ResetPwd(c *dto.ResetSysUserPwdReq, p *actions.DataPermission) error {
 	var err error
 	var model models.SysUser
-	db := e.Orm.Scopes(
-		actions.Permission(model.TableName(), p),
-	).First(&model, c.GetId())
+	db := e.Orm.First(&model, c.GetId())
 	if err = db.Error; err != nil {
 		e.Log.Errorf("At Service ResetSysUserPwd error: %s", err)
 		return err
@@ -276,10 +262,7 @@ func (e *SysUser) ResetPwd(c *dto.ResetSysUserPwdReq, p *actions.DataPermission)
 func (e *SysUser) Remove(c *dto.SysUserById, p *actions.DataPermission) error {
 	var data models.SysUser
 	return e.Orm.Transaction(func(tx *gorm.DB) error {
-		db := tx.Model(&data).
-			Scopes(
-				actions.Permission(data.TableName(), p),
-			).Delete(&data, c.GetId())
+		db := tx.Model(&data).Delete(&data, c.GetId())
 		if err := db.Error; err != nil {
 			e.Log.Errorf("Error found in RemoveSysUser : %s", err)
 			return err
@@ -305,9 +288,7 @@ func (e *SysUser) UpdatePwd(id int, oldPassword, newPassword string, p *actions.
 	c := &models.SysUser{}
 
 	err = e.Orm.Model(c).
-		Scopes(
-			actions.Permission(c.TableName(), p),
-		).Select("UserId", "Password", "Salt").
+		Select("UserId", "Password", "Salt").
 		First(c, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
