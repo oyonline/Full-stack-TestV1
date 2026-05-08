@@ -19,10 +19,14 @@ const props = withDefaults(
     height?: number | string;
     modelValue: string;
     placeholder?: string;
+    uploadBusinessType?: string;
+    uploadModuleKey?: string;
   }>(),
   {
     height: 320,
     placeholder: '请输入正文…',
+    uploadBusinessType: 'announcement-inline',
+    uploadModuleKey: 'admin',
   },
 );
 
@@ -49,8 +53,8 @@ const editorConfig: Partial<IEditorConfig> = {
           const result = await uploadPlatformAttachment({
             file,
             businessId: '0',
-            businessType: 'announcement-inline',
-            moduleKey: 'admin',
+            businessType: props.uploadBusinessType,
+            moduleKey: props.uploadModuleKey,
           });
           const url = result.storagePath ? `/${result.storagePath}` : '';
           if (!url) {

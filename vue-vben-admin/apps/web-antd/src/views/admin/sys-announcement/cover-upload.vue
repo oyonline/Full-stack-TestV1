@@ -5,11 +5,23 @@ import { Button, message } from 'ant-design-vue';
 
 import { uploadPlatformAttachment } from '#/api/core';
 
-const props = defineProps<{
-  businessId?: number | string;
-  disabled?: boolean;
-  modelValue: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    businessId?: number | string;
+    businessType?: string;
+    disabled?: boolean;
+    hint?: string;
+    modelValue: string;
+    moduleKey?: string;
+  }>(),
+  {
+    businessId: undefined,
+    businessType: 'announcement-cover',
+    disabled: false,
+    hint: '建议 1200×400，jpg/png/webp',
+    moduleKey: 'admin',
+  },
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
@@ -43,8 +55,8 @@ async function onFileChange(event: Event) {
     const result = await uploadPlatformAttachment({
       file,
       businessId,
-      businessType: 'announcement-cover',
-      moduleKey: 'admin',
+      businessType: props.businessType,
+      moduleKey: props.moduleKey,
     });
     const url = result.storagePath ? `/${result.storagePath}` : '';
     if (!url) {
@@ -105,7 +117,7 @@ function clearCover() {
       >
         清除
       </Button>
-      <div class="text-xs text-slate-400">建议 1200×400，jpg/png/webp</div>
+      <div class="text-xs text-slate-400">{{ hint }}</div>
     </div>
   </div>
 </template>

@@ -55,7 +55,7 @@ func _1779000000000SkuModule(db *gorm.DB, version string) error {
 		spuMenu := models.SysMenu{
 			MenuName: "SpuManage", Title: "产品 SPU 管理", Icon: "shopping-cart",
 			Path: "/product/spu", MenuType: "C", Permission: "admin:spu:list",
-			ParentId: rootMenu.MenuId, Component: "admin/spu/index",
+			ParentId: rootMenu.MenuId, Component: "admin/sys-spu/index",
 			Sort: 10, Visible: "0", IsFrame: "1",
 		}
 		skuMenu := models.SysMenu{
