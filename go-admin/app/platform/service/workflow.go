@@ -225,9 +225,8 @@ func (e *Workflow) GetDefinition(id int) (*WorkflowDefinitionDetail, error) {
 
 func (e *Workflow) InsertDefinition(c *dto.WorkflowDefinitionInsertReq) (platformModels.WorkflowDefinition, error) {
 	c.Normalize()
-	var module platformModels.ModuleRegistry
-	if err := e.Orm.Where("module_key = ? AND status = ?", c.ModuleKey, "2").First(&module).Error; err != nil {
-		return platformModels.WorkflowDefinition{}, errors.New("模块未注册或未启用")
+	if err := EnsureModuleEnabled(e.Orm, c.ModuleKey); err != nil {
+		return platformModels.WorkflowDefinition{}, err
 	}
 	var count int64
 	if err := e.Orm.Model(&platformModels.WorkflowDefinition{}).Where("definition_key = ?", c.DefinitionKey).Count(&count).Error; err != nil {
@@ -245,9 +244,8 @@ func (e *Workflow) InsertDefinition(c *dto.WorkflowDefinitionInsertReq) (platfor
 
 func (e *Workflow) UpdateDefinition(c *dto.WorkflowDefinitionUpdateReq) (platformModels.WorkflowDefinition, error) {
 	c.Normalize()
-	var module platformModels.ModuleRegistry
-	if err := e.Orm.Where("module_key = ? AND status = ?", c.ModuleKey, "2").First(&module).Error; err != nil {
-		return platformModels.WorkflowDefinition{}, errors.New("模块未注册或未启用")
+	if err := EnsureModuleEnabled(e.Orm, c.ModuleKey); err != nil {
+		return platformModels.WorkflowDefinition{}, err
 	}
 	var count int64
 	if err := e.Orm.Model(&platformModels.WorkflowDefinition{}).
@@ -367,9 +365,8 @@ func (e *Workflow) Start(c *gin.Context, req *dto.WorkflowInstanceStartReq) (*Wo
 	currentID := user.GetUserId(c)
 	currentName := user.GetUserName(c)
 
-	var module platformModels.ModuleRegistry
-	if err := e.Orm.Where("module_key = ? AND status = ?", req.ModuleKey, "2").First(&module).Error; err != nil {
-		return nil, errors.New("模块未注册或未启用")
+	if err := EnsureModuleEnabled(e.Orm, req.ModuleKey); err != nil {
+		return nil, err
 	}
 
 	var definition platformModels.WorkflowDefinition

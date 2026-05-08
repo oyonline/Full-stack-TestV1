@@ -60,9 +60,8 @@ func (e *Attachment) Upload(c *gin.Context, req *dto.AttachmentUploadReq, fileHe
 	}
 	req.Normalize()
 
-	var module platformModels.ModuleRegistry
-	if err := e.Orm.Where("module_key = ? AND status = ?", req.ModuleKey, "2").First(&module).Error; err != nil {
-		return nil, errors.New("模块未注册或未启用")
+	if err := EnsureModuleEnabled(e.Orm, req.ModuleKey); err != nil {
+		return nil, err
 	}
 
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
