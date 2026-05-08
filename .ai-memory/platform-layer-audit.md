@@ -67,7 +67,7 @@
 - 菜单按主角色生效
 - 按钮权限按多角色并集生效
 - 接口权限当前代码按主角色 key 做 Casbin 校验
-- 数据权限当前关闭
+- 数据权限 phase2 已接入：业务模块按需在路由挂 `actions.PermissionAction()` + service 调 `actions.Permission(table, p)`；平台底座（attachment / module_registry / workflow / sys_user / sys_api / sysjob）保持豁免（C7-3.5 已清理 half-wired 残留）。详见 `.ai-memory/audits/data-permission-routing.md`。
 
 关键位置：
 

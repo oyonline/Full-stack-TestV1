@@ -216,6 +216,47 @@
   - `admin` 接口可直接绕过 Casbin
   - 非 admin 角色则依赖角色编辑/角色创建流程去写 `sys_role_menu` 和 `sys_casbin_rule`
 
+### 1.6.1 数据权限（dataScope）规约
+
+> phase2 已接入并通过端到端验收（C7-1 ~ C7-5）。详细参考：
+> - 接入手册：`.ai-memory/procedural/data-permission-wiring.md`
+> - 路由策略：`.ai-memory/audits/data-permission-routing.md`
+> - C7-6 进一步细化时，本节按代码行为同步更新。
+
+**三件套必须同时齐备，缺一即失效：**
+
+1. 全局开关 `config.ApplicationConfig.EnableDP`：关掉则 `actions.Permission` 短路放行（过渡期保护，phase2 默认开启）。
+2. 路由层中间件 `actions.PermissionAction()`：业务路由组级挂载，从 JWT 用户查 `data_scope/dept_id/role_id` 写入 `c.Set(PermissionKey, *DataPermission)`。**只注入上下文，不过滤数据。**
+3. service 层 GORM scope `actions.Permission(tableName, p)`：service 函数签名接收 `*actions.DataPermission`（**不接 `*gin.Context`**，保持 service 不依赖 gin），在查询链路上调 `Scopes(actions.Permission(table, p))` 真正按 `create_by` 拼接 `WHERE`。
+
+**dataScope 取值与 SQL：**
+
+| 值 | 含义 | SQL 片段 |
+|----|------|---------|
+| `"1"` 或空 | 全部 | 不加过滤 |
+| `"2"` | 自定义（按角色绑定的部门集合） | `create_by IN (sys_role_dept ⋈ sys_user where role_id=?)` |
+| `"3"` | 本部门 | `create_by IN (SELECT user_id FROM sys_user WHERE dept_id=?)` |
+| `"4"` | 本部门及以下 | `create_by IN (SELECT user_id FROM sys_user WHERE dept_id IN (SELECT dept_id FROM sys_dept WHERE dept_path LIKE '%/${dept}/%'))` |
+| `"5"` | 仅本人 | `create_by = ?` |
+
+**接入边界：**
+
+- **业务模块**（announcement / 后续 C4 业务）：必须接入，路由挂中间件 + service 调 scope。业务模型主表必须嵌入 `common/models.ControlBy` 提供 `create_by`。
+- **平台底座**（attachment / module_registry / workflow / sys_user / sys_api / sysjob）：豁免，**不挂中间件，service 也不调 scope**。C7-3.5 已清理"中间件挂了但 service 没 wire"或"service 调了但中间件没挂"的 half-wired 残留。
+- **业务自带可见性**（如 `announcement_scope` 部门可见性）与 dataScope 是**正交叠加 AND**，不是子集替代。
+
+**写操作约束：**
+
+- `Get / Update / MarkRead`：在主表读出实体时同样套 `Scopes(actions.Permission(...))`，scope 外返回"不存在"，避免越权读 / 越权改。
+- `Remove`：先按 scope 过滤 `Ids` 拿到 allowed 子集，再级联删，否则 dataScope=5 用户传一组 ID 会把别人的也带删（announcement 的实现已防住，C4 模块照搬）。
+
+**测试规范：**
+
+- 5 路 dataScope（`"1"` ~ `"5"`）必须各一个 case，断言返回行集合（参考 `announcement_data_scope_test.go`）。
+- 必加 `EnableDP=false` 短路用例（参考 `announcement_permission_test.go`）。
+- 必加跨用户越权用例覆盖 `Get / Update / Remove / MarkRead`。
+- 业务自带可见性 × dataScope 的正交叠加用例。
+
 ### 1.7 migration、seed、手工数据修复的边界
 
 - 当前正式迁移入口是 `go-admin migrate -c ...`。

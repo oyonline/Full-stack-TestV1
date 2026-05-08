@@ -328,3 +328,59 @@ C7-3 在落地业务模块前，应顺便修正下面这些"中间件挂了但 s
 4. 清理 sys_user / sys_api / sysjob / module_registry / workflow 的"半接入"中间件（参考 7.1）
 5. 全量回归（参考 C7-5 my-52n）
 6. 切 `EnableDP=true`（参考 C7-7 my-8e2）
+
+---
+
+## 10. 端到端验证结果（C7-5 my-52n）
+
+> 验收日期：2026-05-08
+> 验收脚本：`go-admin/app/admin/service/announcement_data_scope_test.go`
+> 拓扑：A 公司（dept 1） → 销售部（2）/ 技术部（3）/ 财务部（4），销售部 → 销售一组（21）/ 销售二组（22）
+
+### 10.1 测试拓扑
+
+| 用户 | dept | role | data_scope | 角色绑定部门（仅 scope=2 用） |
+|------|------|------|-----------|-----------------------------|
+| admin (uid=1) | 1 A 公司 | 1 | "1" | — |
+| sales_lead (uid=2) | 2 销售部 | 2 | "4" | — |
+| sales_member (uid=3) | 21 销售一组 | 3 | "5" | — |
+| finance_member (uid=4) | 4 财务部 | 4 | "3" | — |
+| cross_dept (uid=5) | 3 技术部 | 5 | "2" | dept 3, dept 4 |
+
+公告样本（每条 create_by 一一对应上述用户）：
+- 全员公告（admin 发）
+- 销售部公告（sales_lead 发）
+- 个人公告（sales_member 发）
+- 财务公告（finance_member 发）
+
+### 10.2 5 路 dataScope 实测结果
+
+| 用户 | scope | 期望可见 | 实测 |
+|------|-------|---------|------|
+| admin | 1 全部 | 4 条全部 | ✅ 4 条（全员/销售部/个人/财务） |
+| cross_dept | 2 自定义（角色绑定 dept 3+4） | "财务公告"（user 4 ∈ dept 4 ∈ 角色绑定集；user 5 ∈ dept 3 ∈ 角色绑定集，但未发公告） | ✅ 仅"财务公告" |
+| finance_member | 3 本部门（dept 4） | "财务公告"（dept 4 内仅 user 4） | ✅ 仅"财务公告" |
+| sales_lead | 4 本部门及以下（dept_path LIKE '%/2/%' = dept 2/21/22） | "销售部公告" + "个人公告"（user 2 ∈ dept 2，user 3 ∈ dept 21） | ✅ 2 条 |
+| sales_member | 5 仅本人（user 3） | "个人公告" | ✅ 仅"个人公告" |
+
+### 10.3 测试形式
+
+- 测试函数：`TestDataScope_All / Custom / Dept / DeptAndBelow / Self`
+- 每个 case 重新走 `seedDataScopeFixture` 建独立 `:memory:` SQLite，幂等可重跑
+- 通过 `Announcement.GetPage` 真实 SQL 路径，断言返回标题集合
+- `EnableDP=true` 显式打开（`config.ApplicationConfig.EnableDP`），`cleanup` 还原
+- 角色绑定部门走 `sys_role_dept` 表手动建（GORM many2many 关联表无独立 model）
+
+补充覆盖（已在 `announcement_permission_test.go`）：
+- `EnableDP=false` 短路放行（C7-1 ~ C7-7 过渡期保护）
+- `Get / Update / Remove / MarkRead` 跨用户越权阻断
+- `OnlyVisible`（`announcement_scope` 部门可见性）× dataScope 正交叠加 AND
+
+### 10.4 结论
+
+phase2 数据权限的代码路径与配置语义已端到端打通：
+
+1. `actions.PermissionAction()` 中间件 → `actions.GetPermissionFromContext` → service 接收 `*DataPermission` → `Scopes(actions.Permission(...))` 拼接 SQL，5 路 dataScope 全部按预期生效。
+2. announcement 作为首个业务样板（C7-3）已可作为 C4 业务模块（kingdee_customer 等）接入参考。
+3. `EnableDP` 全局开关在 phase2 期间提供过渡期短路保护（C7-1 ~ C7-7）。
+4. 公告业务自带的部门可见性（`announcement_scope`）与 dataScope 是**正交叠加 AND**，不是子集替代。

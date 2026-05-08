@@ -14,7 +14,7 @@
 - 按钮权限按所有角色并集生效。
 - 接口权限当前按主角色 key 走 Casbin 校验，不是按多角色并集校验。
 - 本期不做运行时角色切换。
-- 数据权限继续关闭，不纳入当前模型。
+- 数据权限已在 phase2 接入并打开：`EnableDP` 默认开启；service 层按 `actions.Permission(table, p)` 落地，5 路 dataScope 已端到端验收（详见 `.ai-memory/audits/data-permission-routing.md` 第 10 节）。语义按主角色 `data_scope` 生效，不与多角色按钮权限并集语义混用。
 
 ## 菜单与路由
 

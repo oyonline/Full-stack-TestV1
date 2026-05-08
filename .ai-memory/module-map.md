@@ -61,7 +61,7 @@
 - 菜单按主角色生效
 - 按钮权限按并集生效
 - 接口权限当前按主角色 key 走 Casbin 校验
-- 数据权限本期关闭
+- 数据权限按 phase2 接入：`config.ApplicationConfig.EnableDP` 开关 + `actions.PermissionAction` 中间件（路由组挂载）+ `actions.Permission(table, p)` GORM scope（service 调用）三件套；5 路 dataScope 端到端验证见 `.ai-memory/audits/data-permission-routing.md` 第 10 节。announcement 是首个业务样板（C7-3），其余 C4 业务模块按 `.ai-memory/procedural/data-permission-wiring.md` 接入。
 
 ## 后台标准页
 
