@@ -1,4 +1,14 @@
 <script lang="ts" setup>
+import type { TreeProps } from 'ant-design-vue';
+
+import type { DeptLabel } from '#/api/core/dept';
+import type {
+  CreateRoleData,
+  MenuLabel,
+  SysRoleItem,
+  UpdateRoleData,
+} from '#/api/core/role';
+
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import {
   onBeforeRouteLeave,
@@ -8,47 +18,42 @@ import {
 } from 'vue-router';
 
 import { Fallback } from '@vben/common-ui';
+
 import {
   Alert,
   Button,
   Card,
   Input,
   InputNumber,
+  message,
   Select,
   Tag,
+  Tooltip,
   Tree,
-  message,
 } from 'ant-design-vue';
-import type { TreeProps } from 'ant-design-vue';
 
 import {
   createRole,
-  getRoleDetail,
   getRoleDeptTreeselect,
+  getRoleDetail,
   getRoleMenuTreeselect,
   getRolePage,
   updateRole,
   updateRoleDataScope,
 } from '#/api/core/role';
-import type {
-  CreateRoleData,
-  MenuLabel,
-  SysRoleItem,
-  UpdateRoleData,
-} from '#/api/core/role';
-import type { DeptLabel } from '#/api/core/dept';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
 import { useAdminPermission } from '#/composables/use-admin-permission';
 import { resolveAdminErrorMessage } from '#/utils/admin-crud';
+
 import {
   CUSTOM_ROLE_DATA_SCOPE,
   DEFAULT_ROLE_DATA_SCOPE,
-  ROLE_DATA_SCOPE_OPTIONS,
   normalizeRoleDataScope,
+  ROLE_DATA_SCOPE_OPTIONS,
 } from './shared';
 
-type TreeKey = string | number;
+type TreeKey = number | string;
 type TreeNode = NonNullable<TreeProps['treeData']>[number];
 
 const route = useRoute();
@@ -58,7 +63,9 @@ const createPermission = useAdminPermission({ codes: 'admin:sysRole:add' });
 const editPermission = useAdminPermission({ codes: 'admin:sysRole:update' });
 
 const isCreateMode = computed(() => route.name === 'SysRoleCreate');
-const pageTitle = computed(() => (isCreateMode.value ? '新增角色' : '编辑角色'));
+const pageTitle = computed(() =>
+  isCreateMode.value ? '新增角色' : '编辑角色',
+);
 const hasPagePermission = computed(() =>
   isCreateMode.value
     ? createPermission.hasPermission.value
@@ -146,7 +153,7 @@ function collectRootKeys(nodes: TreeNode[]): TreeKey[] {
 }
 
 function normalizeKeys(keys: TreeKey[]) {
-  return [...new Set(keys.map((key) => Number(key)).filter(Number.isFinite))].sort(
+  return [...new Set(keys.map(Number).filter(Number.isFinite))].sort(
     (left, right) => left - right,
   );
 }
@@ -205,17 +212,27 @@ const isCustomDataScope = computed(
 );
 
 const selectedMenuCount = computed(
-  () => normalizeKeys([...menuCheckedKeys.value, ...menuHalfCheckedKeys.value]).length,
+  () =>
+    normalizeKeys([...menuCheckedKeys.value, ...menuHalfCheckedKeys.value])
+      .length,
 );
 const selectedDeptCount = computed(
-  () => normalizeKeys([...deptCheckedKeys.value, ...deptHalfCheckedKeys.value]).length,
+  () =>
+    normalizeKeys([...deptCheckedKeys.value, ...deptHalfCheckedKeys.value])
+      .length,
 );
 
 const snapshot = computed(() =>
   JSON.stringify({
     dataScope: normalizeRoleDataScope(form.dataScope),
-    deptIds: normalizeKeys([...deptCheckedKeys.value, ...deptHalfCheckedKeys.value]),
-    menuIds: normalizeKeys([...menuCheckedKeys.value, ...menuHalfCheckedKeys.value]),
+    deptIds: normalizeKeys([
+      ...deptCheckedKeys.value,
+      ...deptHalfCheckedKeys.value,
+    ]),
+    menuIds: normalizeKeys([
+      ...menuCheckedKeys.value,
+      ...menuHalfCheckedKeys.value,
+    ]),
     remark: form.remark.trim(),
     roleKey: form.roleKey.trim(),
     roleName: form.roleName.trim(),
@@ -358,7 +375,10 @@ async function saveWorkspace() {
   const dataScope = normalizeRoleDataScope(form.dataScope);
   const payload: CreateRoleData & UpdateRoleData = {
     dataScope,
-    menuIds: normalizeKeys([...menuCheckedKeys.value, ...menuHalfCheckedKeys.value]),
+    menuIds: normalizeKeys([
+      ...menuCheckedKeys.value,
+      ...menuHalfCheckedKeys.value,
+    ]),
     remark: form.remark.trim() || undefined,
     roleKey: form.roleKey.trim(),
     roleName: form.roleName.trim(),
@@ -371,7 +391,10 @@ async function saveWorkspace() {
       const created = await createRole(payload);
       let targetRoleId = Number(created ?? 0);
       if (!targetRoleId) {
-        targetRoleId = await resolveCreatedRoleId(payload.roleKey, payload.roleName);
+        targetRoleId = await resolveCreatedRoleId(
+          payload.roleKey,
+          payload.roleName,
+        );
       }
       if (!targetRoleId) {
         throw new Error('角色已创建，但未能定位新角色 ID');
@@ -610,8 +633,23 @@ onBeforeRouteUpdate(() => {
             <Select
               v-model:value="form.dataScope"
               :options="ROLE_DATA_SCOPE_OPTIONS"
+              option-label-prop="label"
               placeholder="请选择数据范围"
-            />
+              :dropdown-match-select-width="360"
+            >
+              <template #option="{ label, description }">
+                <Tooltip placement="right" :title="description">
+                  <div class="flex flex-col py-1">
+                    <span class="text-sm font-medium text-slate-800">
+                      {{ label }}
+                    </span>
+                    <span class="text-xs/snug whitespace-normal text-slate-500">
+                      {{ description }}
+                    </span>
+                  </div>
+                </Tooltip>
+              </template>
+            </Select>
           </AdminFilterField>
           <div class="space-y-2 md:col-span-2 xl:col-span-3">
             <label class="block text-sm font-medium text-slate-700">备注</label>
@@ -622,21 +660,34 @@ onBeforeRouteUpdate(() => {
             />
           </div>
         </div>
+
+        <Alert
+          class="mt-4"
+          show-icon
+          type="info"
+          message="数据范围控制业务列表的可见行（如客户、订单、公告等）。不影响系统管理类功能（如用户、角色、菜单）。"
+        />
       </Card>
 
-      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
+      <div
+        class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]"
+      >
         <Card :bordered="false" class="app-radius-panel shadow-sm">
           <template #title>
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
                 <span>菜单权限</span>
                 <Tag color="processing">已选 {{ selectedMenuCount }}</Tag>
-                <Tag color="default">总计 {{ collectAllKeys(rawMenuTree).length }}</Tag>
+                <Tag color="default">
+                  总计 {{ collectAllKeys(rawMenuTree).length }}
+                </Tag>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <Button size="small" @click="expandAllMenus">展开全部</Button>
                 <Button size="small" @click="collapseAllMenus">收起全部</Button>
-                <Button size="small" @click="clearMenuSelection">清空选择</Button>
+                <Button size="small" @click="clearMenuSelection">
+                  清空选择
+                </Button>
               </div>
             </div>
           </template>
@@ -652,10 +703,12 @@ onBeforeRouteUpdate(() => {
               class="app-radius-box h-[620px] overflow-auto border border-slate-200 bg-slate-50 p-3"
             >
               <Tree
-                v-if="filteredMenuTree.nodes.length"
+                v-if="filteredMenuTree.nodes.length > 0"
                 block-node
                 checkable
-                :auto-expand-parent="menuKeyword.trim() ? true : menuAutoExpandParent"
+                :auto-expand-parent="
+                  menuKeyword.trim() ? true : menuAutoExpandParent
+                "
                 :checked-keys="menuCheckedKeys"
                 :expanded-keys="visibleMenuExpandedKeys"
                 :tree-data="filteredMenuTree.nodes"
@@ -681,13 +734,19 @@ onBeforeRouteUpdate(() => {
               <div class="flex items-center gap-2">
                 <span>数据权限（部门）</span>
                 <Tag :color="isCustomDataScope ? 'processing' : 'default'">
-                  {{ isCustomDataScope ? `已选 ${selectedDeptCount}` : '按数据范围控制' }}
+                  {{
+                    isCustomDataScope
+                      ? `已选 ${selectedDeptCount}`
+                      : '按数据范围控制'
+                  }}
                 </Tag>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <Button size="small" @click="expandAllDepts">展开全部</Button>
                 <Button size="small" @click="collapseAllDepts">收起全部</Button>
-                <Button size="small" @click="clearDeptSelection">清空选择</Button>
+                <Button size="small" @click="clearDeptSelection">
+                  清空选择
+                </Button>
               </div>
             </div>
           </template>
@@ -697,7 +756,7 @@ onBeforeRouteUpdate(() => {
               v-if="!isCustomDataScope"
               show-icon
               type="info"
-              :message="'当前数据范围不是“自定义数据权限”，部门树仅展示结构，不参与保存。'"
+              message="当前数据范围不是“自定义数据权限”，部门树仅展示结构，不参与保存。"
             />
 
             <div
@@ -705,7 +764,7 @@ onBeforeRouteUpdate(() => {
               :class="{ 'pointer-events-none opacity-60': !isCustomDataScope }"
             >
               <Tree
-                v-if="rawDeptTree.length"
+                v-if="rawDeptTree.length > 0"
                 block-node
                 checkable
                 :auto-expand-parent="deptAutoExpandParent"
