@@ -10,6 +10,7 @@ import (
 
 	"go-admin/app/admin/service"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/actions"
 	"go-admin/common/middleware"
 )
 
@@ -37,7 +38,8 @@ func (e Announcement) GetPage(c *gin.Context) {
 	}
 	list := make([]dto.AnnouncementListItem, 0)
 	var count int64
-	if err := s.GetPage(&req, &list, &count, user.GetUserId(c)); err != nil {
+	p := actions.GetPermissionFromContext(c)
+	if err := s.GetPage(&req, p, &list, &count, user.GetUserId(c)); err != nil {
 		e.Error(500, err, "查询失败")
 		return
 	}
@@ -60,7 +62,8 @@ func (e Announcement) Get(c *gin.Context) {
 		return
 	}
 	var item dto.AnnouncementListItem
-	if err := s.Get(&req, &item, user.GetUserId(c)); err != nil {
+	p := actions.GetPermissionFromContext(c)
+	if err := s.Get(&req, p, &item, user.GetUserId(c)); err != nil {
 		e.Error(500, err, fmt.Sprintf("公告获取失败：%s", err.Error()))
 		return
 	}
@@ -125,7 +128,8 @@ func (e Announcement) Update(c *gin.Context) {
 		return
 	}
 	req.SetUpdateBy(user.GetUserId(c))
-	if err := s.Update(&req); err != nil {
+	p := actions.GetPermissionFromContext(c)
+	if err := s.Update(&req, p); err != nil {
 		e.Error(500, err, fmt.Sprintf("公告更新失败：%s", err.Error()))
 		return
 	}
@@ -164,7 +168,8 @@ func (e Announcement) Delete(c *gin.Context) {
 		return
 	}
 	req.SetUpdateBy(user.GetUserId(c))
-	if err := s.Remove(&req); err != nil {
+	p := actions.GetPermissionFromContext(c)
+	if err := s.Remove(&req, p); err != nil {
 		e.Error(500, err, fmt.Sprintf("公告删除失败：%s", err.Error()))
 		return
 	}
@@ -200,7 +205,8 @@ func (e Announcement) MarkRead(c *gin.Context) {
 		e.Error(401, nil, "未登录")
 		return
 	}
-	if err := s.MarkRead(req.AnnouncementId, uid); err != nil {
+	p := actions.GetPermissionFromContext(c)
+	if err := s.MarkRead(req.AnnouncementId, uid, p); err != nil {
 		e.Error(500, err, fmt.Sprintf("标记已读失败：%s", err.Error()))
 		return
 	}

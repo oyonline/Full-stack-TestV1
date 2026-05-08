@@ -14,8 +14,8 @@ type AnnouncementPageReq struct {
 	Title          string `form:"title" search:"type:contains;column:title;table:announcement" comment:"标题"`
 	Status         int    `form:"status" search:"type:exact;column:status;table:announcement" comment:"状态"`
 	IsTop          int    `form:"isTop" search:"type:exact;column:is_top;table:announcement" comment:"是否置顶"`
-	OnlyValid      int    `form:"onlyValid" comment:"是否仅返回当前生效的（按 publish_at/expire_at 过滤）"`
-	OnlyVisible    int    `form:"onlyVisible" comment:"是否仅返回当前用户可见的（按部门 scope 过滤）"`
+	OnlyValid      int    `form:"onlyValid" search:"-" comment:"是否仅返回当前生效的（按 publish_at/expire_at 过滤）"`
+	OnlyVisible    int    `form:"onlyVisible" search:"-" comment:"是否仅返回当前用户可见的（按部门 scope 过滤）"`
 }
 
 func (m *AnnouncementPageReq) GetNeedSearch() interface{} {

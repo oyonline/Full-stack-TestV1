@@ -10,6 +10,7 @@ import (
 
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/actions"
 	cDto "go-admin/common/dto"
 )
 
@@ -40,10 +41,23 @@ func SanitizeContent(html string) string {
 }
 
 // GetPage 列表查询。支持按部门可见性过滤、按生效时间过滤、补 is_read 与 read_count。
-func (e *Announcement) GetPage(c *dto.AnnouncementPageReq, list *[]dto.AnnouncementListItem, count *int64, currentUserId int) error {
+//
+// 数据权限说明：
+//   - data_scope=1（全部）：admin/默认角色看全部公告（与本接口接入前行为一致）。
+//   - data_scope=3/4（本部门 / 本部门及以下）：仅看 create_by 在对应部门的公告。
+//   - data_scope=5（仅本人）：仅看自己 create 的公告。
+//   - OnlyVisible（按部门可见性，由 announcement_scope 表驱动）与 dataScope 正交，
+//     都满足时一条记录才会出现在结果中。
+//
+// p 由 router 上的 actions.PermissionAction 中间件注入，apis 层用
+// actions.GetPermissionFromContext(c) 取出后传入；为 nil 时按"全部"放行。
+func (e *Announcement) GetPage(c *dto.AnnouncementPageReq, p *actions.DataPermission, list *[]dto.AnnouncementListItem, count *int64, currentUserId int) error {
 	var data models.Announcement
 	q := e.Orm.Model(&data).
-		Scopes(cDto.MakeCondition(c.GetNeedSearch()))
+		Scopes(
+			cDto.MakeCondition(c.GetNeedSearch()),
+			actions.Permission(data.TableName(), p),
+		)
 
 	if c.OnlyValid == 1 {
 		now := time.Now()
@@ -170,9 +184,14 @@ func (e *Announcement) GetPage(c *dto.AnnouncementPageReq, list *[]dto.Announcem
 }
 
 // Get 详情查询，含 scope 与 read 派生字段。
-func (e *Announcement) Get(c *dto.AnnouncementGetReq, item *dto.AnnouncementListItem, currentUserId int) error {
+//
+// 数据权限：详情读也走 actions.Permission，防止 data_scope=5 的用户直接拿 ID
+// 越权读他人公告（"找不到"对越权请求与"真没有"返回一致）。
+func (e *Announcement) Get(c *dto.AnnouncementGetReq, p *actions.DataPermission, item *dto.AnnouncementListItem, currentUserId int) error {
 	var ann models.Announcement
-	if err := e.Orm.First(&ann, c.GetId()).Error; err != nil {
+	if err := e.Orm.Model(&models.Announcement{}).
+		Scopes(actions.Permission((&models.Announcement{}).TableName(), p)).
+		First(&ann, c.GetId()).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("公告不存在或已删除")
 		}
@@ -261,12 +280,17 @@ func (e *Announcement) Insert(c *dto.AnnouncementInsertReq) (int64, error) {
 }
 
 // Update 修改公告并重建 scope。
-func (e *Announcement) Update(c *dto.AnnouncementUpdateReq) error {
+//
+// 数据权限：更新前的"找到这条记录"走 actions.Permission，防止 data_scope=5 的
+// 用户直接 PUT 越权改他人公告（命中 scope 外则视为不存在）。
+func (e *Announcement) Update(c *dto.AnnouncementUpdateReq, p *actions.DataPermission) error {
 	c.Content = SanitizeContent(c.Content)
 
 	return e.Orm.Transaction(func(tx *gorm.DB) error {
 		var existing models.Announcement
-		if err := tx.First(&existing, c.AnnouncementId).Error; err != nil {
+		if err := tx.Model(&models.Announcement{}).
+			Scopes(actions.Permission((&models.Announcement{}).TableName(), p)).
+			First(&existing, c.AnnouncementId).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return errors.New("公告不存在或已删除")
 			}
@@ -311,21 +335,36 @@ func (e *Announcement) Update(c *dto.AnnouncementUpdateReq) error {
 }
 
 // Remove 批量删除公告，级联清理 scope 与 read_log。
-func (e *Announcement) Remove(c *dto.AnnouncementDeleteReq) error {
+//
+// 数据权限：先按 actions.Permission 过滤 c.Ids 得到当前用户实际可删除的子集，
+// 再级联删除。这样避免 data_scope=5 的用户传一组 ID 把别人的公告也带删掉。
+// 若过滤后子集为空，返回"没有可删除的公告"语义错误。
+func (e *Announcement) Remove(c *dto.AnnouncementDeleteReq, p *actions.DataPermission) error {
 	if len(c.Ids) == 0 {
 		return errors.New("ids 不能为空")
 	}
+	tableName := (&models.Announcement{}).TableName()
+	var allowed []int64
+	if err := e.Orm.Model(&models.Announcement{}).
+		Scopes(actions.Permission(tableName, p)).
+		Where(tableName+".announcement_id IN ?", c.Ids).
+		Pluck(tableName+".announcement_id", &allowed).Error; err != nil {
+		return err
+	}
+	if len(allowed) == 0 {
+		return errors.New("公告不存在或无权删除")
+	}
 	return e.Orm.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("announcement_id IN ?", c.Ids).
+		if err := tx.Where("announcement_id IN ?", allowed).
 			Delete(&models.AnnouncementScope{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Where("announcement_id IN ?", c.Ids).
+		if err := tx.Where("announcement_id IN ?", allowed).
 			Delete(&models.AnnouncementReadLog{}).Error; err != nil {
 			return err
 		}
 		var data models.Announcement
-		if err := tx.Delete(&data, c.Ids).Error; err != nil {
+		if err := tx.Delete(&data, allowed).Error; err != nil {
 			return err
 		}
 		return nil
@@ -333,13 +372,17 @@ func (e *Announcement) Remove(c *dto.AnnouncementDeleteReq) error {
 }
 
 // MarkRead 幂等记录已读：首次写入读时间，重复调用不报错。
-func (e *Announcement) MarkRead(announcementId int64, userId int) error {
+//
+// 数据权限：标记前的"公告存在"校验也走 scope。data_scope=5 的用户标记 scope 外
+// 公告时返回"公告不存在"，与读侧一致。
+func (e *Announcement) MarkRead(announcementId int64, userId int, p *actions.DataPermission) error {
 	if announcementId <= 0 || userId <= 0 {
 		return errors.New("invalid params")
 	}
-	// 确认公告存在（避免任意 ID 注入读日志）
+	// 确认公告存在且在当前用户的 scope 内（避免任意 ID 注入读日志）
 	var cnt int64
 	if err := e.Orm.Model(&models.Announcement{}).
+		Scopes(actions.Permission((&models.Announcement{}).TableName(), p)).
 		Where("announcement_id = ?", announcementId).
 		Count(&cnt).Error; err != nil {
 		return err

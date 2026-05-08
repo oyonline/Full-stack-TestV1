@@ -26,6 +26,8 @@
   记录“平台底座层 / 平台能力层”的现状、边界问题和业务模块接入前建议。
 - [platform-capability-phase1.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/platform-capability-phase1.md)
   记录平台能力层第一期的最小闭环、P0 范围和正式实施顺序。
+- [procedural/data-permission-wiring.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/procedural/data-permission-wiring.md)
+  数据权限（dataScope）业务模块接入手册，C7-3 announcement 落地后给 C4 业务模块参考。
 
 ## 当前交接
 
