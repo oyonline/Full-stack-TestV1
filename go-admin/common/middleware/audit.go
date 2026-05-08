@@ -36,6 +36,10 @@ const (
 	AuditCategoryModule         = audit.CategoryModule
 	AuditCategoryAnnouncement   = audit.CategoryAnnouncement
 	AuditCategoryAttachment     = audit.CategoryAttachment
+	AuditCategorySpu            = audit.CategorySpu
+	AuditCategorySku            = audit.CategorySku
+	AuditCategorySkuCategory    = audit.CategorySkuCategory
+	AuditCategorySkuBrand       = audit.CategorySkuBrand
 )
 
 const (

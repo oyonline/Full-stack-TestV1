@@ -49,6 +49,10 @@ const (
 	CategoryModule         = "module"
 	CategoryAnnouncement   = "announcement"
 	CategoryAttachment     = "attachment"
+	CategorySpu            = "spu"
+	CategorySku            = "sku"
+	CategorySkuCategory    = "sku-category"
+	CategorySkuBrand       = "sku-brand"
 )
 
 const (
