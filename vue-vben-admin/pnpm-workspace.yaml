@@ -70,7 +70,7 @@ catalog:
   ant-design-vue: ^4.2.6
   antdv-next: ^1.1.0
   archiver: ^7.0.1
-  axios: ^1.13.6
+  axios: ^1.15.2
   axios-mock-adapter: ^2.1.0
   cac: ^7.0.0
   chalk: ^5.6.2
@@ -166,7 +166,7 @@ catalog:
   unbuild: ^3.6.1
   unplugin-element-plus: ^0.11.2
   vee-validate: ^4.15.1
-  vite: ^7.3.1
+  vite: ^7.3.2
   vite-plugin-compression: ^0.5.1
   vite-plugin-dts: ^4.5.4
   vite-plugin-html: ^3.2.2
