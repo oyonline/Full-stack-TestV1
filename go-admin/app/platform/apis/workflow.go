@@ -316,6 +316,26 @@ func (e Workflow) GetInstance(c *gin.Context) {
 	e.OK(detail, "查询成功")
 }
 
+func (e Workflow) GetInstanceActions(c *gin.Context) {
+	s := service.Workflow{}
+	req := dto.WorkflowInstanceGetReq{}
+	err := e.MakeContext(c).
+		MakeOrm().
+		Bind(&req, nil).
+		MakeService(&s.Service).
+		Errors
+	if err != nil {
+		e.Error(500, err, err.Error())
+		return
+	}
+	list, err := s.GetInstanceActions(req.Id)
+	if err != nil {
+		e.Error(500, err, "查询失败")
+		return
+	}
+	e.OK(map[string]interface{}{"list": list}, "查询成功")
+}
+
 func (e Workflow) ApproveTask(c *gin.Context) {
 	s := service.Workflow{}
 	req := dto.WorkflowTaskActionReq{}

@@ -26,6 +26,7 @@ func registerWorkflowRouter(v1 *gin.RouterGroup, authMiddleware *jwt.GinJWTMiddl
 		r.POST("/instances/start", api.StartInstance)
 		r.GET("/instances/started", api.GetStartedInstancePage)
 		r.GET("/instances/:id", api.GetInstance)
+		r.GET("/instances/:id/actions", api.GetInstanceActions)
 		r.POST("/instances/:id/withdraw", api.WithdrawInstance)
 
 		r.GET("/tasks/todo", api.GetTodoTaskPage)

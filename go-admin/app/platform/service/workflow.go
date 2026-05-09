@@ -61,6 +61,18 @@ type WorkflowTodoTaskItem struct {
 	FinishedAt      *time.Time `json:"finishedAt"`
 }
 
+type WorkflowActionLogItem struct {
+	ActionId     int       `json:"actionId"`
+	InstanceId   int       `json:"instanceId"`
+	NodeKey      string    `json:"nodeKey"`
+	Action       string    `json:"action"`
+	OperatorId   int       `json:"operatorId"`
+	OperatorName string    `json:"operatorName"`
+	OperatorRole string    `json:"operatorRole"`
+	Comment      string    `json:"comment"`
+	OperatedAt   time.Time `json:"operatedAt"`
+}
+
 type WorkflowStartedInstanceItem struct {
 	InstanceId       int        `json:"instanceId"`
 	DefinitionId     int        `json:"definitionId"`
@@ -611,6 +623,27 @@ func (e *Workflow) GetInstanceDetail(instanceID int) (*WorkflowInstanceDetail, e
 		Actions:  actions,
 		Nodes:    nodes,
 	}, nil
+}
+
+func (e *Workflow) GetInstanceActions(instanceID int) ([]WorkflowActionLogItem, error) {
+	list := make([]WorkflowActionLogItem, 0)
+	err := e.Orm.Table("wf_action_log AS l").
+		Select([]string{
+			"l.log_id AS action_id",
+			"l.instance_id",
+			"COALESCE(NULLIF(l.from_node_key, ''), l.to_node_key) AS node_key",
+			"l.action",
+			"l.operator_id",
+			"l.operator_name",
+			"CASE WHEN t.assignee_type = 'role' THEN t.assignee_name ELSE '' END AS operator_role",
+			"l.comment",
+			"l.created_at AS operated_at",
+		}).
+		Joins("LEFT JOIN wf_task AS t ON t.task_id = l.task_id AND l.task_id > 0").
+		Where("l.instance_id = ?", instanceID).
+		Order("l.log_id ASC").
+		Scan(&list).Error
+	return list, err
 }
 
 func (e *Workflow) processTask(c *gin.Context, taskID int, action string, comment string) (*WorkflowInstanceDetail, error) {
