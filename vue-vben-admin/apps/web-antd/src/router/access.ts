@@ -69,13 +69,13 @@ const ICON_SHORT_KEY_MAP: Record<string, string> = {
   'system-tools': 'ant-design:tool-outlined', // 系统工具 -> 工具
   'dev-tools': 'ant-design:experiment-outlined', // 开发工具 -> 实验
   'time-range': 'ant-design:clock-circle-outlined', // 时间范围 -> 时钟
-  tree: 'ant-design:cluster-outlined', // 树形/部门树 -> 层级/树
+  tree: 'ant-design:apartment-outlined', // 树形层级（类目树/部门树）
 
-  // === 产品中心菜单图标 ===
-  shopping: 'ant-design:shop-outlined', // 产品中心根菜单
-  'shopping-cart': 'ant-design:shopping-cart-outlined', // SPU 管理
-  tag: 'ant-design:tag-outlined', // SKU 管理
-  star: 'ant-design:star-outlined', // 品牌管理
+  // === 产品中心菜单图标（UI设计师方案 A）===
+  shopping: 'ant-design:shopping-outlined', // 产品中心根菜单
+  'shopping-cart': 'ant-design:appstore-outlined', // SPU = 商品库
+  tag: 'ant-design:barcode-outlined', // SKU = 单品条码
+  star: 'ant-design:trademark-outlined', // 品牌管理
 
   // === 服务监控 & 接口管理（后端实际返回的 key） ===
   druid: 'ant-design:monitor-outlined', // 服务监控
