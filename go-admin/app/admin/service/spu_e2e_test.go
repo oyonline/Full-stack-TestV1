@@ -705,9 +705,10 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 		t.Fatalf("Insert SPU: %v", err)
 	}
 
-	// 提交审核
+	// 提交审核（dataScope 已开启，需传 DataPermission；nil 会在 Permission() 里触发 panic）
 	operatorCtx := makeRoleAuthCtx(operator.UserId, operator.NickName, []int{opRole.RoleId})
-	instanceID, err := s.SubmitForReview(operatorCtx, nil, &dto.SpuSubmitReq{SpuId: spuId, Remark: "fresh install e2e"})
+	dpOp := &actions.DataPermission{DataScope: "5", UserId: operator.UserId, DeptId: operator.DeptId, RoleId: opRole.RoleId}
+	instanceID, err := s.SubmitForReview(operatorCtx, dpOp, &dto.SpuSubmitReq{SpuId: spuId, Remark: "fresh install e2e"})
 	if err != nil {
 		t.Fatalf("SubmitForReview: %v", err)
 	}
@@ -742,13 +743,13 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 		t.Fatalf("insert other SPU: %v", err)
 	}
 
-	dpOp := &actions.DataPermission{DataScope: "5", UserId: operator.UserId, DeptId: operator.DeptId, RoleId: opRole.RoleId}
+	dpOpList := &actions.DataPermission{DataScope: "5", UserId: operator.UserId, DeptId: operator.DeptId, RoleId: opRole.RoleId}
 	listOp := make([]dto.SpuListItem, 0)
 	var countOp int64
 	pageReq := &dto.SpuPageReq{}
 	pageReq.PageIndex = 1
 	pageReq.PageSize = 50
-	if err := s.GetPage(pageReq, dpOp, &listOp, &countOp); err != nil {
+	if err := s.GetPage(pageReq, dpOpList, &listOp, &countOp); err != nil {
 		t.Fatalf("GetPage for operator: %v", err)
 	}
 	if countOp != 1 || listOp[0].SpuCode != "FM-E2E-001" {
