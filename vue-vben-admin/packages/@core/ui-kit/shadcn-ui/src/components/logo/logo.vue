@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
+import { extractInitial, pickForegroundColor } from '@vben-core/shared/utils';
+
 interface Props {
   /**
    * @zh_CN 是否收起文本
@@ -23,7 +25,7 @@ interface Props {
    */
   logoSize?: number;
   /**
-   * @zh_CN 占位 Logo 底色
+   * @zh_CN 占位 Logo 底色(来自 sys_app_logo_placeholder_color)
    */
   placeholderBgColor?: string;
   /**
@@ -34,6 +36,10 @@ interface Props {
    * @zh_CN 暗色主题 Logo 图标 (可选，若不设置则使用 src)
    */
   srcDark?: string;
+  /**
+   * @zh_CN 系统名称，用于 fallback 首字提取
+   */
+  systemName?: string;
   /**
    * @zh_CN Logo 文本
    */
@@ -53,18 +59,16 @@ const props = withDefaults(defineProps<Props>(), {
   fallbackOnError: true,
   href: 'javascript:void 0',
   logoSize: 32,
-  placeholderBgColor: '#1d4ed8',
+  placeholderBgColor: '#1F2937',
   src: '',
   srcDark: '',
+  systemName: '',
   theme: 'light',
   fit: 'cover',
 });
 
 const imgFailed = ref(false);
 
-/**
- * @zh_CN 根据主题选择合适的 logo 图标
- */
 const logoSrc = computed(() => {
   if (props.theme === 'dark' && props.srcDark) {
     return props.srcDark;
@@ -76,20 +80,13 @@ const showFallback = computed(
   () => imgFailed.value && props.fallbackOnError,
 );
 
-const fallbackText = computed(() => {
-  const text = props.text.trim().replace(/\s+/g, '');
-  if (!text) {
-    return 'S';
-  }
+const fallbackInitial = computed(() =>
+  extractInitial(props.systemName || props.text),
+);
 
-  const asciiGroups = text.match(/[A-Za-z0-9]+/g);
-  const firstAsciiGroup = asciiGroups?.[0];
-  if (firstAsciiGroup?.[0]) {
-    return firstAsciiGroup[0].toUpperCase();
-  }
-
-  return text[0]?.toUpperCase() || 'S';
-});
+const fallbackFgColor = computed(() =>
+  pickForegroundColor(props.placeholderBgColor),
+);
 </script>
 
 <template>
@@ -117,10 +114,11 @@ const fallbackText = computed(() => {
           width: `${logoSize}px`,
           height: `${logoSize}px`,
           backgroundColor: placeholderBgColor,
+          color: fallbackFgColor,
         }"
-        class="flex items-center justify-center rounded-lg text-sm font-semibold text-white shadow-sm"
+        class="flex items-center justify-center rounded-lg text-sm font-semibold shadow-sm"
       >
-        {{ fallbackText }}
+        {{ fallbackInitial }}
       </div>
       <template v-if="!collapsed">
         <slot name="text">
