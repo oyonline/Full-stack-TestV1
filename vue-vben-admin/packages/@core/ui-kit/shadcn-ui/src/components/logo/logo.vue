@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-
-import { VbenAvatar } from '../avatar';
+import { computed, ref } from 'vue';
 
 interface Props {
   /**
    * @zh_CN 是否收起文本
    */
   collapsed?: boolean;
+  /**
+   * @zh_CN 图片加载失败时是否切换到 fallback 占位
+   */
+  fallbackOnError?: boolean;
   /**
    * @zh_CN Logo 图片适应方式
    */
@@ -48,6 +50,7 @@ defineOptions({
 
 const props = withDefaults(defineProps<Props>(), {
   collapsed: false,
+  fallbackOnError: true,
   href: 'javascript:void 0',
   logoSize: 32,
   placeholderBgColor: '#1d4ed8',
@@ -57,17 +60,21 @@ const props = withDefaults(defineProps<Props>(), {
   fit: 'cover',
 });
 
+const imgFailed = ref(false);
+
 /**
  * @zh_CN 根据主题选择合适的 logo 图标
  */
 const logoSrc = computed(() => {
-  // 如果是暗色主题且提供了 srcDark，则使用暗色主题的 logo
   if (props.theme === 'dark' && props.srcDark) {
     return props.srcDark;
   }
-  // 否则使用默认的 src
   return props.src;
 });
+
+const showFallback = computed(
+  () => imgFailed.value && props.fallbackOnError,
+);
 
 const fallbackText = computed(() => {
   const text = props.text.trim().replace(/\s+/g, '');
@@ -92,13 +99,17 @@ const fallbackText = computed(() => {
       :href="href"
       class="flex h-full items-center gap-2 overflow-hidden px-3 text-lg leading-normal transition-all duration-500"
     >
-      <VbenAvatar
-        v-if="logoSrc"
+      <img
+        v-if="logoSrc && !showFallback"
         :alt="text"
         :src="logoSrc"
-        :size="logoSize"
-        :fit="fit"
+        :style="{
+          width: `${logoSize}px`,
+          height: `${logoSize}px`,
+          objectFit: fit,
+        }"
         class="relative rounded-none bg-transparent"
+        @error="imgFailed = true"
       />
       <div
         v-else
