@@ -220,3 +220,27 @@ export async function withdrawWorkflowInstance(
     { comment: comment?.trim() || '' },
   );
 }
+
+export interface WorkflowInstanceAction {
+  actionId: number;
+  instanceId: number;
+  nodeKey: string;
+  action: 'approve' | 'reject' | 'start' | 'withdraw';
+  operatorId: number;
+  operatorName: string;
+  operatorRole: string;
+  comment: string;
+  operatedAt: string; // RFC3339
+}
+
+export interface WorkflowInstanceActionsResult {
+  list: WorkflowInstanceAction[];
+}
+
+export async function getWorkflowInstanceActions(
+  instanceId: number,
+): Promise<WorkflowInstanceActionsResult> {
+  return requestClient.get<WorkflowInstanceActionsResult>(
+    `/v1/platform/workflow/instances/${instanceId}/actions`,
+  );
+}

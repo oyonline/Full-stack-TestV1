@@ -8,6 +8,7 @@ import type {
   SkuItem,
   SpuItem,
   SpuPageResult,
+  WorkflowInstanceAction,
 } from '#/api/core';
 
 /**
@@ -17,6 +18,7 @@ import type {
 import { computed, h, onMounted, reactive, ref } from 'vue';
 
 import {
+  Alert,
   Button,
   Drawer,
   Input,
@@ -25,6 +27,7 @@ import {
   Modal,
   Select,
   Table,
+  Tabs,
   Tag,
   TreeSelect,
 } from 'ant-design-vue';
@@ -39,6 +42,7 @@ import {
   getSkuPage,
   getSpuDetail,
   getSpuPage,
+  getWorkflowInstanceActions,
   submitSpu,
   updateSku,
   updateSpu,
@@ -555,6 +559,58 @@ const detailLoading = ref(false);
 const detailItem = ref<null | SpuItem>(null);
 const detailImages = ref<string[]>([]);
 const detailSkus = ref<SkuItem[]>([]);
+const detailActiveTab = ref<string>('basic');
+
+/* -------- 审批历史 -------- */
+const approvalActions = ref<WorkflowInstanceAction[]>([]);
+const approvalLoading = ref(false);
+const approvalError = ref<string>('');
+
+const ACTION_LABELS: Record<string, string> = {
+  approve: '通过',
+  reject: '驳回',
+  start: '发起',
+  withdraw: '撤回',
+};
+
+function formatMinute(value: null | string | undefined): string {
+  if (!value) return '-';
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return value;
+  }
+}
+
+async function loadApprovalHistory(instanceId: number) {
+  approvalLoading.value = true;
+  approvalError.value = '';
+  approvalActions.value = [];
+  try {
+    const result = await getWorkflowInstanceActions(instanceId);
+    approvalActions.value = result.list ?? [];
+  } catch (error: any) {
+    approvalError.value = error?.message || '加载审批历史失败';
+  } finally {
+    approvalLoading.value = false;
+  }
+}
+
+function onDetailTabChange(key: number | string) {
+  detailActiveTab.value = String(key);
+  if (
+    key === 'approval_history' &&
+    detailItem.value?.workflowInstanceId &&
+    !approvalActions.value.length &&
+    !approvalLoading.value &&
+    !approvalError.value
+  ) {
+    void loadApprovalHistory(detailItem.value.workflowInstanceId);
+  }
+}
 
 async function openDetail(record: SpuItem) {
   detailOpen.value = true;
@@ -562,6 +618,9 @@ async function openDetail(record: SpuItem) {
   detailItem.value = null;
   detailImages.value = [];
   detailSkus.value = [];
+  detailActiveTab.value = 'basic';
+  approvalActions.value = [];
+  approvalError.value = '';
   try {
     const d = await getSpuDetail(record.spuId);
     detailItem.value = d;
@@ -943,54 +1002,152 @@ onMounted(() => {
       <div v-if="detailLoading" class="py-8 text-center text-gray-400">
         加载中…
       </div>
-      <div v-else-if="detailItem" class="space-y-5">
-        <div class="text-sm text-slate-500">
-          状态：<component :is="renderStatusTag(detailItem.status)" />
-          <span class="ml-4">编码：{{ detailItem.spuCode }}</span>
-          <span class="ml-4">
-            类目：{{ categoryNameMap.get(detailItem.categoryId) || '-' }}
-          </span>
-          <span class="ml-4">
-            品牌：{{ brandNameMap.get(detailItem.brandId) || '-' }}
-          </span>
-        </div>
-        <div v-if="detailItem.mainImageUrl">
-          <div class="mb-1 text-sm font-medium">主图</div>
-          <img
-            :src="detailItem.mainImageUrl"
-            class="max-h-72 rounded-sm object-contain"
-            alt="main"
-          />
-        </div>
-        <div v-if="detailImages.length > 0">
-          <div class="mb-1 text-sm font-medium">详情图</div>
-          <div class="flex flex-wrap gap-2">
-            <img
-              v-for="(url, idx) in detailImages"
-              :key="`${url}-${idx}`"
-              :src="url"
-              class="h-28 w-28 rounded-sm object-cover"
-              alt="detail"
-            />
-          </div>
-        </div>
-        <div>
-          <div class="mb-1 text-sm font-medium">详情</div>
-          <div
-            class="prose max-w-none"
-            v-html="detailItem.description || '<p class=\'text-gray-400\'>无详情</p>'"
-          ></div>
-        </div>
-        <div>
-          <div class="mb-2 text-sm font-medium">SKU 列表（{{ detailSkus.length }}）</div>
-          <Table
-            :columns="detailSkuColumns"
-            :data-source="detailSkus"
-            :pagination="false"
-            :row-key="(r: SkuItem) => r.skuId"
-            size="small"
-          />
-        </div>
+      <div v-else-if="detailItem">
+        <Tabs
+          :active-key="detailActiveTab"
+          @change="onDetailTabChange"
+        >
+          <Tabs.TabPane key="basic" tab="基本信息">
+            <div class="space-y-5 pt-2">
+              <div class="text-sm text-slate-500">
+                状态：<component :is="renderStatusTag(detailItem.status)" />
+                <span class="ml-4">编码：{{ detailItem.spuCode }}</span>
+                <span class="ml-4">
+                  类目：{{ categoryNameMap.get(detailItem.categoryId) || '-' }}
+                </span>
+                <span class="ml-4">
+                  品牌：{{ brandNameMap.get(detailItem.brandId) || '-' }}
+                </span>
+              </div>
+              <div v-if="detailItem.mainImageUrl">
+                <div class="mb-1 text-sm font-medium">主图</div>
+                <img
+                  :src="detailItem.mainImageUrl"
+                  class="max-h-72 rounded-sm object-contain"
+                  alt="main"
+                />
+              </div>
+              <div v-if="detailImages.length > 0">
+                <div class="mb-1 text-sm font-medium">详情图</div>
+                <div class="flex flex-wrap gap-2">
+                  <img
+                    v-for="(url, idx) in detailImages"
+                    :key="`${url}-${idx}`"
+                    :src="url"
+                    class="h-28 w-28 rounded-sm object-cover"
+                    alt="detail"
+                  />
+                </div>
+              </div>
+              <div>
+                <div class="mb-1 text-sm font-medium">详情</div>
+                <div
+                  class="prose max-w-none"
+                  v-html="detailItem.description || '<p class=\'text-gray-400\'>无详情</p>'"
+                ></div>
+              </div>
+              <div>
+                <div class="mb-2 text-sm font-medium">SKU 列表（{{ detailSkus.length }}）</div>
+                <Table
+                  :columns="detailSkuColumns"
+                  :data-source="detailSkus"
+                  :pagination="false"
+                  :row-key="(r: SkuItem) => r.skuId"
+                  size="small"
+                />
+              </div>
+            </div>
+          </Tabs.TabPane>
+
+          <Tabs.TabPane key="approval_history" tab="审批历史">
+            <!-- 加载态 -->
+            <div
+              v-if="approvalLoading"
+              class="py-8 text-center text-slate-400"
+            >
+              加载中…
+            </div>
+
+            <!-- 错误态 -->
+            <Alert
+              v-else-if="approvalError"
+              type="error"
+              :message="approvalError"
+              show-icon
+              class="mt-2 mb-4"
+            >
+              <template #action>
+                <Button
+                  size="small"
+                  @click="detailItem?.workflowInstanceId ? loadApprovalHistory(detailItem.workflowInstanceId) : undefined"
+                >
+                  重试
+                </Button>
+              </template>
+            </Alert>
+
+            <!-- 空态 -->
+            <div
+              v-else-if="!approvalActions.length"
+              class="py-8 text-center text-slate-400"
+            >
+              暂无审批记录
+            </div>
+
+            <!-- 时间轴 -->
+            <div
+              v-else
+              class="relative pl-6 pt-2"
+            >
+              <div
+                v-for="(item, idx) in approvalActions"
+                :key="item.actionId"
+                class="relative mb-6 last:mb-0"
+              >
+                <!-- 连接线 -->
+                <div
+                  v-if="idx < approvalActions.length - 1"
+                  class="absolute left-[-17px] top-3 h-full w-px bg-slate-200"
+                />
+                <!-- 圆点 -->
+                <div
+                  class="absolute left-[-21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white"
+                  :style="{
+                    backgroundColor:
+                      item.action === 'approve' ? '#52c41a' :
+                      item.action === 'reject' ? '#ff4d4f' :
+                      item.action === 'withdraw' ? '#8c8c8c' :
+                      '#1677ff',
+                  }"
+                />
+                <div class="flex flex-wrap items-center gap-2">
+                  <Tag
+                    :color="
+                      item.action === 'approve' ? 'success' :
+                      item.action === 'reject' ? 'error' :
+                      item.action === 'withdraw' ? 'default' :
+                      'processing'
+                    "
+                  >
+                    {{ ACTION_LABELS[item.action] ?? item.action }}
+                  </Tag>
+                  <span class="text-sm font-medium text-slate-700">{{ item.operatorName }}</span>
+                  <Tag v-if="item.operatorRole" color="blue">{{ item.operatorRole }}</Tag>
+                  <span class="text-xs text-slate-400">{{ item.nodeKey }}</span>
+                </div>
+                <div
+                  v-if="item.comment"
+                  class="mt-1 text-sm text-slate-500"
+                >
+                  {{ item.comment }}
+                </div>
+                <div class="mt-0.5 text-xs text-slate-400">
+                  {{ formatMinute(item.operatedAt) }}
+                </div>
+              </div>
+            </div>
+          </Tabs.TabPane>
+        </Tabs>
       </div>
     </Drawer>
   </AdminPageShell>
