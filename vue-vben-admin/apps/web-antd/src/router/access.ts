@@ -71,6 +71,12 @@ const ICON_SHORT_KEY_MAP: Record<string, string> = {
   'time-range': 'ant-design:clock-circle-outlined', // 时间范围 -> 时钟
   tree: 'ant-design:cluster-outlined', // 树形/部门树 -> 层级/树
 
+  // === 产品中心菜单图标 ===
+  shopping: 'ant-design:shop-outlined', // 产品中心根菜单
+  'shopping-cart': 'ant-design:shopping-cart-outlined', // SPU 管理
+  tag: 'ant-design:tag-outlined', // SKU 管理
+  star: 'ant-design:star-outlined', // 品牌管理
+
   // === 服务监控 & 接口管理（后端实际返回的 key） ===
   druid: 'ant-design:monitor-outlined', // 服务监控
   'api-doc': 'ant-design:api-outlined', // 接口管理
