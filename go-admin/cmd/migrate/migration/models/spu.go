@@ -12,6 +12,7 @@ type Spu struct {
 	MainImageUrl       string     `gorm:"size:512;column:main_image_url" json:"mainImageUrl"`
 	DetailImages       string     `gorm:"type:json;column:detail_images" json:"detailImages"`
 	Status             int        `gorm:"size:4;not null;default:1" json:"status"`
+	IsOnline           bool       `gorm:"column:is_online;not null;default:false" json:"isOnline"`
 	WorkflowInstanceId int64      `gorm:"not null;default:0;column:workflow_instance_id;index" json:"workflowInstanceId"`
 	SubmittedAt        *time.Time `gorm:"column:submitted_at" json:"submittedAt"`
 	ApprovedAt         *time.Time `gorm:"column:approved_at" json:"approvedAt"`

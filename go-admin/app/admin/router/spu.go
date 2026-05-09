@@ -29,5 +29,7 @@ func registerSpuRouter(v1 *gin.RouterGroup, authMiddleware *jwt.GinJWTMiddleware
 		r.PUT("/:id", api.Update)
 		r.DELETE("", api.Delete)
 		r.POST("/:id/submit", api.Submit)
+		r.POST("/:id/offline", api.GoOffline)
+		r.POST("/:id/online", api.GoOnline)
 	}
 }

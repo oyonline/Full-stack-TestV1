@@ -143,6 +143,60 @@ func (e Spu) Delete(c *gin.Context) {
 	e.OK(req.Ids, "删除成功")
 }
 
+// GoOffline SPU 下架
+func (e Spu) GoOffline(c *gin.Context) {
+	s := service.Spu{}
+	req := dto.SpuOfflineReq{}
+	if err := e.MakeContext(c).MakeOrm().Bind(&req, nil).MakeService(&s.Service).Errors; err != nil {
+		e.Error(500, err, err.Error())
+		return
+	}
+	p := actions.GetPermissionFromContext(c)
+	operatorId := user.GetUserId(c)
+	if err := s.GoOffline(req.SpuId, operatorId, p); err != nil {
+		e.Error(500, err, fmt.Sprintf("SPU 下架失败：%s", err.Error()))
+		return
+	}
+	middleware.AuditLog(c, middleware.AuditEntry{
+		Title:  "SPU 管理",
+		Action: middleware.AuditActionStatus,
+		Target: middleware.AuditTarget{
+			Type: middleware.AuditCategorySpu,
+			ID:   req.SpuId,
+		},
+		After:  map[string]interface{}{"action": "offline", "isOnline": false},
+		Method: "admin.spu.offline",
+	})
+	e.OK(req.SpuId, "下架成功")
+}
+
+// GoOnline SPU 上架
+func (e Spu) GoOnline(c *gin.Context) {
+	s := service.Spu{}
+	req := dto.SpuOnlineReq{}
+	if err := e.MakeContext(c).MakeOrm().Bind(&req, nil).MakeService(&s.Service).Errors; err != nil {
+		e.Error(500, err, err.Error())
+		return
+	}
+	p := actions.GetPermissionFromContext(c)
+	operatorId := user.GetUserId(c)
+	if err := s.GoOnline(req.SpuId, operatorId, p); err != nil {
+		e.Error(500, err, fmt.Sprintf("SPU 上架失败：%s", err.Error()))
+		return
+	}
+	middleware.AuditLog(c, middleware.AuditEntry{
+		Title:  "SPU 管理",
+		Action: middleware.AuditActionStatus,
+		Target: middleware.AuditTarget{
+			Type: middleware.AuditCategorySpu,
+			ID:   req.SpuId,
+		},
+		After:  map[string]interface{}{"action": "online", "isOnline": true},
+		Method: "admin.spu.online",
+	})
+	e.OK(req.SpuId, "上架成功")
+}
+
 // Submit SPU 提交审核
 func (e Spu) Submit(c *gin.Context) {
 	s := service.Spu{}

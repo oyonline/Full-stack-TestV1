@@ -298,6 +298,86 @@ func (e *Spu) resolveDefinition(defID int) (int, error) {
 	return def.DefinitionId, nil
 }
 
+// GoOffline 下架 SPU（status=3 && is_online=true → is_online=false），并级联下架所有 SKU。
+//
+// 状态机约束：GoOffline 仅允许在 status=Approved(3) && is_online=true 时执行。
+// 级联：将该 SPU 下所有 SKU 置为 SkuStatusDisabled(1)。
+// hook 位预留（架构师 §8.4）：before/after hook 点留空，后续按需扩展。
+func (e *Spu) GoOffline(spuId int64, operatorId int, p *actions.DataPermission) error {
+	// --- before-hook 位 ---
+
+	var spu models.Spu
+	if err := e.Orm.Model(&models.Spu{}).
+		Scopes(actions.Permission((&models.Spu{}).TableName(), p)).
+		First(&spu, spuId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("SPU 不存在或无权操作")
+		}
+		return err
+	}
+	if spu.Status != models.SpuStatusApproved || !spu.IsOnline {
+		return errors.New("SPU 当前状态不允许下架：仅 status=审核通过(3) 且 is_online=true 的 SPU 可下架")
+	}
+
+	return e.Orm.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Spu{}).
+			Where("spu_id = ?", spuId).
+			Updates(map[string]interface{}{
+				"is_online":  false,
+				"update_by":  operatorId,
+			}).Error; err != nil {
+			e.Log.Errorf("Spu GoOffline update spu: %s", err)
+			return err
+		}
+		if err := tx.Model(&models.Sku{}).
+			Where("spu_id = ?", spuId).
+			Updates(map[string]interface{}{
+				"status":    models.SkuStatusDisabled,
+				"update_by": operatorId,
+			}).Error; err != nil {
+			e.Log.Errorf("Spu GoOffline cascade sku: %s", err)
+			return err
+		}
+		// --- after-hook 位 ---
+		return nil
+	})
+}
+
+// GoOnline 上架 SPU（status=3 && is_online=false → is_online=true）。
+//
+// 状态机约束：GoOnline 仅允许在 status=Approved(3) && is_online=false 时执行。
+// 不反向恢复 SKU（架构师 §8.3）。
+// hook 位预留（架构师 §8.4）：before/after hook 点留空，后续按需扩展。
+func (e *Spu) GoOnline(spuId int64, operatorId int, p *actions.DataPermission) error {
+	// --- before-hook 位 ---
+
+	var spu models.Spu
+	if err := e.Orm.Model(&models.Spu{}).
+		Scopes(actions.Permission((&models.Spu{}).TableName(), p)).
+		First(&spu, spuId).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("SPU 不存在或无权操作")
+		}
+		return err
+	}
+	if spu.Status != models.SpuStatusApproved || spu.IsOnline {
+		return errors.New("SPU 当前状态不允许上架：仅 status=审核通过(3) 且 is_online=false 的 SPU 可上架")
+	}
+
+	if err := e.Orm.Model(&models.Spu{}).
+		Where("spu_id = ?", spuId).
+		Updates(map[string]interface{}{
+			"is_online": true,
+			"update_by": operatorId,
+		}).Error; err != nil {
+		e.Log.Errorf("Spu GoOnline update spu: %s", err)
+		return err
+	}
+
+	// --- after-hook 位 ---
+	return nil
+}
+
 // idsToStrings / int64ToString —— wf_business_binding.business_id 是 string 类型，
 // SPU.spu_id 是 int64，所以列表查询时需要做一次类型转换。
 func idsToStrings(ids []int64) []string {

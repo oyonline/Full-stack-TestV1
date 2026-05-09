@@ -132,6 +132,24 @@ func (s *SpuSubmitReq) GetId() interface{} {
 	return s.SpuId
 }
 
+// SpuOnlineReq 上架请求
+type SpuOnlineReq struct {
+	SpuId int64 `uri:"id"`
+}
+
+func (s *SpuOnlineReq) GetId() interface{} {
+	return s.SpuId
+}
+
+// SpuOfflineReq 下架请求
+type SpuOfflineReq struct {
+	SpuId int64 `uri:"id"`
+}
+
+func (s *SpuOfflineReq) GetId() interface{} {
+	return s.SpuId
+}
+
 // SpuListItem 列表/详情视图模型，含 workflow 派生字段。
 // WorkflowStatus / WorkflowTitle 来自 workflow_business_binding JOIN（可能为空）。
 type SpuListItem struct {
