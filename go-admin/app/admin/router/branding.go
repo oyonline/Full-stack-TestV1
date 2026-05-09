@@ -15,5 +15,6 @@ func registerBrandingRouter(v1 *gin.RouterGroup) {
 	r := v1.Group("/branding")
 	{
 		r.GET("/default-logo.png", api.GetDefaultLogoPNG)
+		r.GET("/email-preview", api.GetEmailPreview)
 	}
 }

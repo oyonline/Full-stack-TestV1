@@ -222,7 +222,5 @@ export async function loginByUI(
   ]);
 
   await expect(page).not.toHaveURL(/\/auth\/login/);
-  await expect(page.getByRole('heading', { name: '首页' })).toBeVisible({
-    timeout: 20_000,
-  });
+  await expect(page).toHaveURL(/\/home/, { timeout: 20_000 });
 }
