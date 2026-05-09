@@ -6,6 +6,14 @@ import (
 	common "go-admin/common/models"
 )
 
+// SkuListItem 列表/详情视图模型，含 SPU 关键字段（通过 LEFT JOIN 填充）。
+type SkuListItem struct {
+	models.Sku
+	SpuCode   string `json:"spuCode"`
+	SpuName   string `json:"spuName"`
+	SpuStatus int    `json:"spuStatus"`
+}
+
 // SkuPageReq SKU 列表/搜索请求
 type SkuPageReq struct {
 	dto.Pagination `search:"-"`

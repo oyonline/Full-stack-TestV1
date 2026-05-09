@@ -51,6 +51,20 @@ SPU 终态回写 | `app/admin/service/spu_workflow_handler.go`
 API | `app/admin/apis/spu.go`、`sku.go`、`sku_category.go`、`sku_brand.go`
 Router | `app/admin/router`（菜单 path 与 sys_api 一一对应）
 
+**SKU 入口职责切分（选项 1，已落地）**
+
+SKU 主管理页为**只读**；add/edit/remove 入口已从路由层移除（`router/sku.go` 仅保留 GET）。
+SKU 的写动作只能通过 SPU 编辑页的子表发起，由 `Spu.Update` 间接管理。
+
+SKU 列表（`Sku.GetPage`）通过 `LEFT JOIN spu` 继承 SPU 的 dataScope：
+
+```go
+// spu.create_by 决定 SKU 的可见范围，无需给 sku 表加 creator_id/dept_id
+actions.Permission("spu", p)
+```
+
+返回类型为 `dto.SkuListItem`（含 `spuCode / spuName / spuStatus`）。
+
 关键服务约束：
 
 - **Spu.Update** 拒绝审核中（`status=Reviewing`）的 SPU 直接编辑——必须先撤回审批。
@@ -143,6 +157,15 @@ go test -run TestE2E_Spu ./app/admin/service/  # 仅跑 C4-D 端到端测试
 - `TestE2E_Spu_Resubmit_After_Reject`：驳回后重提，新 wf_instance + 旧 binding 替换
 - `TestE2E_Spu_DataScope_DeptOnly`：dataScope=3 仅看本部门
 - `TestE2E_Spu_AuditMethod_Contract` / `TestE2E_Spu_AuditEmit_OnSubmit`：审计 method 名稳定契约
+
+SKU dataScope 测试：`go-admin/app/admin/service/sku_datascope_test.go`，覆盖 5 路过滤：
+
+- `TestSkuDataScope_AllData`：dataScope=1（全部可见）
+- `TestSkuDataScope_RoleDept`：dataScope=2（角色关联部门）
+- `TestSkuDataScope_DeptOnly`：dataScope=3（本部门）
+- `TestSkuDataScope_DeptAndChildren`：dataScope=4（本部门及子部门）
+- `TestSkuDataScope_SelfOnly`：dataScope=5（仅本人 SPU 下的 SKU）
+- `TestSkuListItem_SpuFieldsPopulated`：验证 SpuCode/SpuName/SpuStatus 正确填充
 
 ### 3.2 审计日志（sys_opera_log）
 

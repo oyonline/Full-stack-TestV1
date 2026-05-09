@@ -8,37 +8,53 @@ import (
 
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service/dto"
+	"go-admin/common/actions"
 	cDto "go-admin/common/dto"
 )
 
 // Sku 具体可售单元服务。
-//
-// 标准 CRUD 同时强制 SKU 必须挂在已存在的 SPU 上：Insert / Update 入库前会校验 spu_id。
+// SKU 主管理页只读；写动作通过 SPU 编辑页的子表完成。
 type Sku struct {
 	service.Service
 }
 
-// GetPage 列表查询，支持按 spu_id / sku_code 等过滤（由 search tag 驱动）。
-func (e *Sku) GetPage(c *dto.SkuPageReq, list *[]models.Sku, count *int64) error {
-	var data models.Sku
-	err := e.Orm.Model(&data).
+// GetPage 列表查询。LEFT JOIN spu，按 spu.create_by 继承 SPU 的 dataScope 过滤。
+func (e *Sku) GetPage(c *dto.SkuPageReq, p *actions.DataPermission, list *[]dto.SkuListItem, count *int64) error {
+	q := e.Orm.Model(&models.Sku{}).
+		Select("sku.*, spu.spu_code as spu_code, spu.spu_name as spu_name, spu.status as spu_status").
+		Joins("LEFT JOIN spu ON sku.spu_id = spu.spu_id").
 		Scopes(
 			cDto.MakeCondition(c.GetNeedSearch()),
-			cDto.Paginate(c.GetPageSize(), c.GetPageIndex()),
-		).
-		Find(list).Limit(-1).Offset(-1).
-		Count(count).Error
-	if err != nil {
-		e.Log.Errorf("Sku GetPage error: %s", err)
+			actions.Permission("spu", p),
+		)
+
+	if err := q.Count(count).Error; err != nil {
+		e.Log.Errorf("Sku GetPage count: %s", err)
+		return err
+	}
+
+	pageSize := c.GetPageSize()
+	pageIndex := c.GetPageIndex()
+	offset := (pageIndex - 1) * pageSize
+	if offset < 0 {
+		offset = 0
+	}
+
+	if err := q.Order("sku.sku_id DESC").Limit(pageSize).Offset(offset).Find(list).Error; err != nil {
+		e.Log.Errorf("Sku GetPage find: %s", err)
 		return err
 	}
 	return nil
 }
 
-// Get 单条查询。
-func (e *Sku) Get(c *dto.SkuGetReq, model *models.Sku) error {
-	db := e.Orm.Model(&models.Sku{}).First(model, c.GetId())
-	err := db.Error
+// Get 单条查询。LEFT JOIN spu 验证 dataScope，并填充 SpuCode/SpuName/SpuStatus。
+func (e *Sku) Get(c *dto.SkuGetReq, p *actions.DataPermission, item *dto.SkuListItem) error {
+	err := e.Orm.Model(&models.Sku{}).
+		Select("sku.*, spu.spu_code as spu_code, spu.spu_name as spu_name, spu.status as spu_status").
+		Joins("LEFT JOIN spu ON sku.spu_id = spu.spu_id").
+		Scopes(actions.Permission("spu", p)).
+		Where("sku.sku_id = ?", c.GetId()).
+		First(item).Error
 	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 		return errors.New("查看对象不存在或无权查看")
 	}
@@ -49,7 +65,7 @@ func (e *Sku) Get(c *dto.SkuGetReq, model *models.Sku) error {
 	return nil
 }
 
-// Insert 新增 SKU。校验 spu_id 真实存在。
+// Insert 新增 SKU（内部接口，由 SPU 编辑页发起）。
 func (e *Sku) Insert(c *dto.SkuInsertReq) error {
 	if err := e.checkSpuExists(c.SpuId); err != nil {
 		return err
@@ -64,7 +80,7 @@ func (e *Sku) Insert(c *dto.SkuInsertReq) error {
 	return nil
 }
 
-// Update 修改 SKU。SpuId 变更时校验目标 SPU 存在。
+// Update 修改 SKU（内部接口，由 SPU 编辑页发起）。
 func (e *Sku) Update(c *dto.SkuUpdateReq) error {
 	if err := e.checkSpuExists(c.SpuId); err != nil {
 		return err
@@ -88,7 +104,7 @@ func (e *Sku) Update(c *dto.SkuUpdateReq) error {
 	return nil
 }
 
-// Remove 批量删除。
+// Remove 批量删除（内部接口，由 SPU 编辑页发起）。
 func (e *Sku) Remove(c *dto.SkuDeleteReq) error {
 	if len(c.Ids) == 0 {
 		return errors.New("ids 不能为空")
