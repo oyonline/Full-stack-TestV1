@@ -60,6 +60,7 @@ const SPU_STATUS = {
   reviewing: 2,
   approved: 3,
   rejected: 4,
+  // 状态 5 暂未启用,等上下架业务流再开放
   offline: 5,
 } as const;
 
@@ -69,7 +70,6 @@ const statusFilterOptions = [
   { value: SPU_STATUS.reviewing, label: '待审核' },
   { value: SPU_STATUS.approved, label: '已通过' },
   { value: SPU_STATUS.rejected, label: '已驳回' },
-  { value: SPU_STATUS.offline, label: '已下架' },
 ];
 
 const editStatusOptions = [
@@ -77,7 +77,6 @@ const editStatusOptions = [
   { value: SPU_STATUS.reviewing, label: '待审核' },
   { value: SPU_STATUS.approved, label: '已通过' },
   { value: SPU_STATUS.rejected, label: '已驳回' },
-  { value: SPU_STATUS.offline, label: '已下架' },
 ];
 
 function renderStatusTag(status: number) {
