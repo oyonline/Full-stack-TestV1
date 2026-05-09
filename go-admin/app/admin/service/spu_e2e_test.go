@@ -1,7 +1,9 @@
 package service
 
 import (
+	"fmt"
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -14,12 +16,16 @@ import (
 
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service/dto"
+	"go-admin/cmd/migrate/migration"
+	migModels "go-admin/cmd/migrate/migration/models"
+	common "go-admin/common/models"
 	platformModels "go-admin/app/platform/models"
 	platformService "go-admin/app/platform/service"
 	platformDto "go-admin/app/platform/service/dto"
 	"go-admin/common/actions"
 	"go-admin/common/audit"
 	"go-admin/common/middleware"
+	_ "go-admin/cmd/migrate/migration/version" // registers all migrations via init()
 )
 
 // C4-D 端到端验收：覆盖 SPU 完整提交→审批→回写流程 + dataScope 过滤 + 审计契约。
@@ -575,5 +581,199 @@ func TestE2E_Spu_AuditEmit_OnSubmit(t *testing.T) {
 	}
 	if v, ok := c.Get(audit.BusinessTypesKey); !ok || v.(string) != audit.CategorySpu {
 		t.Fatalf("expected audit BusinessTypes=spu, got %v ok=%v", v, ok)
+	}
+}
+
+// TestSpuCreateReview_FromFreshMigration 从空库跑全量 migration，再验证完整审批路径。
+//
+// 测试矩阵：
+//   - 空 DB → AutoMigrate base schema（替代 1599190683659_tables，该步依赖磁盘 config/db.sql）
+//   - 运行其余所有 migration，含 1779000000001_spu_workflow_seed 和
+//     1779000000003_product_role_seed（EPO-54）
+//   - 从 sys_role 捞 product_operator（data_scope=5）/ product_admin（data_scope=1）
+//   - product_operator 创 SPU → 提交审核 → product_admin 通过 → SPU.status=3
+//   - product_operator data_scope=5 列表过滤验证
+//
+// 前置：EPO-54 migration 1779000000003_product_role_seed.go 必须已 merge；
+// 否则 product_operator 不在 sys_role，测试在步骤 "look up product_operator" 处 Fatalf（正常红灯）。
+func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
+	// 独立命名的 in-memory DB，避免与其他 e2e 测试的 file::memory:?cache=shared 共享
+	dsn := fmt.Sprintf("file:epo55_fresh_%s?mode=memory&cache=shared", t.Name())
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+
+	// AutoMigrate sys_migration + 替代 1599190683659_tables 建立的基础表
+	// （1599190683659 读取磁盘 config/db.sql，无法在 test 环境运行）
+	// CasbinRule 也需要提前建，供 1774900000000_drop_finance_subsystem 的 DELETE 语句使用。
+	if err := db.AutoMigrate(
+		&common.Migration{},
+		&migModels.SysDept{},
+		&migModels.SysConfig{},
+		&migModels.SysTables{},
+		&migModels.SysColumns{},
+		&migModels.SysApi{},
+		&migModels.SysMenu{},  // many2many 会同时建 sys_menu_api_rule
+		&migModels.SysLoginLog{},
+		&migModels.SysOperaLog{},
+		&migModels.SysRoleDept{},
+		&migModels.SysUser{},
+		&migModels.SysRole{},  // many2many 会同时建 sys_role_menu
+		&migModels.SysPost{},
+		&migModels.DictData{},
+		&migModels.DictType{},
+		&migModels.SysJob{},
+		&migModels.TbDemo{},
+		&migModels.CasbinRule{}, // sys_casbin_rule，供 finance cleanup migration 删策略
+	); err != nil {
+		t.Fatalf("auto migrate base tables: %v", err)
+	}
+
+	// 预标记无法在 SQLite test 环境运行的 migration 为已完成：
+	//   1599190683659 — 依赖磁盘 config/db.sql（InitDb 读文件）
+	//   1778160000000 — 使用 "INSERT IGNORE" MySQL 方言（SQLite 不支持）
+	skipVersions := []string{"1599190683659", "1778160000000"}
+	for _, v := range skipVersions {
+		if err := db.Create(&common.Migration{Version: v}).Error; err != nil {
+			t.Fatalf("pre-seed %s: %v", v, err)
+		}
+	}
+
+	// 运行其余所有已注册的 migration（_ "go-admin/cmd/migrate/migration/version" 在 init() 里注册）
+	// 包括：1779000000001_spu_workflow_seed + 1779000000003_product_role_seed（EPO-54）
+	migration.Migrate.SetDb(db)
+	migration.Migrate.Migrate()
+
+	// 从 sys_role 捞出 product_operator — migration 1779000000003 应已种好
+	var opRole models.SysRole
+	if err := db.Table("sys_role").Where("role_key = ?", "product_operator").First(&opRole).Error; err != nil {
+		t.Fatalf("product_operator 角色缺失（EPO-54 未 merge？）: %v", err)
+	}
+	if opRole.DataScope != "5" {
+		t.Fatalf("product_operator.data_scope=%q, want \"5\"", opRole.DataScope)
+	}
+
+	var adminRole models.SysRole
+	if err := db.Table("sys_role").Where("role_key = ?", "product_admin").First(&adminRole).Error; err != nil {
+		t.Fatalf("product_admin 角色缺失: %v", err)
+	}
+	if adminRole.DataScope != "1" {
+		t.Fatalf("product_admin.data_scope=%q, want \"1\"", adminRole.DataScope)
+	}
+
+	// wf_definition + approve_1 节点应由 migration 建好
+	var wfDef platformModels.WorkflowDefinition
+	if err := db.Where("definition_key = ?", SpuDefaultDefinitionKey).First(&wfDef).Error; err != nil {
+		t.Fatalf("wf_definition spu_create_review 缺失: %v", err)
+	}
+	var wfNode platformModels.WorkflowDefinitionNode
+	if err := db.Where("definition_id = ? AND node_key = ?", wfDef.DefinitionId, "approve_1").First(&wfNode).Error; err != nil {
+		t.Fatalf("wf_definition_node approve_1 缺失（product_admin 需先存在）: %v", err)
+	}
+	if wfNode.ApproverValue != strconv.Itoa(adminRole.RoleId) {
+		t.Fatalf("approve_1.approver_value=%q, want %q (product_admin.role_id)",
+			wfNode.ApproverValue, strconv.Itoa(adminRole.RoleId))
+	}
+
+	// 开启 dataScope 以验证 product_operator data_scope=5 的列表过滤
+	prevEnable := config.ApplicationConfig.EnableDP
+	config.ApplicationConfig.EnableDP = true
+	t.Cleanup(func() { config.ApplicationConfig.EnableDP = prevEnable })
+
+	s := &Spu{}
+	s.Orm = db
+	s.Log = logger.NewHelper(logger.DefaultLogger)
+	wf := &platformService.Workflow{Service: s.Service}
+
+	// 测试用户：product_operator（UserId=201）
+	operator := models.SysUser{UserId: 201, NickName: "产品操作员", Status: "2", RoleId: opRole.RoleId, DeptId: 10}
+	if err := db.Create(&operator).Error; err != nil {
+		t.Fatalf("seed operator: %v", err)
+	}
+	// 测试用户：product_admin（UserId=202）
+	approver := models.SysUser{UserId: 202, NickName: "产品管理员", Status: "2", RoleId: adminRole.RoleId, DeptId: 10}
+	if err := db.Create(&approver).Error; err != nil {
+		t.Fatalf("seed approver: %v", err)
+	}
+
+	// product_operator 创建 SPU
+	insReq := &dto.SpuInsertReq{SpuCode: "FM-E2E-001", SpuName: "fresh migration e2e product"}
+	insReq.SetCreateBy(operator.UserId)
+	spuId, err := s.Insert(insReq)
+	if err != nil {
+		t.Fatalf("Insert SPU: %v", err)
+	}
+
+	// 提交审核（dataScope 已开启，需传 DataPermission；nil 会在 Permission() 里触发 panic）
+	operatorCtx := makeRoleAuthCtx(operator.UserId, operator.NickName, []int{opRole.RoleId})
+	dpOp := &actions.DataPermission{DataScope: "5", UserId: operator.UserId, DeptId: operator.DeptId, RoleId: opRole.RoleId}
+	instanceID, err := s.SubmitForReview(operatorCtx, dpOp, &dto.SpuSubmitReq{SpuId: spuId, Remark: "fresh install e2e"})
+	if err != nil {
+		t.Fatalf("SubmitForReview: %v", err)
+	}
+
+	// product_admin 取 pending task → approve → SPU.status=3
+	task := findPendingTask(t, db, instanceID)
+	approverCtx := makeRoleAuthCtx(approver.UserId, approver.NickName, []int{adminRole.RoleId})
+	if _, err := wf.Approve(approverCtx, task.TaskId, "LGTM"); err != nil {
+		t.Fatalf("Approve: %v", err)
+	}
+
+	var postSpu models.Spu
+	if err := db.First(&postSpu, spuId).Error; err != nil {
+		t.Fatalf("read SPU after approve: %v", err)
+	}
+	if postSpu.Status != models.SpuStatusApproved {
+		t.Fatalf("SPU.status=%d, want %d (Approved/3)", postSpu.Status, models.SpuStatusApproved)
+	}
+	if postSpu.ApprovedAt == nil {
+		t.Fatalf("SPU.approved_at should be set after approve")
+	}
+
+	// 验证 product_operator data_scope=5：只能看自己创建的 SPU
+	// 再建一个由其他 operator 创建的 SPU
+	otherOp := models.SysUser{UserId: 203, NickName: "另一操作员", Status: "2", RoleId: opRole.RoleId, DeptId: 20}
+	if err := db.Create(&otherOp).Error; err != nil {
+		t.Fatalf("seed other operator: %v", err)
+	}
+	insOther := &dto.SpuInsertReq{SpuCode: "FM-E2E-002", SpuName: "other operator product"}
+	insOther.SetCreateBy(otherOp.UserId)
+	if _, err := s.Insert(insOther); err != nil {
+		t.Fatalf("insert other SPU: %v", err)
+	}
+
+	dpOpList := &actions.DataPermission{DataScope: "5", UserId: operator.UserId, DeptId: operator.DeptId, RoleId: opRole.RoleId}
+	listOp := make([]dto.SpuListItem, 0)
+	var countOp int64
+	pageReq := &dto.SpuPageReq{}
+	pageReq.PageIndex = 1
+	pageReq.PageSize = 50
+	if err := s.GetPage(pageReq, dpOpList, &listOp, &countOp); err != nil {
+		t.Fatalf("GetPage for operator: %v", err)
+	}
+	if countOp != 1 || listOp[0].SpuCode != "FM-E2E-001" {
+		t.Fatalf("product_operator(data_scope=5) expected only FM-E2E-001, got count=%d codes=%v",
+			countOp, func() []string {
+				var codes []string
+				for _, it := range listOp {
+					codes = append(codes, it.SpuCode)
+				}
+				return codes
+			}())
+	}
+
+	// product_admin data_scope=1 应看到全部 SPU
+	dpAdmin := &actions.DataPermission{DataScope: "1", UserId: approver.UserId, DeptId: approver.DeptId, RoleId: adminRole.RoleId}
+	listAdmin := make([]dto.SpuListItem, 0)
+	var countAdmin int64
+	pageReq2 := &dto.SpuPageReq{}
+	pageReq2.PageIndex = 1
+	pageReq2.PageSize = 50
+	if err := s.GetPage(pageReq2, dpAdmin, &listAdmin, &countAdmin); err != nil {
+		t.Fatalf("GetPage for admin: %v", err)
+	}
+	if countAdmin != 2 {
+		t.Fatalf("product_admin(data_scope=1) expected 2 SPUs, got %d", countAdmin)
 	}
 }

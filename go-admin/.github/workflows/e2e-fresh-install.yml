@@ -1,0 +1,36 @@
+name: E2E Fresh Install
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master]
+
+jobs:
+  fresh-install-e2e:
+    name: Fresh Install → SPU Review E2E
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go-admin
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+
+      - name: Tidy
+        run: go mod tidy
+
+      - name: Run fresh-install e2e
+        # TestSpuCreateReview_FromFreshMigration:
+        #   空 DB → AutoMigrate base schema → 运行全量 migration
+        #   → product_operator 创 SPU → 提交审核 → product_admin 通过 → SPU.status=3
+        #   → product_operator data_scope=5 列表过滤
+        #
+        # 前置：依赖 EPO-54 (1779000000003_product_role_seed.go) 已 merge；
+        # 未 merge 时该 job 红灯（product_operator 角色缺失）。
+        run: go test ./app/admin/service/ -run TestSpuCreateReview_FromFreshMigration -v -timeout 120s
