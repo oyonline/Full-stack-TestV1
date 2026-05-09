@@ -5,6 +5,8 @@ import { computed } from 'vue';
 
 import { preferences, usePreferences } from '@vben/preferences';
 
+import { VbenLogo } from '@vben-core/shadcn-ui';
+
 import { Copyright } from '../basic/copyright';
 import AuthenticationFormView from './form.vue';
 import SloganIcon from './icons/slogan.vue';
@@ -53,20 +55,6 @@ const logoSrc = computed(() => {
   return props.logo;
 });
 
-const fallbackLogoText = computed(() => {
-  const text = props.appName.trim().replace(/\s+/g, '');
-  if (!text) {
-    return 'S';
-  }
-
-  const asciiGroups = text.match(/[A-Za-z0-9]+/g);
-  const firstAsciiGroup = asciiGroups?.[0];
-  if (firstAsciiGroup?.[0]) {
-    return firstAsciiGroup[0].toUpperCase();
-  }
-
-  return text[0]?.toUpperCase() || 'S';
-});
 </script>
 
 <template>
@@ -105,21 +93,16 @@ const fallbackLogoText = computed(() => {
         <div
           class="mt-4 ml-4 flex flex-1 items-center text-foreground sm:top-6 sm:left-6 lg:text-foreground"
         >
-          <img
-            v-if="logoSrc"
-            :key="logoSrc"
-            :alt="appName"
+          <VbenLogo
             :src="logoSrc"
+            :system-name="appName"
+            :placeholder-bg-color="logoPlaceholderBgColor"
+            :fallback-on-error="true"
+            :logo-size="42"
+            :text="appName"
+            collapsed
             class="mr-2"
-            width="42"
           />
-          <div
-            v-else-if="appName"
-            :style="{ backgroundColor: logoPlaceholderBgColor }"
-            class="app-radius-box mr-2 flex size-[42px] items-center justify-center text-base font-semibold text-white shadow-sm"
-          >
-            {{ fallbackLogoText }}
-          </div>
           <p v-if="appName" class="m-0 text-xl font-medium">
             {{ appName }}
           </p>
