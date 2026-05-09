@@ -13,7 +13,9 @@
     />
     <!-- 由 vite 注入 VITE_APP_TITLE 变量，在 .env 文件内配置 -->
     <title><%= VITE_APP_TITLE %></title>
-    <link rel="icon" href="/favicon.ico" />
+    <link id="favicon-16" rel="icon" type="image/png" sizes="16x16" href="/favicon.ico" />
+    <link id="favicon-32" rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
+    <link id="favicon-180" rel="apple-touch-icon" sizes="180x180" href="/favicon.ico" />
     <script>
       // 生产环境下注入百度统计
       if (window._VBEN_ADMIN_PRO_APP_CONF_) {

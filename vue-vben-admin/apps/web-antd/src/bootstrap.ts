@@ -21,6 +21,31 @@ import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
 import { router } from './router';
 
+function syncFavicon() {
+  const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
+  const base = apiURL.replace(/\/$/, '');
+  const logoSource = preferences.logo.source;
+  const firstChar = encodeURIComponent(
+    ([...(preferences.app.name || 'A')][0] ?? 'A').toUpperCase(),
+  );
+  const bg = encodeURIComponent(preferences.logo.placeholderBgColor ?? '#1d4ed8');
+
+  const faviconURL = (size: number) =>
+    logoSource
+      ? logoSource
+      : `${base}/v1/branding/default-logo.png?text=${firstChar}&bg=${bg}&size=${size}`;
+
+  const targets: Array<[string, number]> = [
+    ['favicon-16', 16],
+    ['favicon-32', 32],
+    ['favicon-180', 180],
+  ];
+  for (const [id, size] of targets) {
+    const el = document.getElementById(id) as HTMLLinkElement | null;
+    if (el) el.href = faviconURL(size);
+  }
+}
+
 async function syncAppConfigFromBackend() {
   const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
   const requestURL = `${apiURL.replace(/\/$/, '')}/v1/app-config`;
@@ -74,6 +99,7 @@ async function bootstrap(namespace: string) {
   await initStores(app, { namespace });
 
   await syncAppConfigFromBackend();
+  syncFavicon();
 
   // 安装权限指令
   registerAccessDirective(app);
