@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { SystemSettingsResponse } from '#/api/core/config';
 
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import { SUPPORT_LANGUAGES } from '@vben/constants';
 
@@ -9,7 +9,6 @@ import {
   Alert,
   Button,
   Card,
-  Image,
   Input,
   InputNumber,
   message,
@@ -159,6 +158,11 @@ const logoPlaceholderText = computed(() => {
   }
 
   return name[0]?.toUpperCase() || 'S';
+});
+
+const imgPreviewFailed = ref(false);
+watch(logoPreviewUrl, () => {
+  imgPreviewFailed.value = false;
 });
 
 const hasUnsavedChanges = computed(
@@ -414,11 +418,12 @@ onMounted(() => {
               <div class="space-y-5">
                 <div class="text-sm font-medium text-slate-700">Logo 预览</div>
                 <div class="flex min-h-[180px] items-center justify-center">
-                  <Image
-                    v-if="logoPreviewUrl"
+                  <img
+                    v-if="logoPreviewUrl && !imgPreviewFailed"
                     :src="logoPreviewUrl"
-                    :preview="false"
                     class="max-h-[140px] max-w-full object-contain"
+                    alt="Logo 预览"
+                    @error="imgPreviewFailed = true"
                   />
                   <div
                     v-else
