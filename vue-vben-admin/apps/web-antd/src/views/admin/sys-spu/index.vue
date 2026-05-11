@@ -341,15 +341,62 @@ const editorSubmitting = ref(false);
 const editorLoading = ref(false);
 const editorSpuId = ref<null | number>(null);
 const editorForm = reactive<FormState>(emptyForm());
+const editorOriginalHash = ref('');
 
 const isReviewing = computed(
   () => editorMode.value === 'edit' && editorForm.status === SPU_STATUS.reviewing,
 );
 
+function hashFormState(form: FormState): string {
+  return JSON.stringify({
+    spuName: form.spuName,
+    spuCode: form.spuCode,
+    categoryId: form.categoryId,
+    brandId: form.brandId,
+    description: form.description,
+    mainImageUrl: form.mainImageUrl,
+    detailImages: form.detailImages,
+    status: form.status,
+    skuRows: form.skuRows.map((r) => ({
+      skuCode: r.skuCode,
+      skuName: r.skuName,
+      spec: r.spec,
+      unit: r.unit,
+      price: r.price,
+      status: r.status,
+    })),
+  });
+}
+
+function isEditorDirty(): boolean {
+  return hashFormState(editorForm) !== editorOriginalHash.value;
+}
+
+function resetEditorOriginalHash() {
+  editorOriginalHash.value = hashFormState(editorForm);
+}
+
+function handleEditorBeforeClose(done: () => void) {
+  if (!isEditorDirty()) {
+    done();
+    return;
+  }
+  Modal.confirm({
+    title: '确认关闭',
+    content: '当前有未保存的修改，确定要关闭吗？',
+    okText: '关闭',
+    cancelText: '取消',
+    onOk() {
+      done();
+    },
+  });
+}
+
 function openCreate() {
   editorMode.value = 'create';
   editorSpuId.value = null;
   Object.assign(editorForm, emptyForm());
+  resetEditorOriginalHash();
   editorOpen.value = true;
 }
 
@@ -388,6 +435,7 @@ async function openEdit(record: SpuItem) {
       status: s.status ?? 2,
     }));
     editorForm.skuRows = rows.length > 0 ? rows : [emptySkuRow()];
+    resetEditorOriginalHash();
   } catch (error: any) {
     message.error(error?.message || '获取 SPU 详情失败');
     editorOpen.value = false;
@@ -520,6 +568,7 @@ async function onEditorOk() {
   const spuId = await doSave();
   if (spuId != null) {
     message.success('保存成功');
+    resetEditorOriginalHash();
     editorOpen.value = false;
     void fetchList();
   }
@@ -531,6 +580,7 @@ async function onSaveAndSubmit() {
   try {
     await submitSpu(spuId, {});
     message.success('保存并提交审核成功');
+    resetEditorOriginalHash();
     editorOpen.value = false;
     void fetchList();
   } catch (error: any) {
@@ -814,6 +864,7 @@ onMounted(() => {
       :width="960"
       placement="right"
       :body-style="{ paddingBottom: '80px' }"
+      :closable="false"
     >
       <div v-if="editorLoading" class="py-8 text-center text-gray-400">
         加载中…
@@ -1008,7 +1059,7 @@ onMounted(() => {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button @click="editorOpen = false">取消</Button>
+          <Button @click="handleEditorBeforeClose(() => { editorOpen = false; })">取消</Button>
           <Button
             type="primary"
             :loading="editorSubmitting"
