@@ -67,6 +67,46 @@ Router | `app/admin/router`（菜单 path 与 sys_api 一一对应）
 | `rejected` | `SpuStatusRejected` (4) | — |
 | `cancelled` | `SpuStatusDraft` (1)（撤回视为回到草稿） | — |
 
+#### 1.2.1 契约说明：`Canceled → Draft` 是业务决策，不是 platform 默认
+
+`Canceled → Draft` 这一行是 **SPU 模块的业务选择**，由
+`onSpuWorkflowTerminal`（`go-admin/app/admin/service/spu_workflow_handler.go`）在
+收到 platform workflow 的 `WorkflowStatusCanceled` 回调时，**显式**把 `SPU.status`
+写回 `SpuStatusDraft`，使提交人可以再编辑后重新提交。
+`platform.workflow` 自身**不规定** "撤回 = 回草稿"——它只负责把 `wf_instance`
+推到 `canceled` 终态、写 `wf_action_log` 并触发已注册 handler；具体业务态如何
+映射，由各业务模块的 terminal handler 自行决定。其他业务接入 platform.workflow
+时，可以选择不同语义（例如撤回后进入"已作废"而不允许再提交）；这是模块层
+契约的边界，请勿假定它是平台行为。
+
+副作用：从 `SPU.status` 单独看，**撤回 by 提交人** 与 **初稿** 都是 `Draft`，
+两者无法区分；同理 **驳回 by 审批人** 与 **撤回** 也只有
+`wf_action_log.action`（`reject` / `withdraw`）能区分。下游统计、报表、审计
+口径如果要区分这三种来源，必须 join `wf_action_log`，不要只看 `SPU.status`。
+
+#### 1.2.2 契约说明：撤回后 `wf_business_binding` 替换、不归档
+
+每个 `(module_key, business_type, business_id)` 在 `wf_business_binding` 表中
+**只保留一行**，永远指向"最近一次"工作流实例。当 SPU 被撤回（canceled）或
+被驳回（rejected）后，业务方再次调用 `Spu.SubmitForReview` 时，
+`platform Workflow.Start`（`go-admin/app/platform/service/workflow.go`）会先
+**`DELETE` 旧 binding 行**（按 `module_key + business_type + business_id` 匹配），
+然后 **`INSERT` 新 binding 行**指向新建的 `wf_instance`。旧的 `wf_instance` 和
+`wf_action_log` 记录**保留**不动，binding 不再指向它们。
+
+由此约束下列查询口径：
+
+- **当前流程状态**：直接 `LEFT JOIN wf_business_binding ON business_id = spu_id` 即可，
+  一行就够，不需要"取最近一行"或 `is_current=1` 类标记。这正是 `Spu.GetPage` /
+  `Spu.Get` 的现行实现（见 1.2 关键服务约束与本文件 3.3 排查 SQL）。
+- **历史 binding 快照**：**没有归档表**。想知道"第 N 次提交时 binding 的 title/
+  remark"，只能从 `wf_instance.instance_id` + `wf_action_log` 的 `start` 动作
+  推。如果产品上需要 binding 历史，要先新增归档/快照表再讨论；当前实现明确
+  不保留。
+- **提交次数**：`wf_business_binding` 行数 ≤ 业务记录数（每个 SPU 至多 1 行），
+  **不能**用 binding 行数估算"审批发起次数"；该口径走 `wf_instance` 按
+  `(module_key, business_type, business_id)` 计数。
+
 ### 1.3 前端（C4-C）
 
 | 页面 | 路径 | Component |
@@ -256,6 +296,10 @@ middleware.AuditLog(c, middleware.AuditEntry{...})  // 自定义 Action（如 st
   如果生产环境 fresh install，迁移先于角色种子执行，需要后续手工进流程中心补节点。
 - **platform.workflow 撤回视为回到 Draft**：业务方如果想区分"撤回 by 提交人"与
   "驳回 by 审批人"，需要靠 `wf_action_log.action` 字段拆分，不能只看 SPU.status。
+  详见 1.2.1（这是 SPU 模块的业务决策，不是 platform 默认行为）。
+- **`wf_business_binding` 替换而非归档**：再次提交时旧 binding 被 DELETE + 新行
+  INSERT，没有历史快照表。当前流程态查询走"单行 binding"即可；不要按 binding
+  行数估算审批次数。详见 1.2.2。
 - **dataScope=2 (custom) 与 SPU 还没做端到端冒烟**：当前 e2e 只覆盖 dataScope=1/3。
   自定义角色绑定部门集合的口径应与 announcement C7-5 用例对齐，参考
   `app/admin/service/announcement_data_scope_test.go`。
