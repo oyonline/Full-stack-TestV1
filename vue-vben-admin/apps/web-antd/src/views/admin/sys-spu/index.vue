@@ -15,6 +15,7 @@ import type {
  * 列表 + 类目/品牌/状态 过滤 + 新增/编辑（富文本+主图+详情多图+SKU 子表）+ 提交审核 + 详情查看
  */
 import { computed, h, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import {
   Button,
@@ -47,6 +48,7 @@ import AdminActionButton from '#/components/admin/action-button.vue';
 import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
+import SpuDetailContent from '#/components/spu/SpuDetailContent.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 
@@ -549,44 +551,37 @@ function onDelete(record: SpuItem) {
   });
 }
 
-/* -------- 详情查看 -------- */
-const detailOpen = ref(false);
-const detailLoading = ref(false);
-const detailItem = ref<null | SpuItem>(null);
-const detailImages = ref<string[]>([]);
-const detailSkus = ref<SkuItem[]>([]);
+const router = useRouter();
 
-async function openDetail(record: SpuItem) {
-  detailOpen.value = true;
-  detailLoading.value = true;
-  detailItem.value = null;
-  detailImages.value = [];
-  detailSkus.value = [];
-  try {
-    const d = await getSpuDetail(record.spuId);
-    detailItem.value = d;
-    detailImages.value = parseDetailImages(d.detailImages);
-    const skuPage = await getSkuPage({
-      spuId: record.spuId,
-      pageIndex: 1,
-      pageSize: 200,
-    });
-    detailSkus.value = skuPage.list || [];
-  } catch (error: any) {
-    message.error(error?.message || '获取 SPU 详情失败');
-    detailOpen.value = false;
-  } finally {
-    detailLoading.value = false;
-  }
+/* -------- 状态分流 -------- */
+function canEdit(status: number) {
+  return status === SPU_STATUS.draft || status === SPU_STATUS.rejected;
 }
 
-const detailSkuColumns: TableColumnType[] = [
-  { title: 'SKU 编码', dataIndex: 'skuCode', key: 'skuCode', width: 140 },
-  { title: 'SKU 名称', dataIndex: 'skuName', key: 'skuName', ellipsis: true },
-  { title: '规格', dataIndex: 'spec', key: 'spec', width: 120 },
-  { title: '单位', dataIndex: 'unit', key: 'unit', width: 80 },
-  { title: '价格', dataIndex: 'price', key: 'price', width: 100 },
-];
+function canViewInPage(status: number) {
+  return (
+    status === SPU_STATUS.reviewing ||
+    status === SPU_STATUS.approved ||
+    status === SPU_STATUS.offline
+  );
+}
+
+/* -------- 详情查看（状态分流） -------- */
+const detailOpen = ref(false);
+const detailSpuId = ref<number | null>(null);
+const detailReadonly = ref(true);
+
+function openDetail(record: SpuItem) {
+  if (canViewInPage(record.status)) {
+    // Reviewing / Approved / Offline → 独立页
+    router.push({ name: 'SpuDetail', params: { id: String(record.spuId) } });
+  } else {
+    // Draft / Rejected → Drawer（可编辑/只读）
+    detailSpuId.value = record.spuId;
+    detailReadonly.value = !canEdit(record.status);
+    detailOpen.value = true;
+  }
+}
 
 onMounted(() => {
   void loadCategoryTree();
@@ -674,30 +669,36 @@ onMounted(() => {
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
+          <!-- Draft / Rejected: 编辑 + 查看（Drawer） -->
+          <template v-if="canEdit((record as SpuItem).status)">
+            <AdminActionButton
+              type="link"
+              size="small"
+              codes="admin:spu:edit"
+              @click="openEdit(record as SpuItem)"
+            >
+              编辑
+            </AdminActionButton>
+            <AdminActionButton
+              type="link"
+              size="small"
+              @click="openDetail(record as SpuItem)"
+            >
+              查看
+            </AdminActionButton>
+          </template>
+          <!-- Reviewing / Approved / Offline: 查看（独立页，支持中键新窗） -->
+          <template v-else>
+            <a
+              class="text-sm text-blue-600 hover:text-blue-800"
+              :href="router.resolve({ name: 'SpuDetail', params: { id: String((record as SpuItem).spuId) } }).href"
+              @click.prevent="openDetail(record as SpuItem)"
+            >
+              查看
+            </a>
+          </template>
           <AdminActionButton
-            type="link"
-            size="small"
-            @click="openDetail(record as SpuItem)"
-          >
-            查看
-          </AdminActionButton>
-          <AdminActionButton
-            v-if="
-              (record as SpuItem).status === SPU_STATUS.draft ||
-              (record as SpuItem).status === SPU_STATUS.rejected
-            "
-            type="link"
-            size="small"
-            codes="admin:spu:edit"
-            @click="openEdit(record as SpuItem)"
-          >
-            编辑
-          </AdminActionButton>
-          <AdminActionButton
-            v-if="
-              (record as SpuItem).status === SPU_STATUS.draft ||
-              (record as SpuItem).status === SPU_STATUS.rejected
-            "
+            v-if="canEdit((record as SpuItem).status)"
             type="link"
             size="small"
             codes="admin:spu:edit"
@@ -933,65 +934,19 @@ onMounted(() => {
       </template>
     </Drawer>
 
-    <!-- 详情查看抽屉 -->
+    <!-- 详情查看抽屉（Draft / Rejected） -->
     <Drawer
       v-model:open="detailOpen"
-      :title="detailItem?.spuName || 'SPU 详情'"
+      title="SPU 详情"
       :width="800"
       placement="right"
     >
-      <div v-if="detailLoading" class="py-8 text-center text-gray-400">
-        加载中…
-      </div>
-      <div v-else-if="detailItem" class="space-y-5">
-        <div class="text-sm text-slate-500">
-          状态：<component :is="renderStatusTag(detailItem.status)" />
-          <span class="ml-4">编码：{{ detailItem.spuCode }}</span>
-          <span class="ml-4">
-            类目：{{ categoryNameMap.get(detailItem.categoryId) || '-' }}
-          </span>
-          <span class="ml-4">
-            品牌：{{ brandNameMap.get(detailItem.brandId) || '-' }}
-          </span>
-        </div>
-        <div v-if="detailItem.mainImageUrl">
-          <div class="mb-1 text-sm font-medium">主图</div>
-          <img
-            :src="detailItem.mainImageUrl"
-            class="max-h-72 rounded-sm object-contain"
-            alt="main"
-          />
-        </div>
-        <div v-if="detailImages.length > 0">
-          <div class="mb-1 text-sm font-medium">详情图</div>
-          <div class="flex flex-wrap gap-2">
-            <img
-              v-for="(url, idx) in detailImages"
-              :key="`${url}-${idx}`"
-              :src="url"
-              class="h-28 w-28 rounded-sm object-cover"
-              alt="detail"
-            />
-          </div>
-        </div>
-        <div>
-          <div class="mb-1 text-sm font-medium">详情</div>
-          <div
-            class="prose max-w-none"
-            v-html="detailItem.description || '<p class=\'text-gray-400\'>无详情</p>'"
-          ></div>
-        </div>
-        <div>
-          <div class="mb-2 text-sm font-medium">SKU 列表（{{ detailSkus.length }}）</div>
-          <Table
-            :columns="detailSkuColumns"
-            :data-source="detailSkus"
-            :pagination="false"
-            :row-key="(r: SkuItem) => r.skuId"
-            size="small"
-          />
-        </div>
-      </div>
+      <SpuDetailContent
+        v-if="detailSpuId"
+        :spu-id="detailSpuId"
+        mode="drawer"
+        :readonly="detailReadonly"
+      />
     </Drawer>
   </AdminPageShell>
 </template>
