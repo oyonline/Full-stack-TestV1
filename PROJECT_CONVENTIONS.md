@@ -399,6 +399,171 @@ dataScope 与业务侧自带的"展示规则"是**两套独立机制，并存且
 - handler 不要静默吞 error；返回 nil 会让 workflow 状态写入但业务状态不一致。
 - 不要绕过 registry 直接在 `workflow.go` 里塞业务分支判断；那是 platform / 业务边界回归。
 
+### 1.6.3 业务模块接入 platform.workflow 的最小契约（平台能力使用者样板）
+
+> 「产品中心」（SPU 经由 admin 模块挂载）是当前仓库内**第一个完整接入 platform.workflow 的业务模块**，已通过 fresh-install e2e。后续新业务模块按本节 6 条契约对齐即可，**任一缺失视为未接入，不得通过 review**。
+>
+> 样板源码（真相源）：
+> - 业务表 / 字段：`go-admin/app/admin/models/spu.go`
+> - service 与提交流：`go-admin/app/admin/service/spu.go`
+> - 终态回调：`go-admin/app/admin/service/spu_workflow_handler.go`
+> - 审计 method 契约测试：`go-admin/app/admin/service/spu_e2e_test.go::TestE2E_Spu_AuditMethod_Contract`
+> - 角色种子迁移：`go-admin/cmd/migrate/migration/version/1779000000003_product_role_seed.go`
+>
+> 配套规约：dataScope 细节见 §1.6.1；终态回调机制见 §1.6.2。本节是把两者编排成「样板」的清单，**避免重复说明，只补样板特有的约束**。
+
+#### 1. 业务表必须有的列
+
+业务主表（aggregate root）必须包含下列列，字段名 / 类型与样板对齐——缺一列会让 SubmitForReview / 终态回调 / dataScope 其中一条链路断掉：
+
+| 列名 | GORM 类型 | 用途 |
+|------|-----------|------|
+| `status` | `int` / `tinyint` | 业务自身状态机（典型：`1 Draft / 2 Reviewing / 3 Approved / 4 Rejected`） |
+| `workflow_instance_id` | `bigint, index, default 0` | 当前关联的 platform workflow 实例 ID；终态后**保留**作为审计指针，不清零 |
+| `submitted_at` | `*time.Time` NULL | `SubmitForReview` 成功后写入 |
+| `approved_at` | `*time.Time` NULL | `Approved` 终态回调写入（`Rejected / Canceled` 不动） |
+| `creator_id` | `int, index` | dataScope=5「仅本人」过滤；入库由 service 从 `user.GetUserId(c)` 填 |
+| `dept_id` | `int, index` | dataScope=3/4「本部门 / 本部门及以下」过滤；入库由 service 从登录态部门填 |
+
+`ControlBy.create_by` 是字符串账号名，**不能**当作 `creator_id` 使用；必须显式建数值列。模型同时嵌入 `common/models.ControlBy` 与 `common/models.ModelTime`（沿用现有惯例）。
+
+子表（如 SPU → SKU）是否需要 `creator_id / dept_id` 取决于「子表是否独立可写」——独立可写就接 dataScope，否则继承父表（见 §1.6.1 §F 「自定义所有者字段」与 §3.6「最小改动原则」）。
+
+#### 2. service 方法签名带 `p *actions.DataPermission`
+
+读侧 4 类入口签名必须显式带 `p`，且 service 内部走 `Scopes(actions.Permission(table, p))`。**不允许只挂中间件不传 p**——否则 dataScope 在 service 层是空操作：
+
+```go
+func (e *MyModel) GetPage(c *dto.MyPageReq, p *actions.DataPermission, list *[]models.MyModel, count *int64) error
+func (e *MyModel) Get(c *dto.MyGetReq, p *actions.DataPermission, model *models.MyModel) error
+func (e *MyModel) Update(c *dto.MyUpdateReq, p *actions.DataPermission) error // 写前查必须走 scope
+func (e *MyModel) Remove(c *dto.MyRemoveReq, p *actions.DataPermission) error // 先按 scope 过滤 Ids 再级联删
+```
+
+完整接入步骤（路由整组 `.Use(actions.PermissionAction())` / handler 内 `GetPermissionFromContext` 取 p / `Remove` 越权防御 / `tableName` 与 `model.TableName()` 一致）沿用 §1.6.1 §B，本节不重复。
+
+#### 3. SubmitForReview 调 `platformService.Workflow.Start`，三元组定位 binding
+
+业务侧的「提交审核」方法必须组装 `WorkflowInstanceStartReq` 调 platform（样板 `spu.go:228 SubmitForReview`）：
+
+```go
+const (
+    MyModuleKey    = "admin"   // 与本模块所属 app 目录一致（admin / platform / jobs / other）
+    MyBusinessType = "my-biz"  // 与 RegisterTerminalHandler / wf_business_binding.business_type 一致
+)
+
+func (e *MyModel) SubmitForReview(c *gin.Context, p *actions.DataPermission, req *dto.MySubmitReq) (int64, error) {
+    // 1. 写前查走 scope，确认 caller 有权操作该记录
+    // 2. 校验当前 status ∈ {Draft, Rejected}（允许的「可提交」前置）
+    // 3. resolveDefinition(req.DefinitionId) 拿到 platform 上的 definition_id
+    wf := &platformService.Workflow{Service: e.Service}
+    detail, err := wf.Start(c, &platformDto.WorkflowInstanceStartReq{
+        DefinitionId: defID,
+        ModuleKey:    MyModuleKey,
+        BusinessType: MyBusinessType,
+        BusinessId:   int64ToString(model.Id), // wf_business_binding.business_id 是 string
+        BusinessNo:   model.Code,
+        Title:        model.Name,
+        Remark:       req.Remark,
+    })
+    if err != nil { return 0, err }
+    // 4. 同事务更新 status = Reviewing / submitted_at / workflow_instance_id
+}
+```
+
+`(module_key, business_type, business_id)` 三元组**全仓唯一定位一条 binding**，本节列出的查询都依赖这个约定：
+
+- 列表回灌 workflow_status：`WHERE module_key = ? AND business_type = ? AND business_id IN ?`（样板 `spu.go:94`）
+- 「是否已有未结 binding」判定：同一三元组 `First(&binding)`（样板 `spu.go:133`）
+
+新模块不要换其他写法（把 `module_key` 写死成空、把 `business_id` 用 int 列存等），否则上述跨模块 SQL 全部漏命中。
+
+#### 4. `init()` 注册 `RegisterTerminalHandler`，终态在 platform 事务内回写
+
+样板 `spu_workflow_handler.go`：
+
+```go
+func init() {
+    platformService.RegisterTerminalHandler(MyBusinessType, onMyWorkflowTerminal)
+}
+
+func onMyWorkflowTerminal(tx *gorm.DB, binding *platformModels.WorkflowBusinessBinding, terminal string) error {
+    // 只用传入的 tx；返回 error 触发整个 workflow 事务回滚
+    updates := map[string]interface{}{}
+    switch terminal {
+    case platformDto.WorkflowStatusApproved:
+        updates["status"] = StatusApproved
+        now := time.Now(); updates["approved_at"] = &now
+    case platformDto.WorkflowStatusRejected:
+        updates["status"] = StatusRejected
+    case platformDto.WorkflowStatusCanceled:
+        // 「撤回 = 回草稿」是 SPU 的业务决策，新模块按自己业务定（也可保留 Canceled 终态）
+        updates["status"] = StatusDraft
+    default:
+        return nil
+    }
+    return tx.Model(&MyModel{}).Where("id = ?", id).Updates(updates).Error
+}
+```
+
+handler 禁项与边界完全沿用 §1.6.2「禁止」清单（不开新 session / 不做外部 IO / 不静默吞 error / 不绕过 registry）。
+
+#### 5. 审计 method 命名：`<层>.<域>.<动作>`，改名走三处同步
+
+业务侧落 audit log 的 `Method` 字段必须遵循 `<层>.<域>.<动作>` 三段式。当前仓库已落地的稳定 method 字符串：
+
+```
+admin.spu.insert
+admin.spu.update
+admin.spu.delete
+admin.spu.submit
+admin.announcement.insert
+admin.announcement.update
+admin.announcement.delete
+admin.announcement.markRead
+platform.workflow.task.approve
+platform.workflow.task.reject
+```
+
+- 层 = app 目录名（`admin` / `platform` / `jobs` / `other`）
+- 域 = 业务模型（spu / announcement / workflow.task / ...）
+- 动作 = 全小写动词（insert / update / delete / submit / approve / reject / markRead / ...）
+
+**改名约束（硬规则）**：这些字符串是后续日志查询、告警、排查链路的稳定 key，改名必须**同时**改三处，否则视为破坏契约：
+
+1. `app/<层>/apis/<域>.go` 中 `audit.Entry.Method` 字段
+2. `app/<层>/service/<域>_e2e_test.go` 的 `TestE2E_*_AuditMethod_Contract` 契约用例（SPU 样板 `spu_e2e_test.go:492`）
+3. `docs/<模块>-guide.md` 与本规约引用同一字符串的段落
+
+任一处漏改 e2e 即红。新增 Method 时也要补一行契约用例。
+
+#### 6. 角色种子写 migration，不靠手工补
+
+业务模块上线必须带「角色种子 migration」，落下列三类数据，**全程单事务、幂等**（`FirstOrCreate` / count-check）：
+
+- `sys_role` — 业务管理员 / 业务操作员 两个最小角色，`data_scope` 显式给值（管理员通常 `"1"`，操作员通常 `"5"`）
+- `sys_role_menu` — 把业务页 / 按钮菜单挂到上面两个角色；按钮**全集**（管理员）与**操作子集**（操作员）在 migration 内分别按 `permission IN ?` + `menu_type = 'F'` 查出，不要写魔法菜单 ID
+- `sys_casbin_rule` — 由 menu → api 桥（`sys_menu_api_rule`）推出来的 `(role_key, api_path, api_action)` 三元组
+
+样板：`1779000000003_product_role_seed.go`（落 `product_admin` + `product_operator`，覆盖 SPU / SKU / Category / Brand 四组按钮）。
+
+**禁止**：
+
+- 把角色种子写到 `config/db.sql`——那是初始化基线，演进性补丁不入 `db.sql`（见 §1.7 / §3.5）
+- 把角色种子写到 `config/menu-batch*.sql` 或 `docs/sql/*.sql`——这两类是「应急 / 人工修库」目录，**不在自动迁移链上**，装机即丢
+- 依赖运营在角色管理页手工勾菜单——fresh-install e2e 会缺数据导致 Casbin 拒绝
+
+#### 验收：fresh-install e2e
+
+满足上述 6 条契约的业务模块，在干净库上跑：
+
+```bash
+go-admin migrate -c config/settings.yml
+go test ./go-admin/app/<层>/service/... -run TestE2E_<域>_ -count=1
+```
+
+应当**全绿**，**不需要任何手工 SQL / 手工角色赋权**步骤。这是本节的最终验收口径，也是后续业务模块照抄本样板的判定标准。
+
 ### 1.7 migration、seed、手工数据修复的边界
 
 - 当前正式迁移入口是 `go-admin migrate -c ...`。
