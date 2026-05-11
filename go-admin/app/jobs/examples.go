@@ -15,10 +15,10 @@ import (
 // 字典 key 可以配置到 自动任务 调用目标 中；
 func InitJob() {
 	jobList = map[string]JobExec{
-		"ExamplesOne":      ExamplesOne{},
-		"PullDeptTask":     PullDeptTask{},
-		"PullCustomerTask": PullCustomerTask{},
-		// ...
+		"ExamplesOne":               ExamplesOne{},
+		"PullDeptTask":              PullDeptTask{},
+		"PullCustomerTask":          PullCustomerTask{},
+		"AnnouncementAttachmentGC":  AnnouncementAttachmentGC{},
 	}
 }
 

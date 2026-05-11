@@ -56,6 +56,9 @@ settings:
       localhost: "/prod-api/"
       bucket: "ym-project-1"
       forgeignHost: "http://121.43.123.62:8000"
+    announcement:
+      attachment_gc:
+        dry_run: true   # 上线 7 天后由运维改 false
   cache:
     redis:
       addr: 127.0.0.1:6379

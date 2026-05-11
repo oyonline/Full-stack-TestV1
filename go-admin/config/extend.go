@@ -13,9 +13,20 @@ var ExtConfig Extend
 // 使用方法： config.ExtConfig......即可！！
 
 type Extend struct {
-	Lingxing Lingxing
-	Feishu   Feishu
-	Kingdee  Kingdee
+	Lingxing     Lingxing
+	Feishu       Feishu
+	Kingdee      Kingdee
+	Announcement AnnouncementGCConfig
+}
+
+// AnnouncementGCConfig 公告附件 GC 配置
+type AnnouncementGCConfig struct {
+	AttachmentGC AttachmentGC `yaml:"attachment_gc"`
+}
+
+// AttachmentGC 附件垃圾回收开关
+type AttachmentGC struct {
+	DryRun bool `yaml:"dry_run"`
 }
 
 type Lingxing struct {
