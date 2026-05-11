@@ -1,0 +1,741 @@
+2026-05-11 10:11:21.372+0800 info * => [0;0;32mroot:1Qazwsxedc01@@tcp(127.0.0.1:3306)/full_stack_test_v1?charset=utf8&parseTime=True&loc=Local&timeout=1000ms[0m
+2026-05-11 10:11:21.376+0800 info [0;0;32mmysql connect success ![0m
+2026-05-11 10:11:21.376+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[0.116ms] [34;1m[rows:-][0m SELECT DATABASE()
+2026-05-11 10:11:21.378+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[2.139ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'full_stack_test_v1%' ORDER BY SCHEMA_NAME='full_stack_test_v1' DESC,SCHEMA_NAME limit 1
+2026-05-11 10:11:21.380+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[1.919ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'full_stack_test_v1' AND table_name = 'casbin_rule' AND table_type = 'BASE TABLE'
+2026-05-11 10:11:21.380+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[0.112ms] [34;1m[rows:-][0m SELECT DATABASE()
+2026-05-11 10:11:21.381+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[0.326ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'full_stack_test_v1%' ORDER BY SCHEMA_NAME='full_stack_test_v1' DESC,SCHEMA_NAME limit 1
+2026-05-11 10:11:21.381+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[0.482ms] [34;1m[rows:-][0m SELECT * FROM `casbin_rule` LIMIT 1
+2026-05-11 10:11:21.384+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[2.807ms] [34;1m[rows:-][0m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'full_stack_test_v1' AND table_name = 'casbin_rule' ORDER BY ORDINAL_POSITION
+2026-05-11 10:11:21.384+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:429 [0m[33m[0.110ms] [34;1m[rows:-][0m SELECT DATABASE()
+2026-05-11 10:11:21.385+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:429 [0m[33m[0.425ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'full_stack_test_v1%' ORDER BY SCHEMA_NAME='full_stack_test_v1' DESC,SCHEMA_NAME limit 1
+2026-05-11 10:11:21.387+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:429 [0m[33m[2.392ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'full_stack_test_v1' AND table_name = 'casbin_rule' AND index_name = 'idx_casbin_rule'
+2026-05-11 10:11:21.388+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:492 [0m[33m[0.217ms] [34;1m[rows:3][0m SELECT * FROM `casbin_rule` ORDER BY ID
+2026-05-11 10:11:21.388+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:492 [0m[33m[0.109ms] [34;1m[rows:3][0m SELECT * FROM `casbin_rule` ORDER BY ID
+2026/05/11 10:11:21 config init
+2026-05-11 10:11:21.388+0800 info starting api server...
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+{"timestamp":"2026-05-11 10:11:21.21110","caller":"rule_manager.go:102","logLevel":"INFO","msg":"[SystemRuleManager] System rules loaded","rules":{"3":[{"metricType":3,"triggerCount":200,"strategy":1}]}}
+[GIN-debug] GET    /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.IndexAction.func5 (13 handlers)
+[GIN-debug] GET    /api/v1/sysjob/:id        --> go-admin/app/jobs/router.registerSysJobRouter.ViewAction.func6 (13 handlers)
+[GIN-debug] POST   /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.CreateAction.func7 (13 handlers)
+[GIN-debug] PUT    /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.UpdateAction.func8 (13 handlers)
+[GIN-debug] DELETE /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.DeleteAction.func9 (13 handlers)
+[GIN-debug] GET    /api/v1/job/remove/:id    --> go-admin/app/jobs/apis.SysJob.RemoveJobForService-fm (11 handlers)
+[GIN-debug] GET    /api/v1/job/start/:id     --> go-admin/app/jobs/apis.SysJob.StartJobForService-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/callback   --> go-admin/app/other/apis.FeishuCallback.Callback-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/orgList    --> go-admin/app/other/apis.FeishuCallback.OrgList-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/departtment --> go-admin/app/other/apis.FeishuCallback.DepartmentList-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/platform   --> go-admin/app/other/apis.FeishuCallback.PlatformList-fm (11 handlers)
+[GIN-debug] GET    /api/v1/feishu/subscript  --> go-admin/app/other/apis.FeishuCallback.Subscript-fm (11 handlers)
+[GIN-debug] GET    /api/v1/metrics           --> go-admin/app/other/router.registerMonitorRouter.Handler.func2 (11 handlers)
+[GIN-debug] GET    /api/v1/health            --> go-admin/app/other/router.registerMonitorRouter.func1 (11 handlers)
+[GIN-debug] POST   /api/v1/public/uploadFile --> go-admin/app/other/apis.File.UploadFile-fm (12 handlers)
+[GIN-debug] GET    /api/v1/captcha           --> go-admin/app/admin/apis.System.GenerateCaptchaHandler-fm (11 handlers)
+[GIN-debug] GET    /api/v1/gen/preview/:tableId --> go-admin/app/other/apis/tools.Gen.Preview-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/toproject/:tableId --> go-admin/app/other/apis/tools.Gen.GenCode-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/apitofile/:tableId --> go-admin/app/other/apis/tools.Gen.GenApiToFile-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/todb/:tableId --> go-admin/app/other/apis/tools.Gen.GenMenuAndApi-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/tabletree     --> go-admin/app/other/apis/tools.SysTable.GetSysTablesTree-fm (12 handlers)
+[GIN-debug] GET    /api/v1/db/tables/page    --> go-admin/app/other/apis/tools.Gen.GetDBTableList-fm (12 handlers)
+[GIN-debug] GET    /api/v1/db/columns/page   --> go-admin/app/other/apis/tools.Gen.GetDBColumnList-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys/tables/page   --> go-admin/app/other/apis/tools.SysTable.GetPage-fm (12 handlers)
+[GIN-debug] POST   /api/v1/sys/tables/info   --> go-admin/app/other/apis/tools.SysTable.Insert-fm (12 handlers)
+[GIN-debug] PUT    /api/v1/sys/tables/info   --> go-admin/app/other/apis/tools.SysTable.Update-fm (12 handlers)
+[GIN-debug] DELETE /api/v1/sys/tables/info/:tableId --> go-admin/app/other/apis/tools.SysTable.Delete-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys/tables/info/:tableId --> go-admin/app/other/apis/tools.SysTable.Get-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys/tables/info   --> go-admin/app/other/apis/tools.SysTable.GetSysTablesInfo-fm (12 handlers)
+[GIN-debug] GET    /api/v1/server-monitor    --> go-admin/app/other/apis.ServerMonitor.ServerInfo-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/attachments --> go-admin/app/platform/apis.Attachment.GetPage-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/attachments/upload --> go-admin/app/platform/apis.Attachment.Upload-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/attachments/:id/download --> go-admin/app/platform/apis.Attachment.Download-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/platform/attachments/:id --> go-admin/app/platform/apis.Attachment.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/modules  --> go-admin/app/platform/apis.ModuleRegistry.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/modules/:id --> go-admin/app/platform/apis.ModuleRegistry.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/modules  --> go-admin/app/platform/apis.ModuleRegistry.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/platform/modules  --> go-admin/app/platform/apis.ModuleRegistry.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/platform/modules/:id --> go-admin/app/platform/apis.ModuleRegistry.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/definitions --> go-admin/app/platform/apis.Workflow.GetDefinitionPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/definitions/:id --> go-admin/app/platform/apis.Workflow.GetDefinition-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/definitions --> go-admin/app/platform/apis.Workflow.InsertDefinition-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/platform/workflow/definitions --> go-admin/app/platform/apis.Workflow.UpdateDefinition-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/platform/workflow/definitions/:id --> go-admin/app/platform/apis.Workflow.DeleteDefinition-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/definitions/:id/nodes --> go-admin/app/platform/apis.Workflow.GetDefinitionNodes-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/platform/workflow/definitions/:id/nodes --> go-admin/app/platform/apis.Workflow.SaveDefinitionNodes-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/instances/start --> go-admin/app/platform/apis.Workflow.StartInstance-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/instances/started --> go-admin/app/platform/apis.Workflow.GetStartedInstancePage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/instances/:id --> go-admin/app/platform/apis.Workflow.GetInstance-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/instances/:id/actions --> go-admin/app/platform/apis.Workflow.GetInstanceActions-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/instances/:id/withdraw --> go-admin/app/platform/apis.Workflow.WithdrawInstance-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/tasks/todo --> go-admin/app/platform/apis.Workflow.GetTodoTaskPage-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/tasks/:id/approve --> go-admin/app/platform/apis.Workflow.ApproveTask-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/tasks/:id/reject --> go-admin/app/platform/apis.Workflow.RejectTask-fm (13 handlers)
+2026/05/11 10:11:21 websocket manage start
+[GIN-debug] GET    /                         --> go-admin/app/admin/apis.GoAdmin (11 handlers)
+[GIN-debug] GET    /info                     --> go-admin/common/middleware/handler.Ping (11 handlers)
+[GIN-debug] GET    /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] HEAD   /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] GET    /form-generator/*filepath --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] HEAD   /form-generator/*filepath --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] GET    /swagger/admin/*any       --> github.com/swaggo/gin-swagger.CustomWrapHandler.func1 (11 handlers)
+[GIN-debug] GET    /ws/:id/:channel          --> github.com/go-admin-team/go-admin-core/sdk/pkg/ws.(*Manager).WsClient-fm (12 handlers)
+[GIN-debug] GET    /wslogout/:id/:channel    --> github.com/go-admin-team/go-admin-core/sdk/pkg/ws.(*Manager).UnWsClient-fm (12 handlers)
+[GIN-debug] POST   /api/v1/login             --> github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth.(*GinJWTMiddleware).LoginHandler-fm (11 handlers)
+[GIN-debug] GET    /api/v1/refresh_token     --> github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth.(*GinJWTMiddleware).RefreshHandler-fm (11 handlers)
+[GIN-debug] GET    /api/v1/roleMenuTreeselect/:roleId --> go-admin/app/admin/apis.SysMenu.GetMenuTreeSelect-fm (13 handlers)
+[GIN-debug] GET    /api/v1/roleDeptTreeselect/:roleId --> go-admin/app/admin/apis.SysDept.GetDeptTreeRoleSelect-fm (13 handlers)
+[GIN-debug] POST   /api/v1/logout            --> go-admin/common/middleware/handler.LogOut (13 handlers)
+[GIN-debug] GET    /api/v1/branding/default-logo.png --> go-admin/app/admin/apis.Branding.GetDefaultLogoPNG-fm (11 handlers)
+[GIN-debug] GET    /api/v1/branding/email-preview --> go-admin/app/admin/apis.Branding.GetEmailPreview-fm (11 handlers)
+[GIN-debug] GET    /api/v1/announcement      --> go-admin/app/admin/apis.Announcement.GetPage-fm (14 handlers)
+[GIN-debug] GET    /api/v1/announcement/:id  --> go-admin/app/admin/apis.Announcement.Get-fm (14 handlers)
+[GIN-debug] POST   /api/v1/announcement      --> go-admin/app/admin/apis.Announcement.Insert-fm (14 handlers)
+[GIN-debug] PUT    /api/v1/announcement/:id  --> go-admin/app/admin/apis.Announcement.Update-fm (14 handlers)
+[GIN-debug] DELETE /api/v1/announcement      --> go-admin/app/admin/apis.Announcement.Delete-fm (14 handlers)
+[GIN-debug] POST   /api/v1/announcement/:id/read --> go-admin/app/admin/apis.Announcement.MarkRead-fm (14 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer  --> go-admin/app/admin/apis.KingdeeCustomer.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/:id --> go-admin/app/admin/apis.KingdeeCustomer.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/kingdee-customer  --> go-admin/app/admin/apis.KingdeeCustomer.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/kingdee-customer/:id --> go-admin/app/admin/apis.KingdeeCustomer.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/kingdee-customer  --> go-admin/app/admin/apis.KingdeeCustomer.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/template --> go-admin/app/admin/apis.KingdeeCustomer.DownloadTemplate-fm (13 handlers)
+[GIN-debug] POST   /api/v1/kingdee-customer/import --> go-admin/app/admin/apis.KingdeeCustomer.Import-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/export --> go-admin/app/admin/apis.KingdeeCustomer.Export-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/pull --> go-admin/app/admin/apis.KingdeeCustomer.PullKingdeeCustomers-fm (13 handlers)
+[GIN-debug] POST   /api/v1/kingdee-customer/group --> go-admin/app/admin/apis.KingdeeCustomer.PullKingdeeCustomerGroups-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/group --> go-admin/app/admin/apis.KingdeeCustomer.GetKingdeeCustomerGroups-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/organize --> go-admin/app/admin/apis.KingdeeCustomer.PullKingdeeOrganizeInfos-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sku               --> go-admin/app/admin/apis.Sku.GetPage-fm (14 handlers)
+[GIN-debug] GET    /api/v1/sku/:id           --> go-admin/app/admin/apis.Sku.Get-fm (14 handlers)
+[GIN-debug] POST   /api/v1/sku               --> go-admin/app/admin/apis.Sku.Insert-fm (14 handlers)
+[GIN-debug] PUT    /api/v1/sku/:id           --> go-admin/app/admin/apis.Sku.Update-fm (14 handlers)
+[GIN-debug] DELETE /api/v1/sku               --> go-admin/app/admin/apis.Sku.Delete-fm (14 handlers)
+[GIN-debug] GET    /api/v1/sku-brand         --> go-admin/app/admin/apis.SkuBrand.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sku-brand/:id     --> go-admin/app/admin/apis.SkuBrand.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/sku-brand         --> go-admin/app/admin/apis.SkuBrand.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sku-brand/:id     --> go-admin/app/admin/apis.SkuBrand.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sku-brand         --> go-admin/app/admin/apis.SkuBrand.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sku-category      --> go-admin/app/admin/apis.SkuCategory.GetTree-fm (13 handlers)
+[GIN-debug] POST   /api/v1/sku-category      --> go-admin/app/admin/apis.SkuCategory.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sku-category/:id  --> go-admin/app/admin/apis.SkuCategory.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sku-category      --> go-admin/app/admin/apis.SkuCategory.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/spu               --> go-admin/app/admin/apis.Spu.GetPage-fm (14 handlers)
+[GIN-debug] GET    /api/v1/spu/:id           --> go-admin/app/admin/apis.Spu.Get-fm (14 handlers)
+[GIN-debug] POST   /api/v1/spu               --> go-admin/app/admin/apis.Spu.Insert-fm (14 handlers)
+[GIN-debug] PUT    /api/v1/spu/:id           --> go-admin/app/admin/apis.Spu.Update-fm (14 handlers)
+[GIN-debug] DELETE /api/v1/spu               --> go-admin/app/admin/apis.Spu.Delete-fm (14 handlers)
+[GIN-debug] POST   /api/v1/spu/:id/submit    --> go-admin/app/admin/apis.Spu.Submit-fm (14 handlers)
+[GIN-debug] GET    /api/v1/sys-api           --> go-admin/app/admin/apis.SysApi.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-api/:id       --> go-admin/app/admin/apis.SysApi.Get-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sys-api/:id       --> go-admin/app/admin/apis.SysApi.Update-fm (13 handlers)
+[GIN-debug] GET    /api/v1/config            --> go-admin/app/admin/apis.SysConfig.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/config/:id        --> go-admin/app/admin/apis.SysConfig.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/config            --> go-admin/app/admin/apis.SysConfig.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/config/:id        --> go-admin/app/admin/apis.SysConfig.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/config            --> go-admin/app/admin/apis.SysConfig.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/configKey/:configKey --> go-admin/app/admin/apis.SysConfig.GetSysConfigByKEYForService-fm (12 handlers)
+[GIN-debug] GET    /api/v1/app-config        --> go-admin/app/admin/apis.SysConfig.Get2SysApp-fm (11 handlers)
+[GIN-debug] PUT    /api/v1/set-config        --> go-admin/app/admin/apis.SysConfig.Update2Set-fm (12 handlers)
+[GIN-debug] GET    /api/v1/set-config        --> go-admin/app/admin/apis.SysConfig.Get2Set-fm (12 handlers)
+[GIN-debug] GET    /api/v1/dept              --> go-admin/app/admin/apis.SysDept.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dept/:id          --> go-admin/app/admin/apis.SysDept.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/dept              --> go-admin/app/admin/apis.SysDept.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/dept/:id          --> go-admin/app/admin/apis.SysDept.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/dept              --> go-admin/app/admin/apis.SysDept.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/deptTree          --> go-admin/app/admin/apis.SysDept.Get2Tree-fm (12 handlers)
+[GIN-debug] GET    /api/v1/dict/data         --> go-admin/app/admin/apis.SysDictData.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/data/:dictCode --> go-admin/app/admin/apis.SysDictData.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/dict/data         --> go-admin/app/admin/apis.SysDictData.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/dict/data/:dictCode --> go-admin/app/admin/apis.SysDictData.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/dict/data         --> go-admin/app/admin/apis.SysDictData.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/type-option-select --> go-admin/app/admin/apis.SysDictType.GetAll-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/type         --> go-admin/app/admin/apis.SysDictType.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/type/:id     --> go-admin/app/admin/apis.SysDictType.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/dict/type         --> go-admin/app/admin/apis.SysDictType.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/dict/type/:id     --> go-admin/app/admin/apis.SysDictType.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/dict/type         --> go-admin/app/admin/apis.SysDictType.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict-data/option-select --> go-admin/app/admin/apis.SysDictData.GetAll-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-login-log     --> go-admin/app/admin/apis.SysLoginLog.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-login-log/:id --> go-admin/app/admin/apis.SysLoginLog.Get-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sys-login-log     --> go-admin/app/admin/apis.SysLoginLog.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/menu              --> go-admin/app/admin/apis.SysMenu.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/menu/:id          --> go-admin/app/admin/apis.SysMenu.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/menu              --> go-admin/app/admin/apis.SysMenu.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/menu/:id          --> go-admin/app/admin/apis.SysMenu.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/menu              --> go-admin/app/admin/apis.SysMenu.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/menurole          --> go-admin/app/admin/apis.SysMenu.GetMenuRole-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys-opera-log     --> go-admin/app/admin/apis.SysOperaLog.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-opera-log/:id --> go-admin/app/admin/apis.SysOperaLog.Get-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sys-opera-log     --> go-admin/app/admin/apis.SysOperaLog.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/post              --> go-admin/app/admin/apis.SysPost.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/post/:id          --> go-admin/app/admin/apis.SysPost.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/post              --> go-admin/app/admin/apis.SysPost.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/post/:id          --> go-admin/app/admin/apis.SysPost.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/post              --> go-admin/app/admin/apis.SysPost.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/role              --> go-admin/app/admin/apis.SysRole.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/role/:id          --> go-admin/app/admin/apis.SysRole.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/role              --> go-admin/app/admin/apis.SysRole.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/role/:id          --> go-admin/app/admin/apis.SysRole.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/role              --> go-admin/app/admin/apis.SysRole.Delete-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/role-status       --> go-admin/app/admin/apis.SysRole.Update2Status-fm (12 handlers)
+[GIN-debug] PUT    /api/v1/roledatascope     --> go-admin/app/admin/apis.SysRole.Update2DataScope-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-user/:id      --> go-admin/app/admin/apis.SysUser.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/user/profile      --> go-admin/app/admin/apis.SysUser.GetProfile-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/profile      --> go-admin/app/admin/apis.SysUser.UpdateProfile-fm (13 handlers)
+[GIN-debug] POST   /api/v1/user/avatar       --> go-admin/app/admin/apis.SysUser.InsetAvatar-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/pwd/set      --> go-admin/app/admin/apis.SysUser.UpdatePwd-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/pwd/reset    --> go-admin/app/admin/apis.SysUser.ResetPwd-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/status       --> go-admin/app/admin/apis.SysUser.UpdateStatus-fm (13 handlers)
+[GIN-debug] GET    /api/v1/getinfo           --> go-admin/app/admin/apis.SysUser.GetInfo-fm (12 handlers)
+[0;0;31m
+                                                              ____
+                                               ,---,        ,'  , `.  ,--,
+              ,---.      ,---,.              ,---.'|     ,-+-,.' _ |,--.'|         ,---,
+  ,----._,.  '   ,'\   ,'  .' |              |   | :  ,-+-. ;   , |||  |,      ,-+-. /  |
+ /   /  ' / /   /   |,---.'   , ,--.--.      |   | | ,--.'|'   |  ||`--'_     ,--.'|'   |
+|   :     |.   ; ,. :|   |    |/       \   ,--.__| ||   |  ,', |  |,,' ,'|   |   |  ,"' |
+|   | .\  .'   | |: ::   :  .'.--.  .-. | /   ,'   ||   | /  | |--' '  | |   |   | /  | |
+.   ; ';  |'   | .; ::   |.'   \__\/: . ..   '  /  ||   : |  | ,    |  | :   |   | |  | |
+'   .   . ||   :    |`---'     ," .--.; |'   ; |:  ||   : |  |/     '  : |__ |   | |  |/
+ `---`-'| | \   \  /          /  /  ,.  ||   | '/  '|   | |`-'      |  | '.'||   | |--'
+ .'__/\_: |  `----'          ;  :   .'   \   :    :||   ;/          ;  :    ;|   |/
+ |   :    :                  |  ,     .-./\   \  /  '---'           |  ,   / '---'
+  \   \  /                    `--`---'     `----'                    ---`-'
+   `--`-'
+[0m
+欢迎使用 [0;0;32mgo-admin 2.2.0[0m 可以使用 [0;0;31m-h[0m 查看命令 
+
+[0;0;32mServer run at:[0m
+-  Local:   http://localhost:10082/ 
+2026-05-11 10:11:21  [INFO] JobCore Starting...
+-  Network: http://172.16.96.221:10082/ 
+[0;0;32mSwagger run at:[0m
+-  Local:   http://localhost:10082/swagger/admin/index.html 
+-  Network: http://172.16.96.221:10082/swagger/admin/index.html 
+2026-05-11 10:11:21 Enter Control + C Shutdown Server 
+2026-05-11 10:11:21.391+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/models/sys_job.go:48 [0m[33m[0.962ms] [34;1m[rows:0][0m SELECT * FROM `sys_job` WHERE status = 2 AND `sys_job`.`deleted_at` IS NULL
+2026-05-11 10:11:21  [INFO] JobCore total:0
+2026-05-11 10:11:21.394+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/models/sys_job.go:57 [0m[33m[2.550ms] [34;1m[rows:1][0m UPDATE `sys_job` SET `entry_id`=0 WHERE entry_id > 0
+2026-05-11 10:11:21  [INFO] JobCore start success.
+2026-05-11 11:19:39.881+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[42.335ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 11:19:39.883+0800 info 
+2026-05-11 11:19:39.902+0800 info 
+2026-05-11 11:43:38.515+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[53.447ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 11:43:38.515+0800 info 
+2026-05-11 11:43:48.642+0800 info DriverDigitFunc answer: 4291
+2026-05-11 11:43:48.642+0800 info 
+2026-05-11 11:45:27.650+0800 info * => [0;0;32mroot:1Qazwsxedc01@@tcp(127.0.0.1:3306)/full_stack_test_v1?charset=utf8&parseTime=True&loc=Local&timeout=1000ms[0m
+2026-05-11 11:45:27.788+0800 info [0;0;32mmysql connect success ![0m
+2026-05-11 11:45:27.791+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[2.180ms] [34;1m[rows:-][0m SELECT DATABASE()
+2026-05-11 11:45:28.073+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[281.823ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'full_stack_test_v1%' ORDER BY SCHEMA_NAME='full_stack_test_v1' DESC,SCHEMA_NAME limit 1
+2026-05-11 11:45:28.120+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[46.295ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.tables WHERE table_schema = 'full_stack_test_v1' AND table_name = 'casbin_rule' AND table_type = 'BASE TABLE'
+2026-05-11 11:45:28.120+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[0.183ms] [34;1m[rows:-][0m SELECT DATABASE()
+2026-05-11 11:45:28.120+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[0.496ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'full_stack_test_v1%' ORDER BY SCHEMA_NAME='full_stack_test_v1' DESC,SCHEMA_NAME limit 1
+2026-05-11 11:45:28.168+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[47.763ms] [34;1m[rows:-][0m SELECT * FROM `casbin_rule` LIMIT 1
+2026-05-11 11:45:28.282+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:423 [0m[33m[113.786ms] [34;1m[rows:-][0m SELECT column_name, column_default, is_nullable = 'YES', data_type, character_maximum_length, column_type, column_key, extra, column_comment, numeric_precision, numeric_scale , datetime_precision FROM information_schema.columns WHERE table_schema = 'full_stack_test_v1' AND table_name = 'casbin_rule' ORDER BY ORDINAL_POSITION
+2026-05-11 11:45:28.282+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:429 [0m[33m[0.133ms] [34;1m[rows:-][0m SELECT DATABASE()
+2026-05-11 11:45:28.283+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:429 [0m[33m[0.539ms] [34;1m[rows:1][0m SELECT SCHEMA_NAME from Information_schema.SCHEMATA where SCHEMA_NAME LIKE 'full_stack_test_v1%' ORDER BY SCHEMA_NAME='full_stack_test_v1' DESC,SCHEMA_NAME limit 1
+2026-05-11 11:45:28.284+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:429 [0m[33m[1.211ms] [34;1m[rows:-][0m SELECT count(*) FROM information_schema.statistics WHERE table_schema = 'full_stack_test_v1' AND table_name = 'casbin_rule' AND index_name = 'idx_casbin_rule'
+2026-05-11 11:45:28.285+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:492 [0m[33m[0.275ms] [34;1m[rows:3][0m SELECT * FROM `casbin_rule` ORDER BY ID
+2026-05-11 11:45:28.286+0800 trace [32m/Users/linshen/go/pkg/mod/github.com/casbin/gorm-adapter/v3@v3.32.0/adapter.go:492 [0m[33m[0.107ms] [34;1m[rows:3][0m SELECT * FROM `casbin_rule` ORDER BY ID
+2026/05/11 11:45:28 config init
+2026-05-11 11:45:28.286+0800 info starting api server...
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+{"timestamp":"2026-05-11 11:45:28.28110","caller":"rule_manager.go:102","logLevel":"INFO","msg":"[SystemRuleManager] System rules loaded","rules":{"3":[{"metricType":3,"triggerCount":200,"strategy":1}]}}
+[GIN-debug] GET    /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.IndexAction.func5 (13 handlers)
+[GIN-debug] GET    /api/v1/sysjob/:id        --> go-admin/app/jobs/router.registerSysJobRouter.ViewAction.func6 (13 handlers)
+[GIN-debug] POST   /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.CreateAction.func7 (13 handlers)
+[GIN-debug] PUT    /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.UpdateAction.func8 (13 handlers)
+[GIN-debug] DELETE /api/v1/sysjob            --> go-admin/app/jobs/router.registerSysJobRouter.DeleteAction.func9 (13 handlers)
+[GIN-debug] GET    /api/v1/job/remove/:id    --> go-admin/app/jobs/apis.SysJob.RemoveJobForService-fm (11 handlers)
+[GIN-debug] GET    /api/v1/job/start/:id     --> go-admin/app/jobs/apis.SysJob.StartJobForService-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/callback   --> go-admin/app/other/apis.FeishuCallback.Callback-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/orgList    --> go-admin/app/other/apis.FeishuCallback.OrgList-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/departtment --> go-admin/app/other/apis.FeishuCallback.DepartmentList-fm (11 handlers)
+[GIN-debug] POST   /api/v1/feishu/platform   --> go-admin/app/other/apis.FeishuCallback.PlatformList-fm (11 handlers)
+[GIN-debug] GET    /api/v1/feishu/subscript  --> go-admin/app/other/apis.FeishuCallback.Subscript-fm (11 handlers)
+[GIN-debug] GET    /api/v1/metrics           --> go-admin/app/other/router.registerMonitorRouter.Handler.func2 (11 handlers)
+[GIN-debug] GET    /api/v1/health            --> go-admin/app/other/router.registerMonitorRouter.func1 (11 handlers)
+[GIN-debug] POST   /api/v1/public/uploadFile --> go-admin/app/other/apis.File.UploadFile-fm (12 handlers)
+[GIN-debug] GET    /api/v1/captcha           --> go-admin/app/admin/apis.System.GenerateCaptchaHandler-fm (11 handlers)
+[GIN-debug] GET    /api/v1/gen/preview/:tableId --> go-admin/app/other/apis/tools.Gen.Preview-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/toproject/:tableId --> go-admin/app/other/apis/tools.Gen.GenCode-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/apitofile/:tableId --> go-admin/app/other/apis/tools.Gen.GenApiToFile-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/todb/:tableId --> go-admin/app/other/apis/tools.Gen.GenMenuAndApi-fm (12 handlers)
+[GIN-debug] GET    /api/v1/gen/tabletree     --> go-admin/app/other/apis/tools.SysTable.GetSysTablesTree-fm (12 handlers)
+[GIN-debug] GET    /api/v1/db/tables/page    --> go-admin/app/other/apis/tools.Gen.GetDBTableList-fm (12 handlers)
+[GIN-debug] GET    /api/v1/db/columns/page   --> go-admin/app/other/apis/tools.Gen.GetDBColumnList-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys/tables/page   --> go-admin/app/other/apis/tools.SysTable.GetPage-fm (12 handlers)
+[GIN-debug] POST   /api/v1/sys/tables/info   --> go-admin/app/other/apis/tools.SysTable.Insert-fm (12 handlers)
+[GIN-debug] PUT    /api/v1/sys/tables/info   --> go-admin/app/other/apis/tools.SysTable.Update-fm (12 handlers)
+[GIN-debug] DELETE /api/v1/sys/tables/info/:tableId --> go-admin/app/other/apis/tools.SysTable.Delete-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys/tables/info/:tableId --> go-admin/app/other/apis/tools.SysTable.Get-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys/tables/info   --> go-admin/app/other/apis/tools.SysTable.GetSysTablesInfo-fm (12 handlers)
+[GIN-debug] GET    /api/v1/server-monitor    --> go-admin/app/other/apis.ServerMonitor.ServerInfo-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/attachments --> go-admin/app/platform/apis.Attachment.GetPage-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/attachments/upload --> go-admin/app/platform/apis.Attachment.Upload-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/attachments/:id/download --> go-admin/app/platform/apis.Attachment.Download-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/platform/attachments/:id --> go-admin/app/platform/apis.Attachment.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/modules  --> go-admin/app/platform/apis.ModuleRegistry.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/modules/:id --> go-admin/app/platform/apis.ModuleRegistry.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/modules  --> go-admin/app/platform/apis.ModuleRegistry.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/platform/modules  --> go-admin/app/platform/apis.ModuleRegistry.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/platform/modules/:id --> go-admin/app/platform/apis.ModuleRegistry.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/definitions --> go-admin/app/platform/apis.Workflow.GetDefinitionPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/definitions/:id --> go-admin/app/platform/apis.Workflow.GetDefinition-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/definitions --> go-admin/app/platform/apis.Workflow.InsertDefinition-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/platform/workflow/definitions --> go-admin/app/platform/apis.Workflow.UpdateDefinition-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/platform/workflow/definitions/:id --> go-admin/app/platform/apis.Workflow.DeleteDefinition-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/definitions/:id/nodes --> go-admin/app/platform/apis.Workflow.GetDefinitionNodes-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/platform/workflow/definitions/:id/nodes --> go-admin/app/platform/apis.Workflow.SaveDefinitionNodes-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/instances/start --> go-admin/app/platform/apis.Workflow.StartInstance-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/instances/started --> go-admin/app/platform/apis.Workflow.GetStartedInstancePage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/instances/:id --> go-admin/app/platform/apis.Workflow.GetInstance-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/instances/:id/actions --> go-admin/app/platform/apis.Workflow.GetInstanceActions-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/instances/:id/withdraw --> go-admin/app/platform/apis.Workflow.WithdrawInstance-fm (13 handlers)
+[GIN-debug] GET    /api/v1/platform/workflow/tasks/todo --> go-admin/app/platform/apis.Workflow.GetTodoTaskPage-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/tasks/:id/approve --> go-admin/app/platform/apis.Workflow.ApproveTask-fm (13 handlers)
+[GIN-debug] POST   /api/v1/platform/workflow/tasks/:id/reject --> go-admin/app/platform/apis.Workflow.RejectTask-fm (13 handlers)
+[GIN-debug] GET    /                         --> go-admin/app/admin/apis.GoAdmin (11 handlers)
+[GIN-debug] GET    /info                     --> go-admin/common/middleware/handler.Ping (11 handlers)
+2026/05/11 11:45:28 websocket manage start
+[GIN-debug] GET    /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] HEAD   /static/*filepath         --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] GET    /form-generator/*filepath --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] HEAD   /form-generator/*filepath --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (11 handlers)
+[GIN-debug] GET    /swagger/admin/*any       --> github.com/swaggo/gin-swagger.CustomWrapHandler.func1 (11 handlers)
+[GIN-debug] GET    /ws/:id/:channel          --> github.com/go-admin-team/go-admin-core/sdk/pkg/ws.(*Manager).WsClient-fm (12 handlers)
+[GIN-debug] GET    /wslogout/:id/:channel    --> github.com/go-admin-team/go-admin-core/sdk/pkg/ws.(*Manager).UnWsClient-fm (12 handlers)
+[GIN-debug] POST   /api/v1/login             --> github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth.(*GinJWTMiddleware).LoginHandler-fm (11 handlers)
+[GIN-debug] GET    /api/v1/refresh_token     --> github.com/go-admin-team/go-admin-core/sdk/pkg/jwtauth.(*GinJWTMiddleware).RefreshHandler-fm (11 handlers)
+[GIN-debug] GET    /api/v1/roleMenuTreeselect/:roleId --> go-admin/app/admin/apis.SysMenu.GetMenuTreeSelect-fm (13 handlers)
+[GIN-debug] GET    /api/v1/roleDeptTreeselect/:roleId --> go-admin/app/admin/apis.SysDept.GetDeptTreeRoleSelect-fm (13 handlers)
+[GIN-debug] POST   /api/v1/logout            --> go-admin/common/middleware/handler.LogOut (13 handlers)
+[GIN-debug] GET    /api/v1/branding/default-logo.png --> go-admin/app/admin/apis.Branding.GetDefaultLogoPNG-fm (11 handlers)
+[GIN-debug] GET    /api/v1/branding/email-preview --> go-admin/app/admin/apis.Branding.GetEmailPreview-fm (11 handlers)
+[GIN-debug] GET    /api/v1/announcement      --> go-admin/app/admin/apis.Announcement.GetPage-fm (14 handlers)
+[GIN-debug] GET    /api/v1/announcement/:id  --> go-admin/app/admin/apis.Announcement.Get-fm (14 handlers)
+[GIN-debug] POST   /api/v1/announcement      --> go-admin/app/admin/apis.Announcement.Insert-fm (14 handlers)
+[GIN-debug] PUT    /api/v1/announcement/:id  --> go-admin/app/admin/apis.Announcement.Update-fm (14 handlers)
+[GIN-debug] DELETE /api/v1/announcement      --> go-admin/app/admin/apis.Announcement.Delete-fm (14 handlers)
+[GIN-debug] POST   /api/v1/announcement/:id/read --> go-admin/app/admin/apis.Announcement.MarkRead-fm (14 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer  --> go-admin/app/admin/apis.KingdeeCustomer.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/:id --> go-admin/app/admin/apis.KingdeeCustomer.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/kingdee-customer  --> go-admin/app/admin/apis.KingdeeCustomer.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/kingdee-customer/:id --> go-admin/app/admin/apis.KingdeeCustomer.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/kingdee-customer  --> go-admin/app/admin/apis.KingdeeCustomer.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/template --> go-admin/app/admin/apis.KingdeeCustomer.DownloadTemplate-fm (13 handlers)
+[GIN-debug] POST   /api/v1/kingdee-customer/import --> go-admin/app/admin/apis.KingdeeCustomer.Import-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/export --> go-admin/app/admin/apis.KingdeeCustomer.Export-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/pull --> go-admin/app/admin/apis.KingdeeCustomer.PullKingdeeCustomers-fm (13 handlers)
+[GIN-debug] POST   /api/v1/kingdee-customer/group --> go-admin/app/admin/apis.KingdeeCustomer.PullKingdeeCustomerGroups-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/group --> go-admin/app/admin/apis.KingdeeCustomer.GetKingdeeCustomerGroups-fm (13 handlers)
+[GIN-debug] GET    /api/v1/kingdee-customer/organize --> go-admin/app/admin/apis.KingdeeCustomer.PullKingdeeOrganizeInfos-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sku               --> go-admin/app/admin/apis.Sku.GetPage-fm (14 handlers)
+[GIN-debug] GET    /api/v1/sku/:id           --> go-admin/app/admin/apis.Sku.Get-fm (14 handlers)
+[GIN-debug] POST   /api/v1/sku               --> go-admin/app/admin/apis.Sku.Insert-fm (14 handlers)
+[GIN-debug] PUT    /api/v1/sku/:id           --> go-admin/app/admin/apis.Sku.Update-fm (14 handlers)
+[GIN-debug] DELETE /api/v1/sku               --> go-admin/app/admin/apis.Sku.Delete-fm (14 handlers)
+[GIN-debug] GET    /api/v1/sku-brand         --> go-admin/app/admin/apis.SkuBrand.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sku-brand/:id     --> go-admin/app/admin/apis.SkuBrand.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/sku-brand         --> go-admin/app/admin/apis.SkuBrand.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sku-brand/:id     --> go-admin/app/admin/apis.SkuBrand.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sku-brand         --> go-admin/app/admin/apis.SkuBrand.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sku-category      --> go-admin/app/admin/apis.SkuCategory.GetTree-fm (13 handlers)
+[GIN-debug] POST   /api/v1/sku-category      --> go-admin/app/admin/apis.SkuCategory.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sku-category/:id  --> go-admin/app/admin/apis.SkuCategory.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sku-category      --> go-admin/app/admin/apis.SkuCategory.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/spu               --> go-admin/app/admin/apis.Spu.GetPage-fm (14 handlers)
+[GIN-debug] GET    /api/v1/spu/:id           --> go-admin/app/admin/apis.Spu.Get-fm (14 handlers)
+[GIN-debug] POST   /api/v1/spu               --> go-admin/app/admin/apis.Spu.Insert-fm (14 handlers)
+[GIN-debug] PUT    /api/v1/spu/:id           --> go-admin/app/admin/apis.Spu.Update-fm (14 handlers)
+[GIN-debug] DELETE /api/v1/spu               --> go-admin/app/admin/apis.Spu.Delete-fm (14 handlers)
+[GIN-debug] POST   /api/v1/spu/:id/submit    --> go-admin/app/admin/apis.Spu.Submit-fm (14 handlers)
+[GIN-debug] GET    /api/v1/sys-api           --> go-admin/app/admin/apis.SysApi.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-api/:id       --> go-admin/app/admin/apis.SysApi.Get-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sys-api/:id       --> go-admin/app/admin/apis.SysApi.Update-fm (13 handlers)
+[GIN-debug] GET    /api/v1/config            --> go-admin/app/admin/apis.SysConfig.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/config/:id        --> go-admin/app/admin/apis.SysConfig.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/config            --> go-admin/app/admin/apis.SysConfig.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/config/:id        --> go-admin/app/admin/apis.SysConfig.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/config            --> go-admin/app/admin/apis.SysConfig.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/configKey/:configKey --> go-admin/app/admin/apis.SysConfig.GetSysConfigByKEYForService-fm (12 handlers)
+[GIN-debug] GET    /api/v1/app-config        --> go-admin/app/admin/apis.SysConfig.Get2SysApp-fm (11 handlers)
+[GIN-debug] PUT    /api/v1/set-config        --> go-admin/app/admin/apis.SysConfig.Update2Set-fm (12 handlers)
+[GIN-debug] GET    /api/v1/set-config        --> go-admin/app/admin/apis.SysConfig.Get2Set-fm (12 handlers)
+[GIN-debug] GET    /api/v1/dept              --> go-admin/app/admin/apis.SysDept.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dept/:id          --> go-admin/app/admin/apis.SysDept.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/dept              --> go-admin/app/admin/apis.SysDept.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/dept/:id          --> go-admin/app/admin/apis.SysDept.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/dept              --> go-admin/app/admin/apis.SysDept.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/deptTree          --> go-admin/app/admin/apis.SysDept.Get2Tree-fm (12 handlers)
+[GIN-debug] GET    /api/v1/dict/data         --> go-admin/app/admin/apis.SysDictData.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/data/:dictCode --> go-admin/app/admin/apis.SysDictData.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/dict/data         --> go-admin/app/admin/apis.SysDictData.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/dict/data/:dictCode --> go-admin/app/admin/apis.SysDictData.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/dict/data         --> go-admin/app/admin/apis.SysDictData.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/type-option-select --> go-admin/app/admin/apis.SysDictType.GetAll-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/type         --> go-admin/app/admin/apis.SysDictType.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict/type/:id     --> go-admin/app/admin/apis.SysDictType.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/dict/type         --> go-admin/app/admin/apis.SysDictType.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/dict/type/:id     --> go-admin/app/admin/apis.SysDictType.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/dict/type         --> go-admin/app/admin/apis.SysDictType.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/dict-data/option-select --> go-admin/app/admin/apis.SysDictData.GetAll-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-login-log     --> go-admin/app/admin/apis.SysLoginLog.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-login-log/:id --> go-admin/app/admin/apis.SysLoginLog.Get-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sys-login-log     --> go-admin/app/admin/apis.SysLoginLog.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/menu              --> go-admin/app/admin/apis.SysMenu.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/menu/:id          --> go-admin/app/admin/apis.SysMenu.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/menu              --> go-admin/app/admin/apis.SysMenu.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/menu/:id          --> go-admin/app/admin/apis.SysMenu.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/menu              --> go-admin/app/admin/apis.SysMenu.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/menurole          --> go-admin/app/admin/apis.SysMenu.GetMenuRole-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys-opera-log     --> go-admin/app/admin/apis.SysOperaLog.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-opera-log/:id --> go-admin/app/admin/apis.SysOperaLog.Get-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sys-opera-log     --> go-admin/app/admin/apis.SysOperaLog.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/post              --> go-admin/app/admin/apis.SysPost.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/post/:id          --> go-admin/app/admin/apis.SysPost.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/post              --> go-admin/app/admin/apis.SysPost.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/post/:id          --> go-admin/app/admin/apis.SysPost.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/post              --> go-admin/app/admin/apis.SysPost.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/role              --> go-admin/app/admin/apis.SysRole.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/role/:id          --> go-admin/app/admin/apis.SysRole.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/role              --> go-admin/app/admin/apis.SysRole.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/role/:id          --> go-admin/app/admin/apis.SysRole.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/role              --> go-admin/app/admin/apis.SysRole.Delete-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/role-status       --> go-admin/app/admin/apis.SysRole.Update2Status-fm (12 handlers)
+[GIN-debug] PUT    /api/v1/roledatascope     --> go-admin/app/admin/apis.SysRole.Update2DataScope-fm (12 handlers)
+[GIN-debug] GET    /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.GetPage-fm (13 handlers)
+[GIN-debug] GET    /api/v1/sys-user/:id      --> go-admin/app/admin/apis.SysUser.Get-fm (13 handlers)
+[GIN-debug] POST   /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.Insert-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.Update-fm (13 handlers)
+[GIN-debug] DELETE /api/v1/sys-user          --> go-admin/app/admin/apis.SysUser.Delete-fm (13 handlers)
+[GIN-debug] GET    /api/v1/user/profile      --> go-admin/app/admin/apis.SysUser.GetProfile-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/profile      --> go-admin/app/admin/apis.SysUser.UpdateProfile-fm (13 handlers)
+[GIN-debug] POST   /api/v1/user/avatar       --> go-admin/app/admin/apis.SysUser.InsetAvatar-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/pwd/set      --> go-admin/app/admin/apis.SysUser.UpdatePwd-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/pwd/reset    --> go-admin/app/admin/apis.SysUser.ResetPwd-fm (13 handlers)
+[GIN-debug] PUT    /api/v1/user/status       --> go-admin/app/admin/apis.SysUser.UpdateStatus-fm (13 handlers)
+[GIN-debug] GET    /api/v1/getinfo           --> go-admin/app/admin/apis.SysUser.GetInfo-fm (12 handlers)
+[0;0;31m
+                                                              ____
+                                               ,---,        ,'  , `.  ,--,
+              ,---.      ,---,.              ,---.'|     ,-+-,.' _ |,--.'|         ,---,
+  ,----._,.  '   ,'\   ,'  .' |              |   | :  ,-+-. ;   , |||  |,      ,-+-. /  |
+ /   /  ' / /   /   |,---.'   , ,--.--.      |   | | ,--.'|'   |  ||`--'_     ,--.'|'   |
+|   :     |.   ; ,. :|   |    |/       \   ,--.__| ||   |  ,', |  |,,' ,'|   |   |  ,"' |
+|   | .\  .'   | |: ::   :  .'.--.  .-. | /   ,'   ||   | /  | |--' '  | |   |   | /  | |
+.   ; ';  |'   | .; ::   |.'   \__\/: . ..   '  /  ||   : |  | ,    |  | :   |   | |  | |
+'   .   . ||   :    |`---'     ," .--.; |'   ; |:  ||   : |  |/     '  : |__ |   | |  |/
+ `---`-'| | \   \  /          /  /  ,.  ||   | '/  '|   | |`-'      |  | '.'||   | |--'
+ .'__/\_: |  `----'          ;  :   .'   \   :    :||   ;/          ;  :    ;|   |/
+ |   :    :                  |  ,     .-./\   \  /  '---'           |  ,   / '---'
+  \   \  /                    `--`---'     `----'                    ---`-'
+   `--`-'
+[0m
+欢迎使用 [0;0;32mgo-admin 2.2.0[0m 可以使用 [0;0;31m-h[0m 查看命令 
+
+[0;0;32mServer run at:[0m
+-  Local:   http://localhost:10082/ 
+2026-05-11 11:45:28  [INFO] JobCore Starting...
+-  Network: http://172.16.96.221:10082/ 
+[0;0;32mSwagger run at:[0m
+-  Local:   http://localhost:10082/swagger/admin/index.html 
+-  Network: http://172.16.96.221:10082/swagger/admin/index.html 
+2026-05-11 11:45:28 Enter Control + C Shutdown Server 
+2026-05-11 11:45:28.313+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/models/sys_job.go:48 [0m[33m[23.549ms] [34;1m[rows:1][0m SELECT * FROM `sys_job` WHERE status = 2 AND `sys_job`.`deleted_at` IS NULL
+2026-05-11 11:45:28.314+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/models/sys_job.go:57 [0m[33m[0.730ms] [34;1m[rows:0][0m UPDATE `sys_job` SET `entry_id`=0 WHERE entry_id > 0
+2026-05-11 11:45:28.318+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/models/sys_job.go:53 [0m[33m[4.299ms] [34;1m[rows:1][0m UPDATE `sys_job` SET `entry_id`=1,`updated_at`='2026-05-11 11:45:28.314' WHERE `sys_job`.`job_id` = 3 AND `sys_job`.`deleted_at` IS NULL
+2026-05-11 11:45:28  [INFO] JobCore start success.
+2026-05-11 11:46:41.247+0800 info 
+2026-05-11 11:46:47.392+0800 info 
+2026-05-11 11:47:01.036+0800 info 
+2026-05-11 11:47:06.484+0800 info DriverDigitFunc answer: 8331
+2026-05-11 11:47:06.486+0800 info 
+2026-05-11 11:47:10.853+0800 info DriverDigitFunc answer: 2571
+2026-05-11 11:47:10.853+0800 info 
+2026-05-11 11:47:14.645+0800 info DriverDigitFunc answer: 9303
+2026-05-11 11:47:14.645+0800 info 
+2026-05-11 12:00:00.063+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:72 [0m[33m[50.821ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '0' AND created_at < '2026-05-10 12:00:00.006' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 12:00:00.072+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:115 [0m[33m[8.332ms] [34;1m[rows:2][0m SELECT announcement_id, content, cover_image_url FROM `announcement` WHERE `announcement`.`deleted_at` IS NULL
+2026-05-11 12:00:00.075+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:134 [0m[33m[2.633ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '1' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 12:00:00.075+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:134 [0m[33m[0.300ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '2' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 12:00:00.075+0800 info [AnnouncementAttachmentGC] summary total_matched=0 dry_run=true spend=71.089458ms
+2026-05-11 12:00:00.076+0800 info [Job] JobCore AnnouncementAttachmentGC exec success , spend :72.034084ms
+2026-05-11 12:07:15.635+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[28.841ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 12:07:15.637+0800 info 
+2026-05-11 12:07:15.655+0800 info 
+2026-05-11 12:07:28.544+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.353ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 12:07:28.545+0800 info 
+2026-05-11 12:07:29.165+0800 info DriverDigitFunc answer: 3504
+2026-05-11 12:07:29.166+0800 info 
+2026-05-11 12:07:37.918+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/middleware/handler/login.go:22 [0m[33m[15.765ms] [34;1m[rows:1][0m SELECT * FROM `sys_user` WHERE (username = 'admin'  and status = '2') AND `sys_user`.`deleted_at` IS NULL ORDER BY `sys_user`.`user_id` LIMIT 1
+2026-05-11 12:07:37.985+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/middleware/handler/login.go:37 [0m[33m[2.212ms] [34;1m[rows:1][0m SELECT * FROM `sys_user_role` WHERE user_id = 1 ORDER BY is_primary desc, role_id asc
+2026-05-11 12:07:37.987+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/middleware/handler/login.go:59 [0m[33m[1.675ms] [34;1m[rows:1][0m SELECT * FROM `sys_role` WHERE role_id IN (1) AND `sys_role`.`deleted_at` IS NULL
+2026-05-11 12:07:38.026+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_user.go:56 [0m[33m[7.666ms] [34;1m[rows:1][0m SELECT * FROM `sys_user` WHERE `sys_user`.`user_id` = 1 AND `sys_user`.`deleted_at` IS NULL ORDER BY `sys_user`.`user_id` LIMIT 1
+2026-05-11 12:07:38.030+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_user.go:406 [0m[33m[3.260ms] [34;1m[rows:1][0m SELECT ur.user_id, ur.role_id, ur.is_primary, r.role_name, r.role_key, r.status FROM sys_user_role ur left join sys_role r on r.role_id = ur.role_id WHERE ur.user_id IN (1) ORDER BY ur.is_primary desc, ur.role_id asc
+2026-05-11 12:07:38.030+0800 info 
+2026-05-11 12:07:38.041+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_menu.go:400 [0m[33m[20.071ms] [34;1m[rows:32][0m SELECT * FROM `sys_menu` WHERE ( menu_type in ('M','C') and deleted_at is null) AND `sys_menu`.`deleted_at` IS NULL ORDER BY sort
+2026-05-11 12:07:38.041+0800 info 
+2026-05-11 12:07:38.122+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_menu.go:400 [0m[33m[1.712ms] [34;1m[rows:32][0m SELECT * FROM `sys_menu` WHERE ( menu_type in ('M','C') and deleted_at is null) AND `sys_menu`.`deleted_at` IS NULL ORDER BY sort
+2026-05-11 12:07:38.123+0800 info 
+2026-05-11 12:07:38.426+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:213 [0m[33m[5.498ms] [34;1m[rows:1][0m SELECT count(*) FROM wf_instance AS i WHERE i.starter_id = 1
+2026-05-11 12:07:38.427+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:220 [0m[33m[0.723ms] [34;1m[rows:0][0m SELECT i.instance_id,i.definition_id,i.definition_name,i.module_key,i.business_type,i.business_id,i.business_no,i.title,i.starter_id,i.starter_name,i.status,i.current_node_id,i.current_node_key,i.current_node_name,i.last_action,i.last_action_remark,i.started_at,i.finished_at FROM wf_instance AS i WHERE i.starter_id = 1 ORDER BY i.started_at DESC, i.instance_id DESC LIMIT 1
+2026-05-11 12:07:38.428+0800 info 
+2026-05-11 12:07:38.432+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[3.731ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 12:07:38.432+0800 info 
+2026-05-11 12:07:38.433+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:166 [0m[33m[13.096ms] [34;1m[rows:1][0m SELECT count(*) FROM wf_task AS t LEFT JOIN wf_instance AS i ON i.instance_id = t.instance_id WHERE t.status = 'pending' AND ((t.assignee_type = 'user' AND t.assignee_id = 1) OR (t.assignee_type = 'role' AND t.assignee_id IN (1)))
+2026-05-11 12:07:38.437+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:173 [0m[33m[3.700ms] [34;1m[rows:0][0m SELECT t.task_id,t.instance_id,t.definition_id,i.definition_name,i.module_key,i.business_type,i.business_id,i.business_no,i.title,i.starter_id,i.starter_name,i.status,i.current_node_id,i.current_node_key,i.current_node_name,t.status AS task_status,t.assignee_type,t.assignee_id,t.assignee_name,t.created_at AS task_created_at,i.started_at,i.finished_at FROM wf_task AS t LEFT JOIN wf_instance AS i ON i.instance_id = t.instance_id WHERE t.status = 'pending' AND ((t.assignee_type = 'user' AND t.assignee_id = 1) OR (t.assignee_type = 'role' AND t.assignee_id IN (1))) ORDER BY t.created_at DESC, t.task_id DESC LIMIT 5
+2026-05-11 12:07:38.438+0800 info 
+2026-05-11 12:07:43.017+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config_settings.go:992 [0m[33m[1.354ms] [34;1m[rows:1][0m SELECT * FROM `sys_config` WHERE config_key = 'sys_app_name' AND `sys_config`.`deleted_at` IS NULL ORDER BY `sys_config`.`id` LIMIT 1
+2026-05-11 12:07:43.018+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config_settings.go:992 [0m[33m[0.475ms] [34;1m[rows:1][0m SELECT * FROM `sys_config` WHERE config_key = 'sys_app_logo' AND `sys_config`.`deleted_at` IS NULL ORDER BY `sys_config`.`id` LIMIT 1
+2026-05-11 12:07:43.018+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config_settings.go:992 [0m[33m[0.356ms] [34;1m[rows:1][0m SELECT * FROM `sys_config` WHERE config_key = 'sys_app_logo_placeholder_color' AND `sys_config`.`deleted_at` IS NULL ORDER BY `sys_config`.`id` LIMIT 1
+2026-05-11 12:07:43.019+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config_settings.go:992 [0m[33m[1.113ms] [34;1m[rows:1][0m SELECT * FROM `sys_config` WHERE config_key = 'sys_ui_preferences' AND `sys_config`.`deleted_at` IS NULL ORDER BY `sys_config`.`id` LIMIT 1
+2026-05-11 12:07:43.020+0800 info 
+2026-05-11 12:07:45.933+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[5.863ms] [34;1m[rows:10][0m SELECT * FROM `sys_dict_type` WHERE `sys_dict_type`.`deleted_at` IS NULL LIMIT 10
+2026-05-11 12:07:45.933+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.304ms] [34;1m[rows:1][0m SELECT count(*) FROM `sys_dict_type` WHERE `sys_dict_type`.`deleted_at` IS NULL 
+2026-05-11 12:07:45.934+0800 info 
+2026-05-11 12:07:49.917+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[9.669ms] [34;1m[rows:1][0m SELECT * FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL LIMIT 200
+2026-05-11 12:07:49.918+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.453ms] [34;1m[rows:1][0m SELECT count(*) FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL 
+2026-05-11 12:07:49.918+0800 info 
+2026-05-11 12:07:49.924+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sku_category.go:29 [0m[33m[16.382ms] [34;1m[rows:3][0m SELECT * FROM `sku_category` WHERE `sku_category`.`status` = 2 AND `sku_category`.`deleted_at` IS NULL ORDER BY parent_id ASC, sort ASC, category_id ASC
+2026-05-11 12:07:49.924+0800 info 
+2026-05-11 12:07:49.952+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/actions/permission.go:54 [0m[33m[10.730ms] [34;1m[rows:1][0m SELECT sys_user.user_id,sys_role.role_id,sys_user.dept_id,sys_role.data_scope FROM `sys_user` left join sys_role on sys_role.role_id = sys_user.role_id WHERE sys_user.user_id = '1'
+2026-05-11 12:07:49.957+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:55 [0m[33m[4.666ms] [34;1m[rows:1][0m SELECT count(*) FROM `spu` WHERE `spu`.`deleted_at` IS NULL
+2026-05-11 12:07:49.958+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:71 [0m[33m[1.024ms] [34;1m[rows:1][0m SELECT * FROM `spu` WHERE `spu`.`deleted_at` IS NULL ORDER BY spu.spu_id DESC LIMIT 10
+2026-05-11 12:07:49.961+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:95 [0m[33m[3.137ms] [34;1m[rows:0][0m SELECT business_id, workflow_status, title FROM `wf_business_binding` WHERE module_key = 'admin' AND business_type = 'spu' AND business_id IN ('1')
+2026-05-11 12:07:49.962+0800 info 
+2026-05-11 12:07:51.932+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[1.202ms] [34;1m[rows:1][0m SELECT * FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL LIMIT 200
+2026-05-11 12:07:51.932+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sku_category.go:29 [0m[33m[1.198ms] [34;1m[rows:3][0m SELECT * FROM `sku_category` WHERE `sku_category`.`status` = 2 AND `sku_category`.`deleted_at` IS NULL ORDER BY parent_id ASC, sort ASC, category_id ASC
+2026-05-11 12:07:51.932+0800 info 
+2026-05-11 12:07:51.932+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.299ms] [34;1m[rows:1][0m SELECT count(*) FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL 
+2026-05-11 12:07:51.932+0800 info 
+2026-05-11 12:07:51.958+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/actions/permission.go:54 [0m[33m[0.591ms] [34;1m[rows:1][0m SELECT sys_user.user_id,sys_role.role_id,sys_user.dept_id,sys_role.data_scope FROM `sys_user` left join sys_role on sys_role.role_id = sys_user.role_id WHERE sys_user.user_id = '1'
+2026-05-11 12:07:51.958+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:55 [0m[33m[0.313ms] [34;1m[rows:1][0m SELECT count(*) FROM `spu` WHERE `spu`.`deleted_at` IS NULL
+2026-05-11 12:07:51.958+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:71 [0m[33m[0.358ms] [34;1m[rows:1][0m SELECT * FROM `spu` WHERE `spu`.`deleted_at` IS NULL ORDER BY spu.spu_id DESC LIMIT 10
+2026-05-11 12:07:51.959+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:95 [0m[33m[0.349ms] [34;1m[rows:0][0m SELECT business_id, workflow_status, title FROM `wf_business_binding` WHERE module_key = 'admin' AND business_type = 'spu' AND business_id IN ('1')
+2026-05-11 12:07:51.959+0800 info 
+2026-05-11 12:07:53.759+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sku_category.go:29 [0m[33m[0.475ms] [34;1m[rows:3][0m SELECT * FROM `sku_category` WHERE `sku_category`.`deleted_at` IS NULL ORDER BY parent_id ASC, sort ASC, category_id ASC
+2026-05-11 12:07:53.759+0800 info 
+2026-05-11 12:07:54.714+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[0.556ms] [34;1m[rows:1][0m SELECT * FROM `sku_brand` WHERE `sku_brand`.`deleted_at` IS NULL LIMIT 10
+2026-05-11 12:07:54.714+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.299ms] [34;1m[rows:1][0m SELECT count(*) FROM `sku_brand` WHERE `sku_brand`.`deleted_at` IS NULL 
+2026-05-11 12:07:54.714+0800 info 
+2026-05-11 12:31:37.798+0800 info 
+2026-05-11 12:31:37.827+0800 info 
+2026-05-11 12:31:37.827+0800 info 
+2026-05-11 12:31:37.828+0800 info 
+2026-05-11 12:31:37.828+0800 info 
+2026-05-11 12:31:37.830+0800 info 
+2026-05-11 12:31:37.833+0800 info 
+2026-05-11 12:31:37.863+0800 info 
+2026-05-11 12:31:37.892+0800 info 
+2026-05-11 12:31:37.986+0800 info 
+2026-05-11 12:31:38.002+0800 info 
+2026-05-11 12:31:38.002+0800 info 
+2026-05-11 12:31:38.054+0800 info 
+2026-05-11 12:31:38.067+0800 info 
+2026-05-11 12:31:38.067+0800 info 
+2026-05-11 12:31:38.222+0800 info 
+2026-05-11 12:31:39.373+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_tables.go:70 [0m[33m[31.169ms] [34;1m[rows:1][0m SELECT * FROM `sys_tables` WHERE `sys_tables`.`deleted_at` IS NULL LIMIT 10
+2026-05-11 12:31:39.376+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_tables.go:70 [0m[33m[2.636ms] [34;1m[rows:1][0m SELECT count(*) FROM `sys_tables` WHERE `sys_tables`.`deleted_at` IS NULL 
+2026-05-11 12:31:39.379+0800 info 
+2026-05-11 12:31:39.403+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/db_tables.go:35 [0m[33m[50.010ms] [34;1m[rows:10][0m SELECT * FROM `information_schema`.`tables` WHERE TABLE_NAME not in (select table_name from `full_stack_test_v1`.sys_tables)  AND table_schema= 'full_stack_test_v1'  LIMIT 10
+2026-05-11 12:31:39.405+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/db_tables.go:35 [0m[33m[2.015ms] [34;1m[rows:1][0m SELECT count(*) FROM `information_schema`.`tables` WHERE TABLE_NAME not in (select table_name from `full_stack_test_v1`.sys_tables)  AND table_schema= 'full_stack_test_v1'  
+2026-05-11 12:31:39.406+0800 info 
+2026-05-11 12:31:42.096+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/db_tables.go:55 [0m[33m[6.130ms] [34;1m[rows:1][0m SELECT * FROM `information_schema`.`tables` WHERE table_schema= 'full_stack_test_v1'  AND TABLE_NAME = 'announcement_read_log' ORDER BY `tables`.`TABLE_NAME` LIMIT 1
+2026-05-11 12:31:42.106+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/db_columns.go:66 [0m[33m[9.299ms] [34;1m[rows:3][0m SELECT * FROM `information_schema`.`columns` WHERE table_schema= 'full_stack_test_v1'  AND TABLE_NAME = 'announcement_read_log' ORDER BY ORDINAL_POSITION asc
+2026-05-11 12:31:42.119+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_tables.go:138 [0m[33m[12.309ms] [34;1m[rows:1][0m INSERT INTO `sys_tables` (`table_name`,`table_comment`,`class_name`,`tpl_category`,`package_name`,`module_name`,`module_front_name`,`business_name`,`function_name`,`function_author`,`pk_column`,`pk_go_field`,`pk_json_field`,`options`,`tree_code`,`tree_parent_code`,`tree_name`,`tree`,`crud`,`remark`,`is_data_scope`,`is_actions`,`is_auth`,`is_logical_delete`,`logical_delete`,`logical_delete_column`,`created_at`,`updated_at`,`deleted_at`,`create_by`,`update_by`) VALUES ('announcement_read_log','AnnouncementReadLog','AnnouncementReadLog','crud','admin','announcement-read-log','','announcementReadLog','AnnouncementReadLog','wenjianzhang','announcement_id','AnnouncementId','announcementId','','','','',false,true,'',1,2,1,'1',true,'is_del','2026-05-11 12:31:42.108','2026-05-11 12:31:42.108',NULL,0,0)
+2026-05-11 12:31:42.125+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_columns.go:79 [0m[33m[5.817ms] [34;1m[rows:1][0m INSERT INTO `sys_columns` (`table_id`,`column_name`,`column_comment`,`column_type`,`go_type`,`go_field`,`json_field`,`is_pk`,`is_increment`,`is_required`,`is_insert`,`is_edit`,`is_list`,`is_query`,`query_type`,`html_type`,`dict_type`,`sort`,`list`,`pk`,`required`,`super_column`,`usable_column`,`increment`,`insert`,`edit`,`query`,`remark`,`fk_table_name`,`fk_table_name_class`,`fk_table_name_package`,`fk_label_id`,`fk_label_name`,`create_by`,`update_By`,`created_at`,`updated_at`,`deleted_at`) VALUES (2,'user_id','','bigint','int','UserId','userId','1','','1','1','','','','EQ','input','',1,'',true,true,false,false,false,true,false,false,'','','','','','',0,0,'2026-05-11 12:31:42.12','2026-05-11 12:31:42.12',NULL)
+2026-05-11 12:31:42.126+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_columns.go:79 [0m[33m[1.162ms] [34;1m[rows:1][0m INSERT INTO `sys_columns` (`table_id`,`column_name`,`column_comment`,`column_type`,`go_type`,`go_field`,`json_field`,`is_pk`,`is_increment`,`is_required`,`is_insert`,`is_edit`,`is_list`,`is_query`,`query_type`,`html_type`,`dict_type`,`sort`,`list`,`pk`,`required`,`super_column`,`usable_column`,`increment`,`insert`,`edit`,`query`,`remark`,`fk_table_name`,`fk_table_name_class`,`fk_table_name_package`,`fk_label_id`,`fk_label_name`,`create_by`,`update_By`,`created_at`,`updated_at`,`deleted_at`) VALUES (2,'announcement_id','','bigint','int','AnnouncementId','announcementId','1','','1','1','','','','EQ','input','',2,'',true,true,false,false,false,true,false,false,'','','','','','',0,0,'2026-05-11 12:31:42.125','2026-05-11 12:31:42.125',NULL)
+2026-05-11 12:31:42.127+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_columns.go:79 [0m[33m[1.236ms] [34;1m[rows:1][0m INSERT INTO `sys_columns` (`table_id`,`column_name`,`column_comment`,`column_type`,`go_type`,`go_field`,`json_field`,`is_pk`,`is_increment`,`is_required`,`is_insert`,`is_edit`,`is_list`,`is_query`,`query_type`,`html_type`,`dict_type`,`sort`,`list`,`pk`,`required`,`super_column`,`usable_column`,`increment`,`insert`,`edit`,`query`,`remark`,`fk_table_name`,`fk_table_name_class`,`fk_table_name_package`,`fk_label_id`,`fk_label_name`,`create_by`,`update_By`,`created_at`,`updated_at`,`deleted_at`) VALUES (2,'read_at','','datetime(3)','time.Time','ReadAt','readAt','0','','0','1','','','','EQ','datetime','',3,'',false,false,false,false,false,true,false,false,'','','','','','',0,0,'2026-05-11 12:31:42.127','2026-05-11 12:31:42.127',NULL)
+2026-05-11 12:31:42.127+0800 info 
+2026-05-11 12:31:42.178+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_tables.go:70 [0m[33m[2.547ms] [34;1m[rows:2][0m SELECT * FROM `sys_tables` WHERE `sys_tables`.`deleted_at` IS NULL LIMIT 10
+2026-05-11 12:31:42.178+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/sys_tables.go:70 [0m[33m[0.266ms] [34;1m[rows:1][0m SELECT count(*) FROM `sys_tables` WHERE `sys_tables`.`deleted_at` IS NULL 
+2026-05-11 12:31:42.178+0800 info 
+2026-05-11 12:31:42.181+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/db_tables.go:35 [0m[33m[5.677ms] [34;1m[rows:10][0m SELECT * FROM `information_schema`.`tables` WHERE TABLE_NAME not in (select table_name from `full_stack_test_v1`.sys_tables)  AND table_schema= 'full_stack_test_v1'  LIMIT 10
+2026-05-11 12:31:42.183+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/other/models/tools/db_tables.go:35 [0m[33m[2.131ms] [34;1m[rows:1][0m SELECT count(*) FROM `information_schema`.`tables` WHERE TABLE_NAME not in (select table_name from `full_stack_test_v1`.sys_tables)  AND table_schema= 'full_stack_test_v1'  
+2026-05-11 12:31:42.183+0800 info 
+2026-05-11 12:31:47.157+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_api.go:41 [0m[33m[3.833ms] [34;1m[rows:10][0m SELECT * FROM `sys_api` WHERE `sys_api`.`deleted_at` IS NULL LIMIT 10
+2026-05-11 12:31:47.157+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_api.go:42 [0m[33m[0.629ms] [34;1m[rows:1][0m SELECT count(*) FROM `sys_api` WHERE `sys_api`.`deleted_at` IS NULL 
+2026-05-11 12:31:47.158+0800 info 
+2026-05-11 12:31:49.687+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sku_category.go:29 [0m[33m[0.765ms] [34;1m[rows:3][0m SELECT * FROM `sku_category` WHERE `sku_category`.`status` = 2 AND `sku_category`.`deleted_at` IS NULL ORDER BY parent_id ASC, sort ASC, category_id ASC
+2026-05-11 12:31:49.687+0800 info 
+2026-05-11 12:31:49.695+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[0.565ms] [34;1m[rows:1][0m SELECT * FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL LIMIT 200
+2026-05-11 12:31:49.695+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.264ms] [34;1m[rows:1][0m SELECT count(*) FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL 
+2026-05-11 12:31:49.696+0800 info 
+2026-05-11 12:31:49.730+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/actions/permission.go:54 [0m[33m[0.842ms] [34;1m[rows:1][0m SELECT sys_user.user_id,sys_role.role_id,sys_user.dept_id,sys_role.data_scope FROM `sys_user` left join sys_role on sys_role.role_id = sys_user.role_id WHERE sys_user.user_id = '1'
+2026-05-11 12:31:49.730+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:55 [0m[33m[0.407ms] [34;1m[rows:1][0m SELECT count(*) FROM `spu` WHERE `spu`.`deleted_at` IS NULL
+2026-05-11 12:31:49.731+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:71 [0m[33m[0.973ms] [34;1m[rows:1][0m SELECT * FROM `spu` WHERE `spu`.`deleted_at` IS NULL ORDER BY spu.spu_id DESC LIMIT 10
+2026-05-11 12:31:49.732+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:95 [0m[33m[0.679ms] [34;1m[rows:0][0m SELECT business_id, workflow_status, title FROM `wf_business_binding` WHERE module_key = 'admin' AND business_type = 'spu' AND business_id IN ('1')
+2026-05-11 12:31:49.732+0800 info 
+2026-05-11 12:31:50.213+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[1.175ms] [34;1m[rows:1][0m SELECT * FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL LIMIT 200
+2026-05-11 12:31:50.213+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sku_category.go:29 [0m[33m[1.427ms] [34;1m[rows:3][0m SELECT * FROM `sku_category` WHERE `sku_category`.`status` = 2 AND `sku_category`.`deleted_at` IS NULL ORDER BY parent_id ASC, sort ASC, category_id ASC
+2026-05-11 12:31:50.214+0800 info 
+2026-05-11 12:31:50.214+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.456ms] [34;1m[rows:1][0m SELECT count(*) FROM `sku_brand` WHERE `sku_brand`.`status` = 2 AND `sku_brand`.`deleted_at` IS NULL 
+2026-05-11 12:31:50.214+0800 info 
+2026-05-11 12:31:50.249+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/actions/permission.go:54 [0m[33m[0.713ms] [34;1m[rows:1][0m SELECT sys_user.user_id,sys_role.role_id,sys_user.dept_id,sys_role.data_scope FROM `sys_user` left join sys_role on sys_role.role_id = sys_user.role_id WHERE sys_user.user_id = '1'
+2026-05-11 12:31:50.249+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:55 [0m[33m[0.414ms] [34;1m[rows:1][0m SELECT count(*) FROM `spu` WHERE `spu`.`deleted_at` IS NULL
+2026-05-11 12:31:50.250+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:71 [0m[33m[0.720ms] [34;1m[rows:1][0m SELECT * FROM `spu` WHERE `spu`.`deleted_at` IS NULL ORDER BY spu.spu_id DESC LIMIT 10
+2026-05-11 12:31:50.251+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/spu.go:95 [0m[33m[0.378ms] [34;1m[rows:0][0m SELECT business_id, workflow_status, title FROM `wf_business_binding` WHERE module_key = 'admin' AND business_type = 'spu' AND business_id IN ('1')
+2026-05-11 12:31:50.251+0800 info 
+2026-05-11 12:31:50.982+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sku_category.go:29 [0m[33m[0.738ms] [34;1m[rows:3][0m SELECT * FROM `sku_category` WHERE `sku_category`.`deleted_at` IS NULL ORDER BY parent_id ASC, sort ASC, category_id ASC
+2026-05-11 12:31:50.982+0800 info 
+2026-05-11 12:31:51.899+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:61 [0m[33m[0.715ms] [34;1m[rows:1][0m SELECT * FROM `sku_brand` WHERE `sku_brand`.`deleted_at` IS NULL LIMIT 10
+2026-05-11 12:31:51.900+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/common/baseservice/base.go:62 [0m[33m[0.334ms] [34;1m[rows:1][0m SELECT count(*) FROM `sku_brand` WHERE `sku_brand`.`deleted_at` IS NULL 
+2026-05-11 12:31:51.900+0800 info 
+2026-05-11 12:31:53.701+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:213 [0m[33m[3.308ms] [34;1m[rows:1][0m SELECT count(*) FROM wf_instance AS i WHERE i.starter_id = 1
+2026-05-11 12:31:53.701+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[4.396ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 12:31:53.701+0800 info 
+2026-05-11 12:31:53.701+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:220 [0m[33m[0.532ms] [34;1m[rows:0][0m SELECT i.instance_id,i.definition_id,i.definition_name,i.module_key,i.business_type,i.business_id,i.business_no,i.title,i.starter_id,i.starter_name,i.status,i.current_node_id,i.current_node_key,i.current_node_name,i.last_action,i.last_action_remark,i.started_at,i.finished_at FROM wf_instance AS i WHERE i.starter_id = 1 ORDER BY i.started_at DESC, i.instance_id DESC LIMIT 1
+2026-05-11 12:31:53.701+0800 info 
+2026-05-11 12:31:53.708+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:166 [0m[33m[11.235ms] [34;1m[rows:1][0m SELECT count(*) FROM wf_task AS t LEFT JOIN wf_instance AS i ON i.instance_id = t.instance_id WHERE t.status = 'pending' AND ((t.assignee_type = 'user' AND t.assignee_id = 1) OR (t.assignee_type = 'role' AND t.assignee_id IN (1)))
+2026-05-11 12:31:53.712+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/platform/service/workflow.go:173 [0m[33m[3.423ms] [34;1m[rows:0][0m SELECT t.task_id,t.instance_id,t.definition_id,i.definition_name,i.module_key,i.business_type,i.business_id,i.business_no,i.title,i.starter_id,i.starter_name,i.status,i.current_node_id,i.current_node_key,i.current_node_name,t.status AS task_status,t.assignee_type,t.assignee_id,t.assignee_name,t.created_at AS task_created_at,i.started_at,i.finished_at FROM wf_task AS t LEFT JOIN wf_instance AS i ON i.instance_id = t.instance_id WHERE t.status = 'pending' AND ((t.assignee_type = 'user' AND t.assignee_id = 1) OR (t.assignee_type = 'role' AND t.assignee_id IN (1))) ORDER BY t.created_at DESC, t.task_id DESC LIMIT 5
+2026-05-11 12:31:53.712+0800 info 
+2026-05-11 13:00:00.115+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:72 [0m[33m[8.550ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '0' AND created_at < '2026-05-10 13:00:00.106' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 13:00:00.118+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:115 [0m[33m[2.502ms] [34;1m[rows:2][0m SELECT announcement_id, content, cover_image_url FROM `announcement` WHERE `announcement`.`deleted_at` IS NULL
+2026-05-11 13:00:00.119+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:134 [0m[33m[0.458ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '1' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 13:00:00.120+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:134 [0m[33m[0.372ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '2' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 13:00:00.120+0800 info [AnnouncementAttachmentGC] summary total_matched=0 dry_run=true spend=15.648625ms
+2026-05-11 13:00:00.120+0800 info [Job] JobCore AnnouncementAttachmentGC exec success , spend :15.74ms
+2026-05-11 14:00:00.969+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:72 [0m[33m[937.208ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '0' AND created_at < '2026-05-10 14:00:00.025' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 14:00:00.993+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:115 [0m[33m[22.520ms] [34;1m[rows:2][0m SELECT announcement_id, content, cover_image_url FROM `announcement` WHERE `announcement`.`deleted_at` IS NULL
+2026-05-11 14:00:01.016+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:134 [0m[33m[22.145ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '1' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 14:00:01.017+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/jobs/announcement_attachment_gc.go:134 [0m[33m[0.372ms] [34;1m[rows:0][0m SELECT * FROM `att_file` WHERE module_key = 'admin' AND business_type IN ('announcement-inline','announcement-cover') AND business_id = '2' AND `att_file`.`deleted_at` IS NULL
+2026-05-11 14:00:01.017+0800 info [AnnouncementAttachmentGC] summary total_matched=0 dry_run=true spend=992.371416ms
+2026-05-11 14:00:01.017+0800 info [Job] JobCore AnnouncementAttachmentGC exec success , spend :993.395459ms
+2026-05-11 14:04:34.787+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[47.179ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:04:34.789+0800 info 
+2026-05-11 14:04:35.293+0800 info DriverDigitFunc answer: 8207
+2026-05-11 14:04:35.293+0800 info 
+2026-05-11 14:04:37.044+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.601ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:04:37.044+0800 info 
+2026-05-11 14:04:38.326+0800 info DriverDigitFunc answer: 5073
+2026-05-11 14:04:38.326+0800 info 
+2026-05-11 14:04:40.557+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.544ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:04:40.557+0800 info 
+2026-05-11 14:04:40.592+0800 info 
+2026-05-11 14:05:13.492+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[542.799ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:13.494+0800 info 
+2026-05-11 14:05:13.805+0800 info DriverDigitFunc answer: 0112
+2026-05-11 14:05:13.807+0800 info 
+2026-05-11 14:05:15.732+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.128ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:15.733+0800 info 
+2026-05-11 14:05:16.919+0800 info DriverDigitFunc answer: 7160
+2026-05-11 14:05:16.919+0800 info 
+2026-05-11 14:05:18.894+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.806ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:18.894+0800 info 
+2026-05-11 14:05:18.952+0800 info 
+2026-05-11 14:05:40.220+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[3.666ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:40.220+0800 info 
+2026-05-11 14:05:40.579+0800 info DriverDigitFunc answer: 8468
+2026-05-11 14:05:40.579+0800 info 
+2026-05-11 14:05:43.552+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.579ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:43.552+0800 info 
+2026-05-11 14:05:44.679+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.562ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:44.679+0800 info 
+2026-05-11 14:05:44.949+0800 info DriverDigitFunc answer: 9463
+2026-05-11 14:05:44.949+0800 info 
+2026-05-11 14:05:48.545+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[3.169ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:48.545+0800 info 
+2026-05-11 14:05:49.790+0800 info DriverDigitFunc answer: 2737
+2026-05-11 14:05:49.790+0800 info 
+2026-05-11 14:05:50.453+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.839ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:50.453+0800 info 
+2026-05-11 14:05:50.486+0800 info 
+2026-05-11 14:05:52.546+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.050ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:52.546+0800 info 
+2026-05-11 14:05:52.911+0800 info DriverDigitFunc answer: 2184
+2026-05-11 14:05:52.911+0800 info 
+2026-05-11 14:05:56.960+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.986ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:56.962+0800 info 
+2026-05-11 14:05:58.494+0800 info DriverDigitFunc answer: 2771
+2026-05-11 14:05:58.494+0800 info 
+2026-05-11 14:05:59.924+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.762ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:05:59.924+0800 info 
+2026-05-11 14:05:59.965+0800 info 
+2026-05-11 14:09:41.379+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[398.119ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:09:41.386+0800 info 
+2026-05-11 14:09:42.127+0800 info DriverDigitFunc answer: 6203
+2026-05-11 14:09:42.128+0800 info 
+2026-05-11 14:09:42.154+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.771ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:09:42.154+0800 info 
+2026-05-11 14:09:43.289+0800 info DriverDigitFunc answer: 2314
+2026-05-11 14:09:43.289+0800 info 
+2026-05-11 14:09:44.881+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.899ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:09:44.881+0800 info 
+2026-05-11 14:09:44.975+0800 info 
+2026-05-11 14:10:59.125+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[57.477ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:10:59.127+0800 info 
+2026-05-11 14:10:59.423+0800 info DriverDigitFunc answer: 9920
+2026-05-11 14:10:59.424+0800 info 
+2026-05-11 14:11:02.643+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[5.747ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:02.644+0800 info 
+2026-05-11 14:11:03.906+0800 info DriverDigitFunc answer: 8388
+2026-05-11 14:11:03.906+0800 info 
+2026-05-11 14:11:04.441+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.142ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:04.441+0800 info 
+2026-05-11 14:11:04.502+0800 info 
+2026-05-11 14:11:16.373+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[2.819ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:16.373+0800 info 
+2026-05-11 14:11:16.756+0800 info DriverDigitFunc answer: 0191
+2026-05-11 14:11:16.757+0800 info 
+2026-05-11 14:11:20.533+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[22.778ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:20.533+0800 info 
+2026-05-11 14:11:20.637+0800 info 
+2026-05-11 14:11:21.497+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[2.452ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:21.497+0800 info 
+2026-05-11 14:11:21.868+0800 info DriverDigitFunc answer: 2876
+2026-05-11 14:11:21.868+0800 info 
+2026-05-11 14:11:24.310+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.934ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:24.310+0800 info 
+2026-05-11 14:11:25.465+0800 info DriverDigitFunc answer: 6758
+2026-05-11 14:11:25.466+0800 info 
+2026-05-11 14:11:26.716+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.730ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:26.717+0800 info 
+2026-05-11 14:11:27.006+0800 info DriverDigitFunc answer: 6641
+2026-05-11 14:11:27.006+0800 info 
+2026-05-11 14:11:29.748+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.650ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:29.748+0800 info 
+2026-05-11 14:11:30.921+0800 info DriverDigitFunc answer: 4919
+2026-05-11 14:11:30.922+0800 info 
+2026-05-11 14:11:33.382+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[1.104ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:33.382+0800 info 
+2026-05-11 14:11:33.424+0800 info 
+2026-05-11 14:11:34.116+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.753ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:34.116+0800 info 
+2026-05-11 14:11:34.463+0800 info DriverDigitFunc answer: 9807
+2026-05-11 14:11:34.463+0800 info 
+2026-05-11 14:11:37.630+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.585ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:37.630+0800 info 
+2026-05-11 14:11:39.166+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.682ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:39.166+0800 info 
+2026-05-11 14:11:39.441+0800 info DriverDigitFunc answer: 4047
+2026-05-11 14:11:39.441+0800 info 
+2026-05-11 14:11:42.909+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[9.320ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:42.909+0800 info 
+2026-05-11 14:11:44.344+0800 info DriverDigitFunc answer: 4287
+2026-05-11 14:11:44.344+0800 info 
+2026-05-11 14:11:44.511+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[0.542ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:11:44.511+0800 info 
+2026-05-11 14:11:44.542+0800 info 
+2026-05-11 14:12:02.427+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[448.950ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:12:02.446+0800 info 
+2026-05-11 14:12:02.780+0800 info DriverDigitFunc answer: 4048
+2026-05-11 14:12:02.780+0800 info 
+2026-05-11 14:12:05.776+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[3.056ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:12:05.776+0800 info 
+2026-05-11 14:12:06.889+0800 info DriverDigitFunc answer: 1695
+2026-05-11 14:12:06.889+0800 info 
+2026-05-11 14:12:08.287+0800 trace [32m/Users/linshen/Documents/Full-stack-TestV1/go-admin/app/admin/service/sys_config.go:247 [0m[33m[2.994ms] [34;1m[rows:4][0m SELECT * FROM `sys_config` WHERE `sys_config`.`is_frontend` = '1' AND `sys_config`.`deleted_at` IS NULL
+2026-05-11 14:12:08.287+0800 info 
+2026-05-11 14:12:08.324+0800 info 
