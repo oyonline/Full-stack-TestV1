@@ -478,11 +478,11 @@ async function persistSkuRows(spuId: number) {
   }
 }
 
-async function onEditorOk() {
+async function doSave(): Promise<number | null> {
   const v = validateForm();
   if (!v.ok) {
     message.error(v.message);
-    return;
+    return null;
   }
   editorSubmitting.value = true;
   try {
@@ -507,13 +507,34 @@ async function onEditorOk() {
       spuId = editorSpuId.value;
     }
     await persistSkuRows(spuId);
+    return spuId;
+  } catch (error: any) {
+    message.error(error?.message || '保存失败');
+    return null;
+  } finally {
+    editorSubmitting.value = false;
+  }
+}
+
+async function onEditorOk() {
+  const spuId = await doSave();
+  if (spuId != null) {
     message.success('保存成功');
     editorOpen.value = false;
     void fetchList();
+  }
+}
+
+async function onSaveAndSubmit() {
+  const spuId = await doSave();
+  if (spuId == null) return;
+  try {
+    await submitSpu(spuId, {});
+    message.success('保存并提交审核成功');
+    editorOpen.value = false;
+    void fetchList();
   } catch (error: any) {
-    message.error(error?.message || '保存失败');
-  } finally {
-    editorSubmitting.value = false;
+    message.error(error?.message || '提交审核失败');
   }
 }
 
@@ -577,6 +598,9 @@ function goToDetailPage(record: SpuItem) {
   void router.push({ name: 'SpuDetail', params: { id: String(record.spuId) } });
 }
 
+// 显式引用避免 TS6133（被 goToDetailPageWithState 调用）
+void goToDetailPage;
+
 function canEdit(status: number) {
   return status === SPU_STATUS.draft || status === SPU_STATUS.rejected;
 }
@@ -585,9 +609,61 @@ function canDelete(status: number) {
   return status !== SPU_STATUS.reviewing;
 }
 
+/* -------- 列表状态持久化（独立页返回后还原） -------- */
+const LIST_STATE_KEY = 'spu-list-state';
+
+function saveListState() {
+  try {
+    const state = {
+      query: { ...query },
+      pagination: {
+        current: pagination.current,
+        pageSize: pagination.pageSize,
+      },
+      scrollY: window.scrollY,
+    };
+    sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // ignore
+  }
+}
+
+function restoreListState() {
+  try {
+    const raw = sessionStorage.getItem(LIST_STATE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    if (state.query) {
+      Object.assign(query, state.query);
+    }
+    if (state.pagination) {
+      pagination.current = state.pagination.current ?? 1;
+      pagination.pageSize = state.pagination.pageSize ?? 10;
+    }
+    sessionStorage.removeItem(LIST_STATE_KEY);
+    void fetchList();
+    if (state.scrollY) {
+      setTimeout(() => window.scrollTo(0, state.scrollY), 0);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function goToDetailPageWithState(record: SpuItem) {
+  saveListState();
+  void router.push({ name: 'SpuDetail', params: { id: String(record.spuId) } });
+}
+
 onMounted(() => {
   void loadCategoryTree();
-  void loadBrandOptions().then(() => fetchList());
+  void loadBrandOptions().then(() => {
+    const restored = restoreListState();
+    if (!restored) {
+      void fetchList();
+    }
+  });
 });
 </script>
 
@@ -711,7 +787,7 @@ onMounted(() => {
           <template v-else>
             <a
               class="inline-flex items-center px-2 py-1 text-sm text-blue-600 hover:text-blue-700"
-              @click.prevent="goToDetailPage(record as SpuItem)"
+              @click.prevent="goToDetailPageWithState(record as SpuItem)"
               :href="router.resolve({ name: 'SpuDetail', params: { id: String((record as SpuItem).spuId) } }).href"
             >
               查看
@@ -951,6 +1027,7 @@ onMounted(() => {
       :title="detailReadonly ? 'SPU 详情' : '编辑 SPU'"
       :width="960"
       placement="right"
+      :class="{ 'spu-drawer-mobile-fullscreen': true }"
     >
       <SpuDetailContent
         v-if="detailSpuId != null"
@@ -958,6 +1035,34 @@ onMounted(() => {
         mode="drawer"
         :readonly="detailReadonly"
       />
+      <template v-if="!detailReadonly" #footer>
+        <div class="flex justify-end gap-2">
+          <Button @click="detailOpen = false">取消</Button>
+          <Button
+            type="primary"
+            :loading="editorSubmitting"
+            @click="onEditorOk"
+          >
+            保存
+          </Button>
+          <Button
+            type="primary"
+            ghost
+            :loading="editorSubmitting"
+            @click="onSaveAndSubmit"
+          >
+            保存并提交审核
+          </Button>
+        </div>
+      </template>
     </Drawer>
   </AdminPageShell>
 </template>
+
+<style scoped>
+@media (max-width: 768px) {
+  :global(.spu-drawer-mobile-fullscreen .ant-drawer-content-wrapper) {
+    width: 100% !important;
+  }
+}
+</style>
