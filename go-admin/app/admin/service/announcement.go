@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/go-admin-team/go-admin-core/sdk/service"
@@ -269,6 +270,9 @@ func (e *Announcement) Insert(c *dto.AnnouncementInsertReq) (int64, error) {
 				}
 			}
 		}
+		if _, err := rebindAnnouncementAttachments(tx, ann.AnnouncementId, ann.Content, ann.CoverImageUrl); err != nil {
+			e.Log.Warnf("rebind attachments after insert: %s", err)
+		}
 		return nil
 	})
 	if err != nil {
@@ -330,6 +334,9 @@ func (e *Announcement) Update(c *dto.AnnouncementUpdateReq, p *actions.DataPermi
 				}
 			}
 		}
+		if _, err := rebindAnnouncementAttachments(tx, existing.AnnouncementId, existing.Content, existing.CoverImageUrl); err != nil {
+			e.Log.Warnf("rebind attachments after update: %s", err)
+		}
 		return nil
 	})
 }
@@ -354,7 +361,8 @@ func (e *Announcement) Remove(c *dto.AnnouncementDeleteReq, p *actions.DataPermi
 	if len(allowed) == 0 {
 		return errors.New("公告不存在或无权删除")
 	}
-	return e.Orm.Transaction(func(tx *gorm.DB) error {
+	var pendingPaths []string
+	err := e.Orm.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("announcement_id IN ?", allowed).
 			Delete(&models.AnnouncementScope{}).Error; err != nil {
 			return err
@@ -367,8 +375,21 @@ func (e *Announcement) Remove(c *dto.AnnouncementDeleteReq, p *actions.DataPermi
 		if err := tx.Delete(&data, allowed).Error; err != nil {
 			return err
 		}
+		paths, err := removeAnnouncementAttachments(tx, allowed)
+		if err != nil {
+			return err
+		}
+		pendingPaths = paths
 		return nil
 	})
+	if err == nil {
+		for _, p := range pendingPaths {
+			if rmErr := os.Remove(p); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+				e.Log.Warnf("remove file %s: %s", p, rmErr)
+			}
+		}
+	}
+	return err
 }
 
 // MarkRead 幂等记录已读：首次写入读时间，重复调用不报错。

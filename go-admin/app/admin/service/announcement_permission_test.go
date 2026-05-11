@@ -11,6 +11,7 @@ import (
 
 	"go-admin/app/admin/models"
 	"go-admin/app/admin/service/dto"
+	platformModels "go-admin/app/platform/models"
 	"go-admin/common/actions"
 )
 
@@ -60,6 +61,7 @@ func setupAnnouncementPermDB(t *testing.T) (*Announcement, func()) {
 		&models.AnnouncementReadLog{},
 		&models.SysUser{},
 		&models.SysDept{},
+		&platformModels.AttachmentFile{},
 	); err != nil {
 		cleanup()
 		t.Fatalf("auto migrate: %v", err)
