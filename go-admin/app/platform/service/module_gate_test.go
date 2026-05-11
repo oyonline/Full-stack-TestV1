@@ -24,13 +24,15 @@ func newModuleGateDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func TestEnsureModuleEnabled_EmptyTablePassesThrough(t *testing.T) {
+// 空表且未注册 → 拒绝
+func TestEnsureModuleEnabled_EmptyTableRejects(t *testing.T) {
 	db := newModuleGateDB(t)
-	if err := EnsureModuleEnabled(db, "anything-goes"); err != nil {
-		t.Fatalf("expected nil (degraded passthrough on empty table), got %v", err)
+	if err := EnsureModuleEnabled(db, "anything-goes"); err == nil {
+		t.Fatalf("expected rejection on empty table, got nil")
 	}
 }
 
+// 命中 enabled 记录 → 放行
 func TestEnsureModuleEnabled_HitEnabledRow(t *testing.T) {
 	db := newModuleGateDB(t)
 	row := platformModels.ModuleRegistry{
@@ -48,6 +50,7 @@ func TestEnsureModuleEnabled_HitEnabledRow(t *testing.T) {
 	}
 }
 
+// 表非空但未命中 → 拒绝
 func TestEnsureModuleEnabled_MissOnNonEmptyEnabledTableRejects(t *testing.T) {
 	db := newModuleGateDB(t)
 	row := platformModels.ModuleRegistry{
@@ -69,8 +72,8 @@ func TestEnsureModuleEnabled_MissOnNonEmptyEnabledTableRejects(t *testing.T) {
 	}
 }
 
-// 路径 4：表里只有 status=1 的禁用记录 → status=2 的计数为 0 → 视同"空表"语义放行。
-func TestEnsureModuleEnabled_OnlyDisabledRowDegrades(t *testing.T) {
+// 表里只有 status=1 的禁用记录 → 仍拒绝（不再兜底放行）
+func TestEnsureModuleEnabled_OnlyDisabledRowRejects(t *testing.T) {
 	db := newModuleGateDB(t)
 	row := platformModels.ModuleRegistry{
 		ModuleKey:    "foo",
@@ -82,10 +85,10 @@ func TestEnsureModuleEnabled_OnlyDisabledRowDegrades(t *testing.T) {
 	if err := db.Create(&row).Error; err != nil {
 		t.Fatalf("seed disabled row: %v", err)
 	}
-	if err := EnsureModuleEnabled(db, "foo"); err != nil {
-		t.Fatalf("expected degraded passthrough (no enabled rows in table), got %v", err)
+	if err := EnsureModuleEnabled(db, "foo"); err == nil {
+		t.Fatalf("expected rejection for disabled module, got nil")
 	}
-	if err := EnsureModuleEnabled(db, "anything-else"); err != nil {
-		t.Fatalf("expected degraded passthrough for any key when no enabled rows exist, got %v", err)
+	if err := EnsureModuleEnabled(db, "anything-else"); err == nil {
+		t.Fatalf("expected rejection for unknown moduleKey when only disabled rows exist, got nil")
 	}
 }

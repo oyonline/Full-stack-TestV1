@@ -44,6 +44,20 @@ func newTestSpu(t *testing.T) *Spu {
 			t.Fatalf("clean %s: %v", tbl, err)
 		}
 	}
+	// 显式注入 admin 模块到 module_registry，确保 EnsureModuleEnabled 严格校验通过
+	if err := db.Create(&platformModels.ModuleRegistry{
+		ModuleKey:      "admin",
+		ModuleName:     "后台管理",
+		RouteBase:      "/admin",
+		MenuRootCode:   "admin",
+		Status:         "2",
+		Sort:           1,
+		PermissionHint: "admin",
+		Remark:         "test seed",
+	}).Error; err != nil {
+		t.Fatalf("seed admin module_registry: %v", err)
+	}
+
 	s := &Spu{}
 	s.Orm = db
 	s.Log = logger.NewHelper(logger.DefaultLogger)
