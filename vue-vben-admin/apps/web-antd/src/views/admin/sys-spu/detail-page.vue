@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { Button } from 'ant-design-vue';
 
 import AdminPageShell from '#/components/admin/page-shell.vue';
-import SpuDetailContent from '#/components/spu/SpuDetailContent.vue';
+import SpuDetailContent from './components/SpuDetailContent.vue';
 
 const route = useRoute();
 const router = useRouter();

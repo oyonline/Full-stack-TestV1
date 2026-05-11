@@ -48,7 +48,7 @@ import AdminActionButton from '#/components/admin/action-button.vue';
 import AdminErrorAlert from '#/components/admin/error-alert.vue';
 import AdminFilterField from '#/components/admin/filter-field.vue';
 import AdminPageShell from '#/components/admin/page-shell.vue';
-import SpuDetailContent from '#/components/spu/SpuDetailContent.vue';
+import SpuDetailContent from './components/SpuDetailContent.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 

@@ -3,7 +3,8 @@ import type { TableColumnType } from 'ant-design-vue';
 
 import type { SkuItem, SkuPageResult } from '#/api/core';
 
-import { onMounted } from 'vue';
+import { h, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { Button, Input, InputNumber, Select, Table, Tag } from 'ant-design-vue';
 
@@ -14,13 +15,25 @@ import AdminPageShell from '#/components/admin/page-shell.vue';
 import AdminTableColumnSettings from '#/components/admin/table-column-settings.vue';
 import { useAdminTable } from '#/composables/use-admin-table';
 import { useAdminTableColumns } from '#/composables/use-admin-table-columns';
-import { formatAdminDateTime } from '#/utils/admin-crud';
+import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
+
+const router = useRouter();
 
 const statusOptions = [
   { value: '' as const, label: '全部' },
   { value: 1, label: '禁用' },
   { value: 2, label: '启用' },
 ];
+
+function renderSpuStatusTag(status?: number) {
+  if (status == null) return renderAdminEmpty('');
+  if (status === 1) return h(Tag, { color: 'default' }, () => '草稿');
+  if (status === 2) return h(Tag, { color: 'blue' }, () => '待审核');
+  if (status === 3) return h(Tag, { color: 'green' }, () => '已通过');
+  if (status === 4) return h(Tag, { color: 'red' }, () => '已驳回');
+  if (status === 5) return h(Tag, { color: 'orange' }, () => '已下架');
+  return String(status);
+}
 
 const {
   errorMsg,
@@ -91,12 +104,40 @@ const baseColumns: TableColumnType[] = [
   },
   { title: '状态', dataIndex: 'status', key: 'status', width: 80 },
   {
+    title: 'SPU 编码',
+    dataIndex: 'spuCode',
+    key: 'spuCode',
+    width: 140,
+    customRender: ({ text }: { text: string }) => renderAdminEmpty(text),
+  },
+  {
+    title: 'SPU 名称',
+    dataIndex: 'spuName',
+    key: 'spuName',
+    width: 180,
+    ellipsis: true,
+    customRender: ({ text }: { text: string }) => renderAdminEmpty(text),
+  },
+  {
+    title: 'SPU 状态',
+    dataIndex: 'spuStatus',
+    key: 'spuStatus',
+    width: 100,
+    customRender: ({ text }: { text: number }) => renderSpuStatusTag(text),
+  },
+  {
     title: '创建时间',
     dataIndex: 'createdAt',
     key: 'createdAt',
     width: 180,
     customRender: ({ text }: { text: string }) => formatDateTime(text),
     customCell: () => ({ style: { whiteSpace: 'nowrap' } }),
+  },
+  {
+    title: '操作',
+    key: 'action',
+    width: 120,
+    fixed: 'right',
   },
 ];
 
@@ -204,6 +245,15 @@ onMounted(() => {
           >
             {{ (record as SkuItem).status === 2 ? '启用' : '禁用' }}
           </Tag>
+        </template>
+        <template v-if="column.key === 'action'">
+          <a
+            class="text-sm text-blue-600 hover:text-blue-800"
+            :href="router.resolve({ name: 'SpuDetail', params: { id: String((record as SkuItem).spuId) } }).href"
+            @click.prevent="router.push({ name: 'SpuDetail', params: { id: String((record as SkuItem).spuId) } })"
+          >
+            编辑 SPU
+          </a>
         </template>
       </template>
     </Table>
