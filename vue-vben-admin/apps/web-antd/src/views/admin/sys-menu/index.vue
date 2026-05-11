@@ -38,26 +38,7 @@ import { renderAdminEmpty, resolveAdminErrorMessage } from '#/utils/admin-crud';
 import { requestClient } from '#/api/request';
 
 /* -------- component 最小校验：与 access.ts 的路径集合对齐 -------- */
-/** 与 access.ts normalizeViewPath 一致：去 ./ ../、补前导 /、去 /views 前缀 */
-function normalizeViewPath(path: string): string {
-  const n = path.replace(/^(\.\/|\.\.\/)+/, '');
-  const viewPath = n.startsWith('/') ? n : `/${n}`;
-  return viewPath.replace(/^\/views/, '');
-}
-
-/** 与 access.ts buildValidViewPathSet 一致：从 glob 得到“有效视图路径”集合（不含 .vue） */
-function buildValidViewPathSet(pageMap: Record<string, unknown>): Set<string> {
-  const set = new Set<string>();
-  for (const key of Object.keys(pageMap)) {
-    const n = normalizeViewPath(key);
-    set.add(n.endsWith('.vue') ? n.slice(0, -4) : n);
-  }
-  return set;
-}
-
-const validViewPathSet = buildValidViewPathSet(
-  import.meta.glob('../../**/*.vue') as Record<string, unknown>,
-);
+import { normalizeViewPath, validViewPathSet } from '#/utils/web-antd-view-page-map';
 
 /**
  * 校验 component 是否允许提交：空允许；Layout/BasicLayout/IFrameView 允许；

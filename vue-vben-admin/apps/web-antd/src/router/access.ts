@@ -12,25 +12,13 @@ import { message } from 'ant-design-vue';
 import { getAllMenusApi } from '#/api';
 import { BasicLayout, IFrameView, RouteView } from '#/layouts';
 import { $t } from '#/locales';
+import {
+  normalizeViewPath,
+  pageMap as webAntdPageMap,
+  validViewPathSet as webAntdValidViewPathSet,
+} from '#/utils/web-antd-view-page-map';
 
 const forbiddenComponent = () => import('#/views/_core/fallback/forbidden.vue');
-
-/** 与 generate-routes-backend 一致的视图路径标准化（用于 component 与 pageMap key 匹配） */
-function normalizeViewPath(path: string): string {
-  const n = path.replace(/^(\.\/|\.\.\/)+/, '');
-  const viewPath = n.startsWith('/') ? n : `/${n}`;
-  return viewPath.replace(/^\/views/, '');
-}
-
-/** 从 glob 构建“有效视图路径”集合（不含 .vue），供 component 映射时查找 */
-function buildValidViewPathSet(pageMap: Record<string, unknown>): Set<string> {
-  const set = new Set<string>();
-  for (const key of Object.keys(pageMap)) {
-    const n = normalizeViewPath(key);
-    set.add(n.endsWith('.vue') ? n.slice(0, -4) : n);
-  }
-  return set;
-}
 
 const NOT_FOUND_COMPONENT = '/_core/fallback/not-found';
 const HOME_COMPONENT = '/home/index';
@@ -350,8 +338,6 @@ function mapSysMenuToRoute(
 }
 
 async function generateAccess(options: GenerateMenuAndRoutesOptions) {
-  const pageMap: ComponentRecordType = import.meta.glob('../views/**/*.vue');
-
   const layoutMap: ComponentRecordType = {
     BasicLayout,
     IFrameView,
@@ -365,8 +351,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
         content: `${$t('common.loadingMenu')}...`,
         duration: 1.5,
       });
-      const pageMap = import.meta.glob('../views/**/*.vue');
-      const validViewPathSet = buildValidViewPathSet(pageMap);
+      const validViewPathSet = webAntdValidViewPathSet;
       const raw = (await getAllMenusApi()) as unknown as GoAdminSysMenu[];
       if (!Array.isArray(raw)) return [];
       const list = raw
@@ -395,7 +380,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
     forbiddenComponent,
     // 如果 route.meta.menuVisibleWithForbidden = true
     layoutMap,
-    pageMap,
+    pageMap: webAntdPageMap as ComponentRecordType,
   });
   return result;
 }
