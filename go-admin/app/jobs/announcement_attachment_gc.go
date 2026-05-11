@@ -119,7 +119,9 @@ func gcReplacedOrphans(db *gorm.DB, dryRun bool, logPrefix string) (matched, rem
 	for _, ann := range announcements {
 		validPaths := make(map[string]struct{})
 		if ann.CoverImageUrl != "" {
-			validPaths[ann.CoverImageUrl] = struct{}{}
+			if p := service.NormalizeStoragePath(ann.CoverImageUrl); p != "" {
+				validPaths[p] = struct{}{}
+			}
 		}
 		for _, p := range service.ExtractStoragePathsFromContent(ann.Content) {
 			validPaths[p] = struct{}{}
