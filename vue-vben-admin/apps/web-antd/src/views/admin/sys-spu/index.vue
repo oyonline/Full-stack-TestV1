@@ -8,7 +8,6 @@ import type {
   SkuItem,
   SpuItem,
   SpuPageResult,
-  WorkflowInstanceAction,
 } from '#/api/core';
 
 /**
@@ -16,9 +15,9 @@ import type {
  * 列表 + 类目/品牌/状态 过滤 + 新增/编辑（富文本+主图+详情多图+SKU 子表）+ 提交审核 + 详情查看
  */
 import { computed, h, onMounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import {
-  Alert,
   Button,
   Drawer,
   Input,
@@ -27,7 +26,6 @@ import {
   Modal,
   Select,
   Table,
-  Tabs,
   Tag,
   TreeSelect,
 } from 'ant-design-vue';
@@ -40,9 +38,7 @@ import {
   getSkuBrandPage,
   getSkuCategoryTree,
   getSkuPage,
-  getSpuDetail,
   getSpuPage,
-  getWorkflowInstanceActions,
   submitSpu,
   updateSku,
   updateSpu,
@@ -57,6 +53,7 @@ import { formatAdminDateTime, renderAdminEmpty } from '#/utils/admin-crud';
 import AnnouncementCoverUpload from '../sys-announcement/cover-upload.vue';
 import AnnouncementRichTextEditor from '../sys-announcement/rich-text-editor.vue';
 import SpuDetailImages from './detail-images.vue';
+import SpuDetailContent from './components/SpuDetailContent.vue';
 
 /* -------- 状态映射 -------- */
 const SPU_STATUS = {
@@ -96,6 +93,8 @@ function renderStatusTag(status: number) {
     return h(Tag, { color: 'orange' }, () => '已下架');
   return String(status);
 }
+
+const router = useRouter();
 
 /* -------- 列表 -------- */
 const {
@@ -361,7 +360,8 @@ async function openEdit(record: SpuItem) {
   editorOpen.value = true;
   editorLoading.value = true;
   try {
-    const detail = await getSpuDetail(record.spuId);
+    const { getSpuDetail: fetchSpuDetail } = await import('#/api/core');
+    const detail = await fetchSpuDetail(record.spuId);
     editorForm.spuName = detail.spuName ?? '';
     editorForm.spuCode = detail.spuCode ?? '';
     editorForm.categoryId = detail.categoryId ?? undefined;
@@ -395,6 +395,9 @@ async function openEdit(record: SpuItem) {
     editorLoading.value = false;
   }
 }
+
+// 显式引用 openEdit 避免 TS6133（被 openEditDrawer 调用）
+void openEdit;
 
 function addSkuRow() {
   editorForm.skuRows.push(emptySkuRow());
@@ -555,97 +558,32 @@ function onDelete(record: SpuItem) {
 
 /* -------- 详情查看 -------- */
 const detailOpen = ref(false);
-const detailLoading = ref(false);
-const detailItem = ref<null | SpuItem>(null);
-const detailImages = ref<string[]>([]);
-const detailSkus = ref<SkuItem[]>([]);
-const detailActiveTab = ref<string>('basic');
+const detailSpuId = ref<null | number>(null);
+const detailReadonly = ref(false);
 
-/* -------- 审批历史 -------- */
-const approvalActions = ref<WorkflowInstanceAction[]>([]);
-const approvalLoading = ref(false);
-const approvalError = ref<string>('');
-
-const ACTION_LABELS: Record<string, string> = {
-  approve: '通过',
-  reject: '驳回',
-  start: '发起',
-  withdraw: '撤回',
-};
-
-function formatMinute(value: null | string | undefined): string {
-  if (!value) return '-';
-  try {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return value;
-  }
-}
-
-async function loadApprovalHistory(instanceId: number) {
-  approvalLoading.value = true;
-  approvalError.value = '';
-  approvalActions.value = [];
-  try {
-    const result = await getWorkflowInstanceActions(instanceId);
-    approvalActions.value = result.list ?? [];
-  } catch (error: any) {
-    approvalError.value = error?.message || '加载审批历史失败';
-  } finally {
-    approvalLoading.value = false;
-  }
-}
-
-function onDetailTabChange(key: number | string) {
-  detailActiveTab.value = String(key);
-  if (
-    key === 'approval_history' &&
-    detailItem.value?.workflowInstanceId &&
-    !approvalActions.value.length &&
-    !approvalLoading.value &&
-    !approvalError.value
-  ) {
-    void loadApprovalHistory(detailItem.value.workflowInstanceId);
-  }
-}
-
-async function openDetail(record: SpuItem) {
+function openDetail(record: SpuItem) {
+  detailSpuId.value = record.spuId;
+  detailReadonly.value = true;
   detailOpen.value = true;
-  detailLoading.value = true;
-  detailItem.value = null;
-  detailImages.value = [];
-  detailSkus.value = [];
-  detailActiveTab.value = 'basic';
-  approvalActions.value = [];
-  approvalError.value = '';
-  try {
-    const d = await getSpuDetail(record.spuId);
-    detailItem.value = d;
-    detailImages.value = parseDetailImages(d.detailImages);
-    const skuPage = await getSkuPage({
-      spuId: record.spuId,
-      pageIndex: 1,
-      pageSize: 200,
-    });
-    detailSkus.value = skuPage.list || [];
-  } catch (error: any) {
-    message.error(error?.message || '获取 SPU 详情失败');
-    detailOpen.value = false;
-  } finally {
-    detailLoading.value = false;
-  }
 }
 
-const detailSkuColumns: TableColumnType[] = [
-  { title: 'SKU 编码', dataIndex: 'skuCode', key: 'skuCode', width: 140 },
-  { title: 'SKU 名称', dataIndex: 'skuName', key: 'skuName', ellipsis: true },
-  { title: '规格', dataIndex: 'spec', key: 'spec', width: 120 },
-  { title: '单位', dataIndex: 'unit', key: 'unit', width: 80 },
-  { title: '价格', dataIndex: 'price', key: 'price', width: 100 },
-];
+function openEditDrawer(record: SpuItem) {
+  detailSpuId.value = record.spuId;
+  detailReadonly.value = false;
+  detailOpen.value = true;
+}
+
+function goToDetailPage(record: SpuItem) {
+  void router.push({ name: 'SpuDetail', params: { id: String(record.spuId) } });
+}
+
+function canEdit(status: number) {
+  return status === SPU_STATUS.draft || status === SPU_STATUS.rejected;
+}
+
+function canDelete(status: number) {
+  return status !== SPU_STATUS.reviewing;
+}
 
 onMounted(() => {
   void loadCategoryTree();
@@ -733,47 +671,62 @@ onMounted(() => {
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'action'">
-          <AdminActionButton
-            type="link"
-            size="small"
-            @click="openDetail(record as SpuItem)"
-          >
-            查看
-          </AdminActionButton>
-          <AdminActionButton
-            v-if="
-              (record as SpuItem).status === SPU_STATUS.draft ||
-              (record as SpuItem).status === SPU_STATUS.rejected
-            "
-            type="link"
-            size="small"
-            codes="admin:spu:edit"
-            @click="openEdit(record as SpuItem)"
-          >
-            编辑
-          </AdminActionButton>
-          <AdminActionButton
-            v-if="
-              (record as SpuItem).status === SPU_STATUS.draft ||
-              (record as SpuItem).status === SPU_STATUS.rejected
-            "
-            type="link"
-            size="small"
-            codes="admin:spu:edit"
-            @click="onSubmitReview(record as SpuItem)"
-          >
-            提交审核
-          </AdminActionButton>
-          <AdminActionButton
-            v-if="(record as SpuItem).status !== SPU_STATUS.reviewing"
-            type="link"
-            size="small"
-            danger
-            codes="admin:spu:remove"
-            @click="onDelete(record as SpuItem)"
-          >
-            删除
-          </AdminActionButton>
+          <!-- Draft / Rejected → 查看/编辑均开 Drawer -->
+          <template v-if="canEdit((record as SpuItem).status)">
+            <AdminActionButton
+              type="link"
+              size="small"
+              @click="openDetail(record as SpuItem)"
+            >
+              查看
+            </AdminActionButton>
+            <AdminActionButton
+              type="link"
+              size="small"
+              codes="admin:spu:edit"
+              @click="openEditDrawer(record as SpuItem)"
+            >
+              编辑
+            </AdminActionButton>
+            <AdminActionButton
+              type="link"
+              size="small"
+              codes="admin:spu:edit"
+              @click="onSubmitReview(record as SpuItem)"
+            >
+              提交审核
+            </AdminActionButton>
+            <AdminActionButton
+              type="link"
+              size="small"
+              danger
+              codes="admin:spu:remove"
+              @click="onDelete(record as SpuItem)"
+            >
+              删除
+            </AdminActionButton>
+          </template>
+
+          <!-- Reviewing / Approved / Offline → 查看走独立页 -->
+          <template v-else>
+            <a
+              class="inline-flex items-center px-2 py-1 text-sm text-blue-600 hover:text-blue-700"
+              @click.prevent="goToDetailPage(record as SpuItem)"
+              :href="router.resolve({ name: 'SpuDetail', params: { id: String((record as SpuItem).spuId) } }).href"
+            >
+              查看
+            </a>
+            <AdminActionButton
+              v-if="canDelete((record as SpuItem).status)"
+              type="link"
+              size="small"
+              danger
+              codes="admin:spu:remove"
+              @click="onDelete(record as SpuItem)"
+            >
+              删除
+            </AdminActionButton>
+          </template>
         </template>
       </template>
     </Table>
@@ -992,163 +945,19 @@ onMounted(() => {
       </template>
     </Drawer>
 
-    <!-- 详情查看抽屉 -->
+    <!-- 详情/编辑 共用 Drawer（SpuDetailContent 内核） -->
     <Drawer
       v-model:open="detailOpen"
-      :title="detailItem?.spuName || 'SPU 详情'"
-      :width="800"
+      :title="detailReadonly ? 'SPU 详情' : '编辑 SPU'"
+      :width="960"
       placement="right"
     >
-      <div v-if="detailLoading" class="py-8 text-center text-gray-400">
-        加载中…
-      </div>
-      <div v-else-if="detailItem">
-        <Tabs
-          :active-key="detailActiveTab"
-          @change="onDetailTabChange"
-        >
-          <Tabs.TabPane key="basic" tab="基本信息">
-            <div class="space-y-5 pt-2">
-              <div class="text-sm text-slate-500">
-                状态：<component :is="renderStatusTag(detailItem.status)" />
-                <span class="ml-4">编码：{{ detailItem.spuCode }}</span>
-                <span class="ml-4">
-                  类目：{{ categoryNameMap.get(detailItem.categoryId) || '-' }}
-                </span>
-                <span class="ml-4">
-                  品牌：{{ brandNameMap.get(detailItem.brandId) || '-' }}
-                </span>
-              </div>
-              <div v-if="detailItem.mainImageUrl">
-                <div class="mb-1 text-sm font-medium">主图</div>
-                <img
-                  :src="detailItem.mainImageUrl"
-                  class="max-h-72 rounded-sm object-contain"
-                  alt="main"
-                />
-              </div>
-              <div v-if="detailImages.length > 0">
-                <div class="mb-1 text-sm font-medium">详情图</div>
-                <div class="flex flex-wrap gap-2">
-                  <img
-                    v-for="(url, idx) in detailImages"
-                    :key="`${url}-${idx}`"
-                    :src="url"
-                    class="h-28 w-28 rounded-sm object-cover"
-                    alt="detail"
-                  />
-                </div>
-              </div>
-              <div>
-                <div class="mb-1 text-sm font-medium">详情</div>
-                <div
-                  class="prose max-w-none"
-                  v-html="detailItem.description || '<p class=\'text-gray-400\'>无详情</p>'"
-                ></div>
-              </div>
-              <div>
-                <div class="mb-2 text-sm font-medium">SKU 列表（{{ detailSkus.length }}）</div>
-                <Table
-                  :columns="detailSkuColumns"
-                  :data-source="detailSkus"
-                  :pagination="false"
-                  :row-key="(r: SkuItem) => r.skuId"
-                  size="small"
-                />
-              </div>
-            </div>
-          </Tabs.TabPane>
-
-          <Tabs.TabPane key="approval_history" tab="审批历史">
-            <!-- 加载态 -->
-            <div
-              v-if="approvalLoading"
-              class="py-8 text-center text-slate-400"
-            >
-              加载中…
-            </div>
-
-            <!-- 错误态 -->
-            <Alert
-              v-else-if="approvalError"
-              type="error"
-              :message="approvalError"
-              show-icon
-              class="mt-2 mb-4"
-            >
-              <template #action>
-                <Button
-                  size="small"
-                  @click="detailItem?.workflowInstanceId ? loadApprovalHistory(detailItem.workflowInstanceId) : undefined"
-                >
-                  重试
-                </Button>
-              </template>
-            </Alert>
-
-            <!-- 空态 -->
-            <div
-              v-else-if="!approvalActions.length"
-              class="py-8 text-center text-slate-400"
-            >
-              暂无审批记录
-            </div>
-
-            <!-- 时间轴 -->
-            <div
-              v-else
-              class="relative pl-6 pt-2"
-            >
-              <div
-                v-for="(item, idx) in approvalActions"
-                :key="item.actionId"
-                class="relative mb-6 last:mb-0"
-              >
-                <!-- 连接线 -->
-                <div
-                  v-if="idx < approvalActions.length - 1"
-                  class="absolute left-[-17px] top-3 h-full w-px bg-slate-200"
-                />
-                <!-- 圆点 -->
-                <div
-                  class="absolute left-[-21px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white"
-                  :style="{
-                    backgroundColor:
-                      item.action === 'approve' ? '#52c41a' :
-                      item.action === 'reject' ? '#ff4d4f' :
-                      item.action === 'withdraw' ? '#8c8c8c' :
-                      '#1677ff',
-                  }"
-                />
-                <div class="flex flex-wrap items-center gap-2">
-                  <Tag
-                    :color="
-                      item.action === 'approve' ? 'success' :
-                      item.action === 'reject' ? 'error' :
-                      item.action === 'withdraw' ? 'default' :
-                      'processing'
-                    "
-                  >
-                    {{ ACTION_LABELS[item.action] ?? item.action }}
-                  </Tag>
-                  <span class="text-sm font-medium text-slate-700">{{ item.operatorName }}</span>
-                  <Tag v-if="item.operatorRole" color="blue">{{ item.operatorRole }}</Tag>
-                  <span class="text-xs text-slate-400">{{ item.nodeKey }}</span>
-                </div>
-                <div
-                  v-if="item.comment"
-                  class="mt-1 text-sm text-slate-500"
-                >
-                  {{ item.comment }}
-                </div>
-                <div class="mt-0.5 text-xs text-slate-400">
-                  {{ formatMinute(item.operatedAt) }}
-                </div>
-              </div>
-            </div>
-          </Tabs.TabPane>
-        </Tabs>
-      </div>
+      <SpuDetailContent
+        v-if="detailSpuId != null"
+        :spu-id="detailSpuId"
+        mode="drawer"
+        :readonly="detailReadonly"
+      />
     </Drawer>
   </AdminPageShell>
 </template>
