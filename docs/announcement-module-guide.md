@@ -242,10 +242,22 @@ GORM 模型(运行时):
 
 ### 3.3 临时附件清理策略
 
-**当前实现:无**。富文本内嵌图全部以 `business_id='0'` 入 `att_file`,与具体公告
-没有任何关联,即使最终用户取消编辑或删了图,文件和 DB 行也都留在磁盘和表里。
+采用 **保存时 rebind + 离线 cron 兜底** 的双保险策略(实现见 [EPO-84](mention://issue/0c3e84ff-4903-441f-8ca4-9e8081c1d16a)):
 
-参见末节「已知缺口」。
+1. **rebind(主路径)**: `service.Announcement.Insert` / `Update` 提交事务前,
+   调用 `rebindAnnouncementAttachments(tx, announcementId, content, coverImageUrl)`。
+   该函数扫描 `content` 中的 `<img src>` 和 `coverImageUrl`,
+   把 `storage_path` 命中且 `business_id='0'` 的 `att_file` 行批量改写为公告 ID。
+   - 仅改写 `module_key='admin' AND business_type IN ('announcement-inline','announcement-cover')` 的**临时行**,
+     非临时行不受影响。
+   - `NormalizeStoragePath` 严格限定前缀 `static/uploadfile/attachment/`,
+     外部 URL 或相对路径不会误命中。
+
+2. **cron 兜底**: `AnnouncementAttachmentGC` job 按 `sys_job` 配置的 cron 表达式运行,
+   删除 `business_id='0' AND created_at < NOW()-24h` 的临时附件。
+   覆盖「用户取消编辑 / 关闭浏览器」等 rebind 无法触及的场景。
+
+参见 `app/admin/service/announcement_attachments.go` 与 `app/jobs/announcement_attachment_gc.go`。
 
 ---
 
@@ -265,20 +277,32 @@ GORM 模型(运行时):
 
 ### 4.2 垃圾回收
 
-**当前实现:无独立 GC**。删除路径仅有一条:
+**当前实现:两级 GC**(实现见 [EPO-84](mention://issue/0c3e84ff-4903-441f-8ca4-9e8081c1d16a))。
 
-- 用户在前端附件列表点"删除" → `DELETE /api/v1/platform/attachments/{id}`
-  → `apis.Attachment.Delete` → `service.Attachment.Delete`
-  → 单条事务:`DELETE FROM att_file WHERE attachment_id=?` + `os.Remove(storagePath)`,
-  权限校验:仅上传人本人或 admin 角色可删(`service/attachment.go:108-112`)。
+#### 级联删除(主路径)
+删除公告时,`service.Announcement.Remove` 在事务内调用:
+```go
+removeAnnouncementAttachments(tx, announcementIds)
+```
+- 按 `module_key='admin' AND business_type IN ('announcement','announcement-inline','announcement-cover')`
+  查出所有关联 `att_file` 行的 `storage_path`;
+- 事务内 `DELETE` 这些记录;
+- 返回的 `storagePaths` 在事务提交后由调用方 `os.Remove` 做物理删除(best-effort,
+  失败不影响主事务,留 cron 兜底)。
 
-下列场景**不会**触发任何清理:
+#### 离线 cron 兜底
+`AnnouncementAttachmentGC` 两阶段清理:
 
-- 删除公告(`service.Announcement.Remove`)只删 `announcement` / `announcement_scope` /
-  `announcement_read_log`,**不动 `att_file`**。该公告关联的所有附件、内嵌图、封面都遗留。
-- 用户在 wangeditor 里删了一张已上传的图(从 HTML 里 `<img>` 节点消失) —— `att_file` 行与磁盘文件都还在。
-- 用户更换封面(`cover-upload.vue` 重新走一次上传) —— 旧的 cover 文件残留。
-- 用户取消编辑、压根没保存公告 —— `business_id='0'` 的内嵌图 / 封面残留。
+1. **临时孤儿**: `business_id='0'` 且 `created_at < NOW()-24h`。
+2. **编辑替换孤儿**: 逐公告扫描,若某 `att_file` 行的 `storage_path`
+   已不在该公告 `content` / `cover_image_url` 中,则视为编辑时换图/删图产生的残留,
+   一并清理。
+
+默认 `dry_run=true`,运维需通过环境变量或配置显式切 `dry_run=false` 才执行真删。
+
+此外,用户仍可在前端附件列表单条删除 → `DELETE /api/v1/platform/attachments/{id}`
+→ `service.Attachment.Delete`(事务内删 `att_file` 行 + `os.Remove`)。
+该路径权限校验不变(仅上传人本人或 admin 角色可删)。
 
 ### 4.3 与实现不一致 / 已知缺口
 
@@ -290,15 +314,11 @@ GORM 模型(运行时):
   也没有"逻辑附件 + 物理文件"分表,跨公告复用 = 重复上传重复落盘。建议方案:
   a) 增加 `file_hash` (sha256) + `ref_count` 列,按 hash 去重物理文件;
   b) 或拆 `att_logical` / `att_blob` 两张表,逻辑层维护 ref。
-- **TODO: 与实现不一致 — 需开 issue 修** —— 任务描述要求"含临时附件清理策略",
-  当前内嵌图永远以 `business_id='0'` 入库且无回收。建议方案:
-  a) Insert/Update 公告时扫 `content` 里的 `<img src>`,把命中 `att_file`
-  的临时记录改写 `business_id` 为公告 ID;
-  b) 离线 cron 删除"`business_id='0'` 且 `created_at` 超过 N 天"的孤儿。
-- **TODO: 与实现不一致 — 需开 issue 修** —— `service.Announcement.Remove`
-  级联只清 `announcement_scope` / `announcement_read_log`,**不清** `att_file`
-  里 `module_key='admin' AND business_type IN ('announcement','announcement-cover','announcement-inline') AND business_id='<id>'`
-  的所有附件。删除公告会留下孤儿文件。
+- ✅ **已实现** —— 临时附件清理:保存时 rebind + 离线 cron 兜底(见 §3.3 / §4.2)。
+  实现 commit: `42568e9`, hotfix: `c948388`。
+- ✅ **已实现** —— 删除公告级联清附件:`Remove` 事务内调用 `removeAnnouncementAttachments`
+  删 `att_file` 行,commit 后 best-effort 物理删(见 §4.2)。
+  实现 commit: `42568e9`。
 - **TODO: 与实现不一致 — 需开 issue 修** —— 迁移在桥接 `MarkRead` 时挂在父
   菜单(`list` 权限),而不是迁移里同时建好的"标记公告已读"按钮(`admin:announcement:read`)
   上(`1778160000000_announcement.go:119`)。当前所有能进列表的人都能调 read,
