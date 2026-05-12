@@ -10,7 +10,7 @@ import { IconifyIcon } from '@vben/icons';
 import { preferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 
-import { Button, Skeleton, Tag } from 'ant-design-vue';
+import { Alert, Button, Skeleton, Tag } from 'ant-design-vue';
 
 import {
   getAppConfigApi,
@@ -167,6 +167,14 @@ onMounted(() => {
     class="min-h-full bg-[linear-gradient(180deg,#f5f7fb_0%,#eef3f8_100%)] p-6"
   >
     <div class="mx-auto max-w-7xl space-y-6">
+      <!-- Multica Agent 验证标记 -->
+      <Alert
+        message="✅ Modified by Multica Agent"
+        type="success"
+        show-icon
+        banner
+        class="rounded-md"
+      />
       <!-- 欢迎头部 -->
       <section class="app-radius-panel bg-white px-6 py-5 shadow-sm">
         <div
