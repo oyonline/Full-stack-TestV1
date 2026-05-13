@@ -8,6 +8,18 @@
 - 验收：`grep -rn 'baomitu' go-admin/static/` 必须为 0；表单构建页在屏蔽 baomitu 域名 / 断网情况下仍能渲染。
 - 重新升级 vue/element-ui/monaco/tinymce 版本时，需要同步刷新 vendor/ 内的对应资源，并确认 HTML 与 JS bundle 的引用路径仍然正确。
 
+## 登录失败文案与排查
+
+- JWT 中间件可能将「用户不存在 / 密码错误 / `status≠2`」等多种失败统一返回 **`incorrect Username or Password`**，易误判为仅密码问题。
+- **验证码**错误通常另有提示（如「验证码错误」）；验证码与 `uuid` **一次性**，失败后须重新获取。
+- **账号真相源**在数据库 `sys_user`，勿假设 README、文档示例密码与本地库一致。
+- 本地联调排查简表见 [`docs/local-dev-handoff.md`](../docs/local-dev-handoff.md)。
+
+## 数据库连接串日志脱敏
+
+- 后端 `database.Setup` 打印 DSN 时已对密码段脱敏（`user:***@tcp(...)`）。
+- 自定义日志中请勿打印完整 `database.source`。
+
 ## 数据库日志开关默认不在主配置启用
 
 - 数据库操作日志和登录日志是否落库，依赖 `logger.enableddb`。
@@ -119,8 +131,8 @@
   - `platform.workflow.task.approve` / `platform.workflow.task.reject` / `platform.workflow.instance.withdraw`（platform/apis/workflow.go）
 - 改 method 名前必须同步改测试和 `docs/sku-module-guide.md` 第 3.2 节，否则历史日志排查会断链。
 
-## SKU dataScope 端到端覆盖暂不完整
+## SKU dataScope 覆盖说明
 
-- 当前 `TestE2E_Spu_DataScope_DeptOnly` 只覆盖 dataScope=1（全部）和 dataScope=3（本部门）。
-- dataScope=2（自定义）/ 4（本部门及以下）/ 5（仅本人）在 SPU 上未做端到端冒烟，
-  口径与 announcement C7-5 一致（`announcement_data_scope_test.go`），可参考样板补全。
+- **服务层 SQLite 契约**：`go-admin/app/admin/service/spu_data_scope_test.go` 已覆盖 dataScope **1～5**（与 `announcement_data_scope_test.go` 同一 persona 拓扑）。
+- **集成 E2E（shared sqlite + 完整迁移表）**：`go-admin/app/admin/service/spu_e2e_test.go` 中 `TestE2E_Spu_DataScope_*` 覆盖 scope **1、2、3、4、5**（含 `TestE2E_Spu_DataScope_DeptOnly` 对 1 与 3 的验证）。
+- Playwright 浏览器 E2E 仍以列表页冒烟为主；细粒度 dataScope 以 Go 服务层测试为准。

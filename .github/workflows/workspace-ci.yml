@@ -1,0 +1,63 @@
+# 全栈工作区（go-admin + vue-vben-admin/web-antd）轻量 CI
+# 与各自子目录内 upstream 模板工作流并存；提交到本仓库时在本 workflow 下触发。
+
+name: workspace-ci
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: go-admin test + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go-admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go-admin/go.mod
+          cache-dependency-path: go-admin/go.sum
+
+      - name: Go test
+        run: go test ./...
+
+      - name: Go build
+        run: make build
+
+  frontend-web-antd:
+    name: web-antd typecheck + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vue-vben-admin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: vue-vben-admin/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # 后端菜单映射与动态路由依赖 packages/utils + apps/web-antd；typecheck 与 build 可捕获映射/类型错误。
+      - name: Typecheck web-antd
+        run: pnpm --filter @vben/web-antd run typecheck
+
+      - name: Build web-antd (local preset)
+        run: pnpm --filter @vben/web-antd run build:local

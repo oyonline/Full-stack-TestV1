@@ -20,6 +20,8 @@
   记录排查和验收手册。
 - [module-map.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/module-map.md)
   记录模块边界和职责归属。
+- [platform-backlog.md](/Users/linshen/Cursor/Full-stack-TestV1/docs/platform-backlog.md)
+  从 module-map 拾取的平台向待办（通知、审计收口、代码生成二阶段等），用于排期同步。
 - [project-roadmap.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/project-roadmap.md)
   记录当前阶段完成情况与后续方向。
 - [platform-layer-audit.md](/Users/linshen/Cursor/Full-stack-TestV1/.ai-memory/platform-layer-audit.md)

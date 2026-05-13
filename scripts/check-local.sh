@@ -11,7 +11,7 @@ echo "==> go test ./..."
 cd "$BACKEND_DIR"
 go test ./...
 
-echo "==> pnpm typecheck"
+echo "==> pnpm typecheck (web-antd：含后端路由映射与 views 对齐)"
 cd "$WEB_DIR"
 pnpm typecheck
 

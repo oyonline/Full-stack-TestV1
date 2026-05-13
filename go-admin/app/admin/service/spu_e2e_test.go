@@ -484,6 +484,175 @@ func TestE2E_Spu_DataScope_DeptOnly(t *testing.T) {
 	}
 }
 
+// TestE2E_Spu_DataScope_Self scope=5：同部门两用户各建一条 SPU，仅能看到本人创建的记录。
+func TestE2E_Spu_DataScope_Self(t *testing.T) {
+	f := newE2ESpuWithDP(t, true)
+	defer f.Cleanup()
+
+	dept := models.SysDept{DeptId: 300, DeptName: "team_self", DeptPath: "/300/", ParentId: 0}
+	if err := f.DB.Create(&dept).Error; err != nil {
+		t.Fatalf("seed dept: %v", err)
+	}
+	users := []models.SysUser{
+		{UserId: 51, NickName: "self-a", DeptId: 300, RoleId: 70, Status: "2"},
+		{UserId: 52, NickName: "self-b", DeptId: 300, RoleId: 70, Status: "2"},
+	}
+	for i := range users {
+		if err := f.DB.Create(&users[i]).Error; err != nil {
+			t.Fatalf("seed user: %v", err)
+		}
+	}
+	insA := &dto.SpuInsertReq{SpuCode: "SELF-A", SpuName: "mine"}
+	insA.SetCreateBy(51)
+	if _, err := f.Spu.Insert(insA); err != nil {
+		t.Fatalf("insert A: %v", err)
+	}
+	insB := &dto.SpuInsertReq{SpuCode: "SELF-B", SpuName: "other"}
+	insB.SetCreateBy(52)
+	if _, err := f.Spu.Insert(insB); err != nil {
+		t.Fatalf("insert B: %v", err)
+	}
+
+	dp := &actions.DataPermission{DataScope: "5", UserId: 51, DeptId: 300, RoleId: 70}
+	list := make([]dto.SpuListItem, 0)
+	var count int64
+	req := &dto.SpuPageReq{}
+	req.PageIndex = 1
+	req.PageSize = 50
+	if err := f.Spu.GetPage(req, dp, &list, &count); err != nil {
+		t.Fatalf("GetPage: %v", err)
+	}
+	if count != 1 || len(list) != 1 || list[0].SpuCode != "SELF-A" {
+		t.Fatalf("scope=5 user 51 want only SELF-A, got count=%d codes=%+v", count, list)
+	}
+}
+
+// TestE2E_Spu_DataScope_Custom scope=2：角色绑定 dept 500+600，用户 55 在 500，用户 56 在 600；55 应看到两条。
+func TestE2E_Spu_DataScope_Custom(t *testing.T) {
+	f := newE2ESpuWithDP(t, true)
+	defer f.Cleanup()
+
+	for _, d := range []models.SysDept{
+		{DeptId: 500, DeptName: "c500", DeptPath: "/500/", ParentId: 0},
+		{DeptId: 600, DeptName: "c600", DeptPath: "/600/", ParentId: 0},
+	} {
+		if err := f.DB.Create(&d).Error; err != nil {
+			t.Fatalf("seed dept: %v", err)
+		}
+	}
+	if err := f.DB.Exec(`INSERT INTO sys_role_dept(role_id, dept_id) VALUES (80, 500), (80, 600)`).Error; err != nil {
+		t.Fatalf("seed role_dept: %v", err)
+	}
+	users := []models.SysUser{
+		{UserId: 55, NickName: "cust55", DeptId: 500, RoleId: 80, Status: "2"},
+		{UserId: 56, NickName: "cust56", DeptId: 600, RoleId: 80, Status: "2"},
+	}
+	for i := range users {
+		if err := f.DB.Create(&users[i]).Error; err != nil {
+			t.Fatalf("seed user: %v", err)
+		}
+	}
+	ins5 := &dto.SpuInsertReq{SpuCode: "CUST-500", SpuName: "on 500"}
+	ins5.SetCreateBy(55)
+	if _, err := f.Spu.Insert(ins5); err != nil {
+		t.Fatalf("insert 500: %v", err)
+	}
+	ins6 := &dto.SpuInsertReq{SpuCode: "CUST-600", SpuName: "on 600"}
+	ins6.SetCreateBy(56)
+	if _, err := f.Spu.Insert(ins6); err != nil {
+		t.Fatalf("insert 600: %v", err)
+	}
+
+	dp := &actions.DataPermission{DataScope: "2", UserId: 55, DeptId: 500, RoleId: 80}
+	list := make([]dto.SpuListItem, 0)
+	var count int64
+	req := &dto.SpuPageReq{}
+	req.PageIndex = 1
+	req.PageSize = 50
+	if err := f.Spu.GetPage(req, dp, &list, &count); err != nil {
+		t.Fatalf("GetPage: %v", err)
+	}
+	got := make([]string, 0, len(list))
+	for _, it := range list {
+		got = append(got, it.SpuCode)
+	}
+	sort.Strings(got)
+	want := []string{"CUST-500", "CUST-600"}
+	sort.Strings(want)
+	if int(count) != 2 || len(got) != 2 {
+		t.Fatalf("scope=2 want 2 rows, got count=%d codes=%v", count, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("scope=2 want %v got %v", want, got)
+		}
+	}
+}
+
+// TestE2E_Spu_DataScope_DeptAndBelow scope=4：父部门负责人应看到子部门用户创建的 SPU。
+func TestE2E_Spu_DataScope_DeptAndBelow(t *testing.T) {
+	f := newE2ESpuWithDP(t, true)
+	defer f.Cleanup()
+
+	depts := []models.SysDept{
+		{DeptId: 400, DeptName: "sales", DeptPath: "/400/", ParentId: 0},
+		{DeptId: 401, DeptName: "sales_child", DeptPath: "/400/401/", ParentId: 400},
+	}
+	for i := range depts {
+		if err := f.DB.Create(&depts[i]).Error; err != nil {
+			t.Fatalf("seed dept: %v", err)
+		}
+	}
+	users := []models.SysUser{
+		{UserId: 53, NickName: "lead400", DeptId: 400, RoleId: 72, Status: "2"},
+		{UserId: 54, NickName: "mbr401", DeptId: 401, RoleId: 73, Status: "2"},
+	}
+	for i := range users {
+		if err := f.DB.Create(&users[i]).Error; err != nil {
+			t.Fatalf("seed user: %v", err)
+		}
+	}
+	insM := &dto.SpuInsertReq{SpuCode: "DM-MGR", SpuName: "mgr"}
+	insM.SetCreateBy(53)
+	if _, err := f.Spu.Insert(insM); err != nil {
+		t.Fatalf("insert mgr: %v", err)
+	}
+	insC := &dto.SpuInsertReq{SpuCode: "DM-CHILD", SpuName: "child"}
+	insC.SetCreateBy(54)
+	if _, err := f.Spu.Insert(insC); err != nil {
+		t.Fatalf("insert child: %v", err)
+	}
+
+	dpLead := &actions.DataPermission{DataScope: "4", UserId: 53, DeptId: 400, RoleId: 72}
+	list := make([]dto.SpuListItem, 0)
+	var count int64
+	req := &dto.SpuPageReq{}
+	req.PageIndex = 1
+	req.PageSize = 50
+	if err := f.Spu.GetPage(req, dpLead, &list, &count); err != nil {
+		t.Fatalf("GetPage lead: %v", err)
+	}
+	got := make([]string, 0, len(list))
+	for _, it := range list {
+		got = append(got, it.SpuCode)
+	}
+	sort.Strings(got)
+	want := []string{"DM-CHILD", "DM-MGR"}
+	if int(count) != 2 || len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("scope=4 lead want %v got %v count=%d", want, got, count)
+	}
+
+	dpLeaf := &actions.DataPermission{DataScope: "4", UserId: 54, DeptId: 401, RoleId: 73}
+	list2 := make([]dto.SpuListItem, 0)
+	var count2 int64
+	if err := f.Spu.GetPage(req, dpLeaf, &list2, &count2); err != nil {
+		t.Fatalf("GetPage leaf: %v", err)
+	}
+	if count2 != 1 || len(list2) != 1 || list2[0].SpuCode != "DM-CHILD" {
+		t.Fatalf("scope=4 leaf want only DM-CHILD, got %+v count=%d", list2, count2)
+	}
+}
+
 // TestE2E_Spu_AuditMethod_Contract 是契约测试：apis/spu.go 与 platform/apis/workflow.go
 // 真正落盘的审计 Method 字符串，是后续日志/告警/排查链路的稳定 key——
 // 一旦改名就会让历史日志查询失效。这里钉死。

@@ -19,6 +19,20 @@ migrate:
 .PHONY: build-and-migrate
 build-and-migrate: build migrate
 
+# 与 migrate 相同流程，但使用联调常用 config/settings.dev.yml（需文件已存在，通常来自本机或模板）
+.PHONY: migrate-dev
+migrate-dev:
+	@if [ ! -f config/settings.dev.yml ]; then \
+		echo "ERROR: config/settings.dev.yml 不存在。请创建或从团队获取后再试。"; \
+		exit 1; \
+	fi
+	go mod download
+	go build -o ./go-admin .
+	./go-admin migrate -c config/settings.dev.yml
+
+.PHONY: build-and-migrate-dev
+build-and-migrate-dev: build migrate-dev
+
 # make build-linux
 build-linux:
 	@docker build -t go-admin:latest .

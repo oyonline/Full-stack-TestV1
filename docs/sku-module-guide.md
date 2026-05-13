@@ -181,7 +181,9 @@ go test -run TestE2E_Spu ./app/admin/service/  # 仅跑 C4-D 端到端测试
 - `TestE2E_Spu_Submit_Approve_Writeback`：完整提交→审批→回写
 - `TestE2E_Spu_Submit_Reject_Writeback`：驳回路径
 - `TestE2E_Spu_Resubmit_After_Reject`：驳回后重提，新 wf_instance + 旧 binding 替换
-- `TestE2E_Spu_DataScope_DeptOnly`：dataScope=3 仅看本部门
+- `TestE2E_Spu_DataScope_DeptOnly`：dataScope=1/3 与本部门隔离（含 admin 全量）
+- `TestE2E_Spu_DataScope_Self` / `TestE2E_Spu_DataScope_Custom` / `TestE2E_Spu_DataScope_DeptAndBelow`：dataScope=5 / 2 / 4
+- `TestSpu_DataScope_*`（`spu_data_scope_test.go`）：与公告同一拓扑的 5 路 dataScope 契约
 - `TestE2E_Spu_AuditMethod_Contract` / `TestE2E_Spu_AuditEmit_OnSubmit`：审计 method 名稳定契约
 
 ### 3.2 审计日志（sys_opera_log）
