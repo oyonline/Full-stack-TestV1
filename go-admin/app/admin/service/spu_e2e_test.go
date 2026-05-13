@@ -757,10 +757,10 @@ func TestE2E_Spu_AuditEmit_OnSubmit(t *testing.T) {
 //
 // 测试矩阵：
 //   - 空 DB → AutoMigrate base schema（替代 1599190683659_tables，该步依赖磁盘 config/db.sql）
-//   - 运行其余所有 migration，含 1779000000001_spu_workflow_seed 和
-//     1779000000003_product_role_seed（EPO-54）
-//   - 从 sys_role 捞 product_operator（data_scope=5）/ product_admin（data_scope=1）
-//   - product_operator 创 SPU → 提交审核 → product_admin 通过 → SPU.status=3
+//   - 运行其余所有 migration，含 1779000000001_spu_workflow_seed、
+//     1779000000003_product_role_seed（EPO-54）与 1779000000005_product_director_manager_roles
+//   - 从 sys_role 捞 product_operator（data_scope=5）/ product_director（data_scope=1，approve_1 指向该角色）
+//   - product_operator 创 SPU → 提交审核 → product_director 通过 → SPU.status=3
 //   - product_operator data_scope=5 列表过滤验证
 //
 // 前置：EPO-54 migration 1779000000003_product_role_seed.go 必须已 merge；
@@ -811,6 +811,7 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 
 	// 运行其余所有已注册的 migration（_ "go-admin/cmd/migrate/migration/version" 在 init() 里注册）
 	// 包括：1779000000001_spu_workflow_seed + 1779000000003_product_role_seed（EPO-54）
+	// + 1779000000005（approve_1 重定向到 product_director）
 	migration.Migrate.SetDb(db)
 	migration.Migrate.Migrate()
 
@@ -831,18 +832,26 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 		t.Fatalf("product_admin.data_scope=%q, want \"1\"", adminRole.DataScope)
 	}
 
-	// wf_definition + approve_1 节点应由 migration 建好
+	var directorRole models.SysRole
+	if err := db.Table("sys_role").Where("role_key = ?", "product_director").First(&directorRole).Error; err != nil {
+		t.Fatalf("product_director 角色缺失（迁移 1779000000005 未注册？）: %v", err)
+	}
+	if directorRole.DataScope != "1" {
+		t.Fatalf("product_director.data_scope=%q, want \"1\"", directorRole.DataScope)
+	}
+
+	// wf_definition + approve_1 节点应由 migration 建好（0005 后指向 product_director）
 	var wfDef platformModels.WorkflowDefinition
 	if err := db.Where("definition_key = ?", SpuDefaultDefinitionKey).First(&wfDef).Error; err != nil {
 		t.Fatalf("wf_definition spu_create_review 缺失: %v", err)
 	}
 	var wfNode platformModels.WorkflowDefinitionNode
 	if err := db.Where("definition_id = ? AND node_key = ?", wfDef.DefinitionId, "approve_1").First(&wfNode).Error; err != nil {
-		t.Fatalf("wf_definition_node approve_1 缺失（product_admin 需先存在）: %v", err)
+		t.Fatalf("wf_definition_node approve_1 缺失: %v", err)
 	}
-	if wfNode.ApproverValue != strconv.Itoa(adminRole.RoleId) {
-		t.Fatalf("approve_1.approver_value=%q, want %q (product_admin.role_id)",
-			wfNode.ApproverValue, strconv.Itoa(adminRole.RoleId))
+	if wfNode.ApproverValue != strconv.Itoa(directorRole.RoleId) {
+		t.Fatalf("approve_1.approver_value=%q, want %q (product_director.role_id)",
+			wfNode.ApproverValue, strconv.Itoa(directorRole.RoleId))
 	}
 
 	// 开启 dataScope 以验证 product_operator data_scope=5 的列表过滤
@@ -860,8 +869,8 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 	if err := db.Create(&operator).Error; err != nil {
 		t.Fatalf("seed operator: %v", err)
 	}
-	// 测试用户：product_admin（UserId=202）
-	approver := models.SysUser{UserId: 202, NickName: "产品管理员", Status: "2", RoleId: adminRole.RoleId, DeptId: 10}
+	// 测试用户：product_director（UserId=202）
+	approver := models.SysUser{UserId: 202, NickName: "产品总监", Status: "2", RoleId: directorRole.RoleId, DeptId: 10}
 	if err := db.Create(&approver).Error; err != nil {
 		t.Fatalf("seed approver: %v", err)
 	}
@@ -882,9 +891,9 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 		t.Fatalf("SubmitForReview: %v", err)
 	}
 
-	// product_admin 取 pending task → approve → SPU.status=3
+	// product_director 取 pending task → approve → SPU.status=3
 	task := findPendingTask(t, db, instanceID)
-	approverCtx := makeRoleAuthCtx(approver.UserId, approver.NickName, []int{adminRole.RoleId})
+	approverCtx := makeRoleAuthCtx(approver.UserId, approver.NickName, []int{directorRole.RoleId})
 	if _, err := wf.Approve(approverCtx, task.TaskId, "LGTM"); err != nil {
 		t.Fatalf("Approve: %v", err)
 	}
@@ -932,17 +941,17 @@ func TestSpuCreateReview_FromFreshMigration(t *testing.T) {
 			}())
 	}
 
-	// product_admin data_scope=1 应看到全部 SPU
-	dpAdmin := &actions.DataPermission{DataScope: "1", UserId: approver.UserId, DeptId: approver.DeptId, RoleId: adminRole.RoleId}
-	listAdmin := make([]dto.SpuListItem, 0)
-	var countAdmin int64
+	// product_director data_scope=1 应看到全部 SPU
+	dpDirector := &actions.DataPermission{DataScope: "1", UserId: approver.UserId, DeptId: approver.DeptId, RoleId: directorRole.RoleId}
+	listDirector := make([]dto.SpuListItem, 0)
+	var countDirector int64
 	pageReq2 := &dto.SpuPageReq{}
 	pageReq2.PageIndex = 1
 	pageReq2.PageSize = 50
-	if err := s.GetPage(pageReq2, dpAdmin, &listAdmin, &countAdmin); err != nil {
-		t.Fatalf("GetPage for admin: %v", err)
+	if err := s.GetPage(pageReq2, dpDirector, &listDirector, &countDirector); err != nil {
+		t.Fatalf("GetPage for director: %v", err)
 	}
-	if countAdmin != 2 {
-		t.Fatalf("product_admin(data_scope=1) expected 2 SPUs, got %d", countAdmin)
+	if countDirector != 2 {
+		t.Fatalf("product_director(data_scope=1) expected 2 SPUs, got %d", countDirector)
 	}
 }
