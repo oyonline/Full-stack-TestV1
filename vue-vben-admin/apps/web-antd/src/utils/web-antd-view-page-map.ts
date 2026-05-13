@@ -3,9 +3,14 @@
  * 避免两边各自 import.meta.glob 导致路径集合不一致。
  */
 
-/** 与 access.ts 的 normalizeViewPath 一致：去 ./ ../、补前导 /、去 /views 前缀 */
+/** 与 generate-routes-backend.ts 的 normalizeViewPath 一致：
+ *  先处理 import.meta.glob 常见的 key 前缀（#/views、/src/views），
+ *  再去 ./ ../、补前导 /、去 /views 前缀 */
 function normalizeViewPath(path: string): string {
-  const n = path.replace(/^(\.\/|\.\.\/)+/, '');
+  let n = path
+    .replace(/^#\/views/, '')
+    .replace(/^\/src\/views/, '');
+  n = n.replace(/^(\.\/|\.\.\/)+/, '');
   const viewPath = n.startsWith('/') ? n : `/${n}`;
   return viewPath.replace(/^\/views/, '');
 }
@@ -20,7 +25,7 @@ function buildValidViewPathSet(pageMap: Record<string, unknown>): Set<string> {
   return set;
 }
 
-const pageMap = import.meta.glob('#/views/**/*.vue');
+const pageMap = import.meta.glob('../views/**/*.vue');
 const validViewPathSet = buildValidViewPathSet(pageMap);
 
 export { buildValidViewPathSet, normalizeViewPath, pageMap, validViewPathSet };

@@ -94,8 +94,13 @@ function convertRoutes(
 }
 
 function normalizeViewPath(path: string): string {
+  // 先处理 import.meta.glob 常见的 key 前缀
+  let normalizedPath = path
+    .replace(/^#\/views/, '')
+    .replace(/^\/src\/views/, '');
+
   // 去除相对路径前缀
-  const normalizedPath = path.replace(/^(\.\/|\.\.\/)+/, '');
+  normalizedPath = normalizedPath.replace(/^(\.\/|\.\.\/)+/, '');
 
   // 确保路径以 '/' 开头
   const viewPath = normalizedPath.startsWith('/')
