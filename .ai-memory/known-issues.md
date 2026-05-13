@@ -118,10 +118,11 @@
 ## SKU 模块（C4）的运营落地需要手工补节点
 
 - 迁移 `1779000000001_spu_workflow_seed.go` 在 `product_admin` 角色不存在时跳过节点种子。
-- fresh install 场景下，迁移先于角色种子执行，需要后续手工进 `流程中心` → `定义管理` →
-  'SPU 创建审核' 给定义补一个 `approver_type=role`、`approver_value=<product_admin role_id>` 的审批节点。
+- 迁移 `1779000000003_product_role_seed.go` 会补 `product_admin` / `product_operator` 并回灌节点（指向 `product_admin`）。
+- 迁移 `1779000000005_product_director_manager_roles.go` 会新增 **`product_director`（产品总监）**、**`product_manager`（产品经理）**，并把 `spu_create_review` 的 `approve_1` 从 `product_admin` **重定向到 `product_director`**（仅当节点仍指向当前 `product_admin.role_id` 时）。
+- 若极端顺序下仍缺节点，需手工在 `流程中心` → `定义管理` → `SPU 创建审核` 补 `approver_type=role`、`approver_value=<product_director role_id>`。
 - 没有审批节点时 `Spu.SubmitForReview` 直接返回 "流程定义未配置审批节点"。
-- 完整模块使用指南：[docs/sku-module-guide.md](/Users/linshen/Cursor/Full-stack-TestV1/docs/sku-module-guide.md)。
+- 完整模块使用指南：[docs/sku-module-guide.md](../docs/sku-module-guide.md)。
 
 ## SKU 模块审计 method 名稳定契约
 

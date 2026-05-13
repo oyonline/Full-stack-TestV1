@@ -127,15 +127,18 @@ API client：`vue-vben-admin/apps/web-antd/src/api/admin/{spu,sku,skuCategory,sk
 
 ### 2.1 角色
 
-至少需要预创建 / 验证两个角色：
+迁移 `1779000000003_product_role_seed` 会种子 **`product_admin` / `product_operator`**（历史命名）。
 
-| RoleKey | 名称 | 关键权限 |
-|---------|------|----------|
-| `product_admin` | 产品管理员 | `admin:spu:approve`、`admin:spu:reject`、`admin:spu:list`、`admin:spu:edit`（看待办、审批） |
-| `product_operator` | 产品操作员 | `admin:spu:add`、`admin:spu:edit`、`admin:spu:submit`、`admin:spu:list` |
+迁移 **`1779000000005_product_director_manager_roles`** 会再种子 **`product_director`（产品总监）** 与 **`product_manager`（产品经理）**，并把 `spu_create_review` 的 `approve_1` 节点从「指向 `product_admin` 角色」**重定向为指向 `product_director` 角色**（仅当节点仍为 `role` 且 `approver_value` 等于当前 `product_admin.role_id` 时）。两对角色可并存：新环境建议把人挂在 **总监/经理** 上；旧数据仍保留管理员/操作员角色以便过渡。
 
-> dataScope：`product_operator` 通常配 `data_scope=3`（本部门）或 `data_scope=5`（仅本人），
-> `product_admin` 配 `data_scope=1`（全部，方便审批）。
+| RoleKey | 名称 | 典型职责 | dataScope（种子默认） |
+|---------|------|----------|------------------------|
+| `product_director` | 产品总监 | 待办、通过、驳回（平台 workflow API） | `1`（全部） |
+| `product_manager` | 产品经理 | SPU/SKU 维护、提交审核、撤回、我发起的流程 | `5`（仅本人） |
+| `product_admin` | 产品管理员 | 与总监同档菜单 + 审批 API（节点默认已改指向总监） | `1` |
+| `product_operator` | 产品操作员 | 与经理同档 SPU/SKU 写权限（类目/品牌只读） | `5` |
+
+> **集中运营（SKU 可维护任意 SPU）**：SKU 写接口不按 SPU 的部门切片时，通常给维护账号配 **`data_scope=1`** 的角色或单独平台运营角色；与「经理默认仅本人」不矛盾——以实际给用户绑定的角色与 dataScope 为准。
 
 ### 2.2 流程定义
 
@@ -146,11 +149,11 @@ API client：`vue-vben-admin/apps/web-antd/src/api/admin/{spu,sku,skuCategory,sk
 - `business_type=spu`
 - `status=2`（启用）
 
-**必要手工动作**（管理员后台进 `流程中心` → `定义管理` → 'SPU 创建审核'）：
+**必要手工动作**（仅在迁移未跑全或手工改过定义时；全量 migrate 且已执行 `1779000000005` 时通常可跳过）：
 
 1. 确认存在至少一个 `approve` 类型节点
-2. 节点的 `approver_type=role`、`approver_value=<product_admin role_id>`
-3. 如果迁移时 `product_admin` 不存在，节点不会被自动种子——必须手工补
+2. 节点的 `approver_type=role`、`approver_value=<product_director role_id>`（迁移 0005 后默认指向产品总监角色）
+3. 若早期环境在 `product_admin` 尚未存在时跑过工作流种子，可能缺节点——须手工补
 
 > 没有审批节点会让 `Spu.SubmitForReview` 直接返回 "流程定义未配置审批节点"。
 
@@ -158,9 +161,9 @@ API client：`vue-vben-admin/apps/web-antd/src/api/admin/{spu,sku,skuCategory,sk
 
 按 `bd show my-pwj` 中 C4-D 验收清单，至少跑下面 5 条：
 
-1. `product_operator` 创建 SPU + 多 SKU + 上传主图 / 详情图 / 富文本描述 → 提交审核
-2. `product_admin` 查看待办 → 通过 → SPU.status 推进到 3（已通过）+ `approved_at` 写回
-3. `product_admin` 驳回 → SPU.status=4（已驳回）
+1. `product_manager`（或 `product_operator`）创建 SPU + 多 SKU + 上传主图 / 详情图 / 富文本描述 → 提交审核
+2. `product_director`（或仍绑定 `product_admin` 的账号）查看待办 → 通过 → SPU.status 推进到 3（已通过）+ `approved_at` 写回
+3. `product_director` 驳回 → SPU.status=4（已驳回）
 4. 创建人改一改 → 再提交 → 新建 wf_instance + 旧 binding 被替换 + status 推回 Reviewing
 5. dataScope：`data_scope=3` 的 `product_operator` 列表 SPU 时仅看到本部门同事的记录
 
